@@ -50,6 +50,8 @@
   .hold{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 18px;font-size:17px;max-width:720px;text-align:center;
         margin:0 0 14px;line-height:1.45}
   .hold b{color:var(--accent)}
+  .hold .rule{list-style:none;padding:0;margin:8px 0;display:flex;flex-wrap:wrap;gap:6px 10px;justify-content:center}
+  .hold .rule li{background:var(--bg);border-radius:10px;padding:4px 12px}
   .formula{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;font-size:42px;font-weight:800;font-family:ui-monospace,Consolas,monospace;margin:4px 0}
   .formula.long{font-size:26px;gap:8px}
   .tok{padding:4px 18px;border-radius:14px;background:var(--card);border:3px solid transparent;color:#9aa3b5;transition:all .25s;white-space:nowrap}
@@ -286,25 +288,20 @@ const ALGS = [
     tips:['The front-right corner stays put, the other three cycle around.',
           'Might need two rounds. Keep the same corner at front right.'] },
 
-  { id:'corner-twist-down', step:'Step 7a · finish', title:'Twist the yellow corners (yellow down)',
+  { id:'corner-twist', step:'Step 7 · finish', title:'Twist the yellow corners',
     moves:"R U R' U' R U R' U' D R U R' U' R U R' U' R U R' U' R U R' U' D'",
     groups:[["R U R' U'",4],["R U R' U'",4],["D",1],["R U R' U'",4],["R U R' U'",4],["R U R' U'",4],["R U R' U'",4],["D'",1]],
     short:"(R U R' U') ×2  D  (R U R' U') ×4  D'", focus:'all', view:'below', flip:true,
     purpose:'The easy finish: just the Righty move you already know. Flip the cube so yellow faces down, Righty until the corner is right, turn the bottom, repeat.',
-    hold:'<b>Flip the cube over: yellow on the bottom</b>, green still facing you. Put a twisted corner at the <b>bottom front right</b>. Do Righty (2 or 4 times) until its yellow faces the floor. Then turn <b>only the bottom layer (D)</b> to bring the next twisted corner there. Never turn the whole cube.',
-    tips:['Same idea as 7b, but with Righty instead of a new formula. Nothing new to learn!',
-          'This example twists two corners: Righty twice on the first, four times on the second.',
+    hold:'<b>Flip the cube over: yellow on the bottom</b>, green still facing you. Put a twisted corner at the <b>bottom front right</b> and look where its yellow sticker points:'+
+         '<ul class="rule"><li>Yellow facing <b>right</b> &rarr; Righty <b>2 times</b></li>'+
+         '<li>Yellow facing <b>you</b> &rarr; Righty <b>4 times</b></li>'+
+         '<li>Yellow facing <b>down</b> &rarr; this corner is done</li></ul>'+
+         'Then turn <b>only the bottom layer (D)</b> to bring the next twisted corner to the bottom front right. Never turn the whole cube.',
+    tips:['This example twists two corners: the first has yellow facing right (Righty 2 times), the second has yellow facing you (Righty 4 times).',
+          'Not sure? Just keep doing Righty and check the corner after every 2. It is never more than 4.',
           'The top two layers look scrambled halfway. Do not panic and do not fix them. They come back when the last corner is done.',
           'Finish with a bottom turn to line up the yellow layer. Solved!'] },
-
-  { id:'corner-twist', step:'Step 7b · finish', title:'Twist the yellow corners (yellow up)', moves:"R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U'",
-    short:"(R' D' R D) ×2  U  (R' D' R D) ×4  U'",
-    groups:[["R' D' R D",4],["R' D' R D",4],["U",1],["R' D' R D",4],["R' D' R D",4],["R' D' R D",4],["R' D' R D",4],["U'",1]], focus:'all',
-    purpose:'Same job as 7a without flipping the cube. "R\' D\' R D" again and again until the corner shows yellow on top, then turn the top to the next corner. The bottom looks broken halfway. It comes back.',
-    hold:'A twisted corner at the <b>front right</b>. Repeat "R\' D\' R D" (2 or 4 times) until it is yellow on top. Then turn <b>only the top layer</b> to bring the next twisted corner to the front right. Never turn the whole cube.',
-    tips:['This example twists two corners: two rounds on the first, four on the second.',
-          'The bottom layers scramble while you work. Do not fix them. They are back when the last corner is done.',
-          'Finish with a top turn to line everything up. Solved!'] },
 ];
 
 /* ============================================================
