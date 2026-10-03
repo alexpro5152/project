@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cube Beginner Method</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2233; --muted:#6b7280;
+    --accent:#2563eb; --hi:#fde047; --line:#e3e7f0;
+    --W:#ffffff; --Y:#ffd500; --R:#e53935; --O:#ff8c00; --G:#2ecc40; --B:#1e63d4; --dim:#c3c8d4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  a{color:inherit;text-decoration:none}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  header .brand{font-weight:800;font-size:18px}
+  header .grip{color:var(--muted);font-size:15px}
+  main{max-width:1100px;margin:0 auto;padding:24px 16px 56px;display:flex;flex-direction:column;align-items:center}
+  h1{font-size:34px;margin:0 0 6px;text-align:center}
+  h2{font-size:30px;margin:0 0 4px;text-align:center}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:18px;text-align:center;max-width:720px;line-height:1.45}
+  .sub b{color:var(--ink)}
+
+  /* --- cube --- */
+  .scene{perspective:1100px;perspective-origin:50% 45%}
+  .cube{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+  .cubie{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
+  .face{position:absolute;inset:0;background:#111}
+  .face::after{content:'';position:absolute;inset:4%;border-radius:12%;background:var(--c,#1b1b1b)}
+  .cubie.dim .face::after{background:var(--dim)}
+  .cubie.dim .face.inner::after{background:#1b1b1b}
+
+  /* --- overview --- */
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;color:var(--muted);font-size:15px;margin:0 0 22px;
+          background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 18px;max-width:760px}
+  .legend b{color:var(--ink);font-family:ui-monospace,Consolas,monospace}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;width:100%}
+  .card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px 16px 16px;display:flex;flex-direction:column;
+        gap:6px;transition:border-color .2s,transform .2s;cursor:pointer}
+  .card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .step{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+  .card .scene{width:100%;height:150px;perspective:600px;margin:2px 0}
+  .card h3{margin:0;font-size:19px}
+  .card .f{font-family:ui-monospace,Consolas,monospace;font-weight:800;font-size:18px;color:var(--ink);word-break:break-word}
+  .card p{margin:0;color:var(--muted);font-size:14px;line-height:1.4}
+
+  /* --- detail --- */
+  .back{align-self:flex-start;color:var(--accent);font-weight:600;font-size:16px;margin-bottom:10px}
+  .hold{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 18px;font-size:17px;max-width:720px;text-align:center;
+        margin:0 0 14px;line-height:1.45}
+  .hold b{color:var(--accent)}
+  .formula{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;font-size:42px;font-weight:800;font-family:ui-monospace,Consolas,monospace;margin:4px 0}
+  .formula.long{font-size:26px;gap:8px}
+  .tok{padding:4px 18px;border-radius:14px;background:var(--card);border:3px solid transparent;color:#9aa3b5;transition:all .25s;white-space:nowrap}
+  .formula.long .tok{padding:2px 12px}
+  .tok.done{color:var(--ink)}
+  .tok.active{border-color:var(--accent);background:var(--hi);color:var(--ink);transform:scale(1.1)}
+  .desc{min-height:32px;font-size:21px;color:var(--muted);margin:8px 0 4px;text-align:center;max-width:700px}
+  .big{width:min(520px,100%);height:520px;margin:4px 0 8px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin:8px 0 4px}
+  button{font:inherit;font-size:18px;font-weight:600;padding:10px 18px;border-radius:12px;border:2px solid #d7dbe6;background:#fff;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--accent)}
+  button:disabled{opacity:.45;cursor:default}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .speed{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:16px;margin-left:8px}
+  .strip{display:flex;gap:6px;align-items:center;margin-top:20px;flex-wrap:wrap;justify-content:center}
+  .snap{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 10px 6px;border-radius:14px;background:var(--card);
+        border:3px solid transparent;transition:border-color .25s}
+  .snap.active{border-color:var(--accent)}
+  .snap .scene{width:130px;height:145px;perspective:520px}
+  .snap .lbl{font-weight:700;font-size:15px;text-align:center}
+  .snap .lbl small{display:block;color:var(--muted);font-weight:500;font-size:12px;font-family:ui-monospace,Consolas,monospace}
+  .arrow{font-size:28px;color:#9aa3b5}
+  .tips{max-width:720px;margin:24px 0 0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 22px 14px 36px;font-size:16px;line-height:1.55;color:#3b4254}
+  .tips li{margin:4px 0}
+  .nav{display:flex;gap:14px;margin-top:22px;font-weight:600;color:var(--accent);font-size:17px;flex-wrap:wrap;justify-content:center}
+  @media (max-width:560px){
+    .big{height:380px}
+    .formula{font-size:32px;gap:8px} .tok{padding:2px 12px}
+    .arrow{display:none}
+    header .grip{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="#">&#129513; Cube Beginner Method</a>
+  <span class="grip">Grip: yellow on top, green facing you</span>
+</header>
+<main id="app"></main>
+
+<script>
+/* ============================================================
+   Cube engine (CSS frame: x right, y down, z toward viewer)
+   Grip for the beginner method: yellow up, white down, green front,
+   which puts orange on the right and red on the left.
+   ============================================================ */
+const COLORS = {U:'var(--Y)', D:'var(--W)', F:'var(--G)', B:'var(--B)', R:'var(--O)', L:'var(--R)'};
+const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90] };
+const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back'};
+const HINT = {
+  "R":'push it up, away from you', "R'":'pull it down, toward you',
+  "L":'pull it down, toward you',  "L'":'push it up, away from you',
+  "U":'swing it to the left',      "U'":'swing it to the right',
+  "D":'swing it to the right',     "D'":'swing it to the left',
+  "F":'turn it clockwise, like a clock', "F'":'turn it anticlockwise',
+  "B":'clockwise as seen from behind',  "B'":'anticlockwise as seen from behind',
+};
+const VIEWS = { above:'rotateX(-28deg) rotateY(-38deg)', below:'rotateX(26deg) rotateY(-38deg)' };
+
+function parseMove(tok){
+  const f = tok[0], suf = tok.slice(1), [axis, layer, base] = FACE_DEF[f];
+  const angle = base * (suf==='2' ? 2 : 1) * (suf==="'" ? -1 : 1);
+  return {tok, axis, layer, angle};
+}
+const inverseTok = t => t.endsWith('2') ? t : (t.endsWith("'") ? t[0] : t+"'");
+const inverseSeq = seq => seq.slice().reverse().map(inverseTok);
+function describe(tok){
+  const f = tok[0], suf = tok.slice(1);
+  if (suf==='2') return `${FACE_NAME[f]} face: half a turn (turn it twice)`;
+  return `${FACE_NAME[f]} face: ${HINT[tok]}`;
+}
+
+function rot(axis, deg){
+  const a = deg*Math.PI/180, c = Math.cos(a), s = Math.sin(a);
+  if (axis==='x') return [[1,0,0,0],[0,c,-s,0],[0,s,c,0],[0,0,0,1]];
+  if (axis==='y') return [[c,0,s,0],[0,1,0,0],[-s,0,c,0],[0,0,0,1]];
+  return [[c,-s,0,0],[s,c,0,0],[0,0,1,0],[0,0,0,1]];
+}
+function mul(A,B){
+  const C=[]; for(let i=0;i<4;i++){C.push([]);for(let j=0;j<4;j++){let v=0;for(let k=0;k<4;k++)v+=A[i][k]*B[k][j];C[i].push(v);}} return C;
+}
+function css(M){ const o=[]; for(let j=0;j<4;j++)for(let i=0;i<4;i++)o.push(+M[i][j].toFixed(5)); return `matrix3d(${o.join(',')})`; }
+const snapInt = M => M.map(r=>r.map(v=>Math.round(v)));
+
+class Cube {
+  constructor(el, S, {view='above', focus='all'}={}){
+    this.el=el; this.S=S; this.cubies=[]; this.dead=false;
+    el.style.transform = VIEWS[view];
+    const gap=S*0.06, side=S-gap;
+    for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+      const d=document.createElement('div'); d.className='cubie';
+      d.style.width=d.style.height=side+'px'; d.style.margin=(-side/2)+'px';
+      const faces=[['rotateY(0deg)',z===1&&'F'],['rotateY(180deg)',z===-1&&'B'],['rotateY(90deg)',x===1&&'R'],
+                   ['rotateY(-90deg)',x===-1&&'L'],['rotateX(90deg)',y===-1&&'U'],['rotateX(-90deg)',y===1&&'D']];
+      const stickers=[];
+      for(const [t,f] of faces){
+        const e=document.createElement('div'); e.className='face'+(f?'':' inner');
+        e.style.transform=`${t} translateZ(${side/2}px)`;
+        if(f){ e.style.setProperty('--c',COLORS[f]); stickers.push(f); }
+        d.appendChild(e);
+      }
+      const hasWhite=stickers.includes('D'), hasYellow=stickers.includes('U');
+      const relevant = focus==='all' ? true : focus==='white' ? hasWhite : focus==='white-edges' ? (hasWhite && stickers.length<=2) : !hasYellow;
+      if(!relevant) d.classList.add('dim');
+      const M0=[[1,0,0,x*S],[0,1,0,y*S],[0,0,1,z*S],[0,0,0,1]];
+      this.cubies.push({el:d,M:M0,M0,stickers}); el.appendChild(d);
+    }
+    this.render();
+  }
+  render(){ for(const c of this.cubies) c.el.style.transform=css(c.M); }
+  reset(){ for(const c of this.cubies) c.M=c.M0; this.render(); }
+  layer(m){ const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>Math.round(c.M[i][3]/this.S)===m.layer); }
+  apply(tok){ const m=parseMove(tok), Rm=rot(m.axis,m.angle); for(const c of this.layer(m)) c.M=snapInt(mul(Rm,c.M)); this.render(); }
+  applyAll(seq){ for(const t of seq) this.apply(t); }
+  isSolved(){ return this.cubies.every(c=>JSON.stringify(c.M)===JSON.stringify(c.M0)); }
+  animate(tok, dur){
+    return new Promise(res=>{
+      const m=parseMove(tok), L=this.layer(m), t0=performance.now();
+      const frame=now=>{
+        if(this.dead) return res();
+        const t=Math.min(1,(now-t0)/dur), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+        const Rm=rot(m.axis,m.angle*e);
+        for(const c of L) c.el.style.transform=css(mul(Rm,c.M));
+        if(t<1) requestAnimationFrame(frame); else { this.apply(tok); res(); }
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+}
+function makeCube(scene, opts){
+  const cube=document.createElement('div'); cube.className='cube'; scene.appendChild(cube);
+  const S=Math.max(8, Math.floor(Math.min(scene.clientWidth, scene.clientHeight)/6.2));
+  return new Cube(cube, S, opts);
+}
+
+/* ============================================================
+   The beginner set. `moves` is the formula. The start position is built
+   by running the formula backwards from a solved cube, so what you see is
+   exactly the situation the formula fixes.
+   ============================================================ */
+const ALGS = [
+  { id:'righty', step:'Step 0 · the basic move', title:'The Righty Move', moves:"R U R' U'", start:'solved', repeat:6, focus:'all',
+    purpose:'Learn this first. Steps 2 and 3 are built from it.',
+    hold:'Hold the cube any way you like. Do it <b>6 times</b> and the cube comes back to the start.',
+    tips:['Say it out loud while you turn: "right up, top left, right down, top right".',
+          'Your right hand does all four turns. Thumb on the front, index finger flicks the top.',
+          'Six repeats undo themselves. Great party trick, and it proves formulas are not magic.'] },
+
+  { id:'lefty', step:'Step 0 · the mirror move', title:'The Lefty Move', moves:"L' U' L U", start:'solved', repeat:6, focus:'all',
+    purpose:'Righty in a mirror, for the left hand. Same job on the left side.',
+    hold:'Hold the cube any way you like. Left hand does all four turns. Six times and it is back to the start.',
+    tips:['Every letter is mirrored: R becomes L, and each turn goes the other way.',
+          'Use it in step 2 when the white corner sits above the front-left slot.',
+          'Kids often find this one easier: the left index finger flicks the top toward you.'] },
+
+  { id:'cross-up', step:'Step 1a · white cross', title:'Edge on top, white facing up', moves:"U F2", focus:'white-edges',
+    purpose:'The easiest cross case. Turn the top until the edge is above its slot, then turn that face twice.',
+    hold:'<b>White on the bottom</b>. A white edge is in the top layer with the white sticker <b>facing up</b>. Turn the top until its other colour sits over the matching centre, here green over green, then turn that face twice.',
+    tips:['Look at the side colour of the edge, not the white. It tells you which face to turn.',
+          'Grey pieces do not matter yet. Corners come in step 2.',
+          'Do this for all four edges. Most of the cross is just this move.'] },
+
+  { id:'cross-side', step:'Step 1b · white cross', title:'Edge on top, white facing sideways', moves:"F' D' L D", focus:'white-edges', view:'below',
+    purpose:'A white edge in the top layer with white pointing at you. Drops it into the bottom the right way up.',
+    hold:'White on the bottom. The edge sits at the <b>top front</b> with the white sticker <b>facing you</b>, and its other colour matches the front centre. If not, turn the top until it does.',
+    tips:['The other cross edges are not disturbed.',
+          'Same ending as 1c: the last three turns tuck the edge in from the left.'] },
+
+  { id:'cross', step:'Step 1c · white cross', title:'Edge in the bottom, flipped', moves:"F D' L D", focus:'white-edges', view:'below',
+    purpose:'A white edge already in the bottom, but the wrong way round. Flips it in place.',
+    hold:'<b>White on the bottom</b>, yellow on top. The wrong-way edge sits at the <b>front bottom</b>, white sticker facing you. The other cross edges stay where they are.',
+    tips:['Goal of step 1: a white plus on the bottom, and each edge\'s side colour matches the centre next to it.',
+          'Grey pieces do not matter yet. Only look at the white ones.',
+          'Edge in the top layer? Turn the top until it is above its slot, then turn that side twice.'] },
+
+  { id:'corner-right', step:'Step 2a · white corners', title:'Corner above its slot, white facing right', moves:"R U R'", focus:'white', view:'below',
+    purpose:'The quick case. Three turns and the corner drops in.',
+    hold:'White on the bottom. The white corner is in the <b>top layer, directly above</b> its slot at the <b>front right</b>, white sticker <b>facing right</b>. Its other two colours match the front and right centres.',
+    tips:['This is Righty without the last turn. Righty once works too, the extra top turn changes nothing here.',
+          'Not above its slot yet? Turn the top layer until it is. A corner belongs where its two side colours meet the matching centres.',
+          'Corner already in the slot but twisted? Do one Righty to pop it out, then start again.'] },
+
+  { id:'corner-front', step:'Step 2b · white corners', title:'Corner above its slot, white facing you', moves:"F' U' F", focus:'white', view:'below',
+    purpose:'Same corner, white pointing at you. Use the front face instead of the right.',
+    hold:'White on the bottom. The white corner is in the <b>top layer above</b> its slot at the <b>front right</b>, white sticker <b>facing you</b>.',
+    tips:['Mirror thinking: white on the right, use R. White on the front, use F.',
+          'Righty five times also does it, but this is three turns instead of twenty.'] },
+
+  { id:'corners', step:'Step 2c · white corners', title:'Corner above its slot, white facing up', moves:"R U R' U' R U R' U' R U R' U'",
+    groups:[["R U R' U'",4],["R U R' U'",4],["R U R' U'",4]], focus:'white', view:'below',
+    purpose:'The slow case: white points at the ceiling. Righty three times.',
+    hold:'White on the bottom. The white corner is in the <b>top layer above</b> its slot at the <b>front right</b>, white sticker <b>facing up</b>. Do Righty until white faces down. Here that takes three rounds.',
+    tips:['Watch the corner after each Righty: after one it sits in the slot but twisted, after two it is back on top with white facing right, after three it is in.',
+          'Any corner case works with Righty alone: 1, 3 or 5 rounds. Cards 2a and 2b are just the short cuts.',
+          'Its two side colours must match the centres next to it. If not, turn the top layer first.'] },
+
+  { id:'middle-right', step:'Step 3a · middle layer', title:'Edge goes right', moves:"U R U' R' U' F' U F", focus:'nonyellow',
+    purpose:'Drops an edge from the top layer into the front-right slot.',
+    hold:'White done, on the bottom. Find a top edge <b>with no yellow</b>. Turn the top so its front colour matches the front centre. If its top colour matches the <b>right</b> centre, use this.',
+    tips:['Two halves: "U R U\' R\'" then "U\' F\' U F". Learn them as two chunks.',
+          'A wrong edge sitting in the slot? Drop any other edge in with this formula to pop it out.',
+          'Grey pieces are the yellow ones. They do not matter until step 4.'] },
+
+  { id:'middle-left', step:'Step 3b · middle layer', title:'Edge goes left', moves:"U' L' U L U F U' F'", focus:'nonyellow',
+    purpose:'Mirror image of 3a: drops the edge into the front-left slot.',
+    hold:'Same as 3a, but the edge\'s top colour matches the <b>left</b> centre.',
+    tips:['It is 3a in a mirror: every R becomes L, every U becomes U\' and so on.',
+          'Once all four middle edges are in, the bottom two layers are done.'] },
+
+  { id:'cross-line', step:'Step 4a · yellow cross', title:'Yellow cross from a line', moves:"F R U R' U' F'", focus:'all',
+    purpose:'Turns a yellow line on top into a yellow plus.',
+    hold:'Bottom two layers done. Yellow line on top, held <b>left to right</b>. Only a yellow dot? Do this once, you get an L, then use 4b.',
+    tips:['This is Righty wrapped in F and F\'. You already know the middle part.',
+          'Ignore the yellow corners for now. Only the plus matters.'] },
+
+  { id:'cross-L', step:'Step 4b · yellow cross', title:'Yellow cross from an L', moves:"F U R U' R' F'", focus:'all',
+    purpose:'Turns a yellow L shape on top into a yellow plus.',
+    hold:'Yellow L on top, its two arms pointing <b>back and left</b> (like 9 and 12 on a clock).',
+    tips:['Nearly the same as 4a, only the middle is "U R U\' R\'" instead of "R U R\' U\'".',
+          'If the L points the wrong way, turn only the top layer until it fits.'] },
+
+  { id:'edges', step:'Step 5 · yellow edges', title:'Yellow edges into place', moves:"R U R' U R U2 R'", focus:'all',
+    purpose:'Moves the plus edges so their side colours match the centres. This one is called the Sune.',
+    hold:'Turn the top until <b>two edges</b> match their centres. Two next to each other: put them at the <b>back and right</b>, do it once, then turn the top to line up. Two opposite each other: put them at the <b>front and back</b>, do it once, and you get the next-to-each-other case.',
+    tips:['The front edge stays where it is. The other three move round.',
+          'The yellow corners will twist about. That is fine, steps 6 and 7 fix them.',
+          'Opposite case needs two rounds, next-to-each-other case one round plus a top turn.'] },
+
+  { id:'corner-place', step:'Step 6 · yellow corners', title:'Yellow corners into place', moves:"U R U' L' U R' U' L", focus:'all',
+    purpose:'Moves three corners around so every corner sits between its own colours. Twist does not matter yet.',
+    hold:'Find a corner that is already <b>between the right colours</b> (twisted is fine) and hold it at the <b>front right</b>. None correct? Do it once from anywhere, then look again.',
+    tips:['The front-right corner stays put, the other three cycle around.',
+          'Might need two rounds. Keep the same corner at front right.'] },
+
+  { id:'corner-twist', step:'Step 7 · finish', title:'Twist the yellow corners', moves:"R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U'",
+    groups:[["R' D' R D",4],["R' D' R D",4],["U",1],["R' D' R D",4],["R' D' R D",4],["R' D' R D",4],["R' D' R D",4],["U'",1]], focus:'all',
+    purpose:'"R\' D\' R D" again and again until the corner shows yellow on top, then turn the top to the next corner. The bottom looks broken halfway. It comes back.',
+    hold:'A twisted corner at the <b>front right</b>. Repeat "R\' D\' R D" (2 or 4 times) until it is yellow on top. Then turn <b>only the top layer</b> to bring the next twisted corner to the front right. Never turn the whole cube.',
+    tips:['This example twists two corners: two rounds on the first, four on the second.',
+          'The bottom layers scramble while you work. Do not fix them. They are back when the last corner is done.',
+          'Finish with a top turn to line everything up. Solved!'] },
+];
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+const app = document.getElementById('app');
+let dur = 700, player = null;
+const pause = ms => new Promise(r=>setTimeout(r,ms));
+
+function groupsOf(alg){
+  const moves = alg.moves.split(/\s+/);
+  const out=[]; let i=0;
+  if (alg.groups){ for(const [label,n] of alg.groups){ out.push({label, from:i, to:i+n}); i+=n; } }
+  else for(const m of moves){ out.push({label:m, from:i, to:i+1}); i++; }
+  return {moves, groups:out};
+}
+const startSeq = alg => alg.start==='solved' ? [] : inverseSeq(alg.moves.split(/\s+/));
+const formulaText = alg => alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
+
+function renderOverview(){
+  app.innerHTML = `
+    <h1>Solve the cube, step by step</h1>
+    <p class="sub">The classic beginner method. Hold the cube with <b>yellow on top</b> and <b>green facing you</b>:
+       white gets solved first at the bottom, yellow last on top. Click a step to watch it move.</p>
+    <div class="legend">
+      <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span>
+      <span><b>'</b> = the other way</span><span><b>2</b> = twice</span><span>plain letter = clockwise as you look at that face</span>
+    </div>
+    <div class="grid"></div>`;
+  const grid = app.querySelector('.grid');
+  for(const alg of ALGS){
+    const a=document.createElement('a'); a.className='card'; a.href='#'+alg.id;
+    a.innerHTML=`<div class="step">${alg.step}</div><div class="scene"></div><h3>${alg.title}</h3><div class="f">${formulaText(alg)}</div><p>${alg.purpose}</p>`;
+    grid.appendChild(a);
+    const c=makeCube(a.querySelector('.scene'), {view:alg.view||'above', focus:alg.focus});
+    c.applyAll(startSeq(alg));
+  }
+}
+
+class Player {
+  constructor(alg){
+    this.alg=alg; this.dead=false; this.step=0; this.busy=false;
+    const {moves,groups}=groupsOf(alg); this.moves=moves; this.groups=groups;
+    const idx=ALGS.indexOf(alg), prev=ALGS[idx-1], next=ALGS[idx+1];
+    app.innerHTML=`
+      <a class="back" href="#">&larr; All steps</a>
+      <div class="step">${alg.step}</div>
+      <h2>${alg.title}</h2>
+      <p class="sub">${alg.purpose}</p>
+      <div class="hold">${alg.hold}</div>
+      <div class="formula ${moves.length>10?'long':''}"></div>
+      <div class="desc"></div>
+      <div class="scene big"></div>
+      <div class="controls">
+        <button data-b="back">&#9664; Step back</button>
+        <button data-b="play" class="primary">&#9654; Play</button>
+        <button data-b="step">Step &#9654;</button>
+        <button data-b="reset">&#8635; Reset</button>
+        ${alg.repeat?`<button data-b="rep">Play ${alg.repeat}&times; (back to start!)</button>`:''}
+        <label class="speed">Speed <input type="range" min="1" max="10" value="${Math.round((1400-dur)/130)+1}"></label>
+      </div>
+      <div class="strip"></div>
+      <ul class="tips">${alg.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
+      <div class="nav">${prev?`<a href="#${prev.id}">&larr; ${prev.title}</a>`:''}${next?`<a href="#${next.id}">${next.title} &rarr;</a>`:''}</div>`;
+
+    const fEl=app.querySelector('.formula');
+    this.tokens=groups.map(g=>{const s=document.createElement('span');s.className='tok';s.textContent=g.label;fEl.appendChild(s);return s;});
+    this.desc=app.querySelector('.desc');
+
+    this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus});
+    this.start=startSeq(alg); this.big.applyAll(this.start);
+
+    // snapshot strip: start, then one after each group
+    const strip=app.querySelector('.strip'); this.snaps=[]; this.bounds=[];
+    const addSnap=(label,small,seq,bound)=>{
+      if(this.snaps.length){const ar=document.createElement('div');ar.className='arrow';ar.textContent='→';strip.appendChild(ar);}
+      const w=document.createElement('div'); w.className='snap';
+      const sc=document.createElement('div'); sc.className='scene'; w.appendChild(sc);
+      const l=document.createElement('div'); l.className='lbl'; l.innerHTML=`${label}<small>${small}</small>`; w.appendChild(l);
+      strip.appendChild(w);
+      const c=makeCube(sc,{view:alg.view||'above',focus:alg.focus}); c.applyAll(seq);
+      this.snaps.push(w); this.bounds.push(bound);
+    };
+    addSnap('Start', alg.start==='solved'?'solved':'before', this.start, 0);
+    groups.forEach((g,i)=>addSnap(i===groups.length-1?'End':`Step ${i+1}`, 'after '+g.label, [...this.start,...moves.slice(0,g.to)], g.to));
+
+    const B=n=>app.querySelector(`[data-b="${n}"]`); this.B=B;
+    const restart=()=>{ this.big.reset(); this.big.applyAll(this.start); this.step=0; };
+    B('step').onclick=()=>this.run(async()=>{ if(this.step<moves.length) await this.forward(); });
+    B('back').onclick=()=>this.run(async()=>{ if(this.step>0) await this.backward(); });
+    B('reset').onclick=()=>this.run(async()=>restart());
+    B('play').onclick=()=>this.run(async()=>{
+      if(this.step===moves.length){ restart(); this.ui(); await pause(400); }
+      while(this.step<moves.length && !this.dead){ await this.forward(); await pause(250); }
+    });
+    if(alg.repeat) B('rep').onclick=()=>this.run(async()=>{
+      restart(); this.ui(); await pause(400);
+      for(let r=1;r<=alg.repeat && !this.dead;r++){
+        while(this.step<moves.length && !this.dead){
+          const mv=moves[this.step]; this.ui(this.step,`Round ${r} of ${alg.repeat}: ${mv}`);
+          await this.big.animate(mv,Math.max(180,dur*0.6)); this.step++;
+        }
+        await pause(250); this.step=0;
+      }
+      this.ui(-1,`${alg.repeat} rounds later... back exactly where we started!`);
+    });
+    app.querySelector('.speed input').oninput=e=>{ dur=1400-(e.target.value-1)*130; };
+    this.ui();
+  }
+  groupOf(i){ return this.groups.findIndex(g=>i>=g.from&&i<g.to); }
+  idleText(){
+    const n=this.moves.length;
+    if(this.step===0) return 'Press Play, or Step through one turn at a time.';
+    if(this.step===n) return this.alg.repeat ? 'Done! Try Play 6x: the cube comes back to the start.' : 'Done! That is what this step fixes.';
+    return `${this.step} of ${n} turns done. Next: ${this.moves[this.step]}.`;
+  }
+  ui(active=-1,text){
+    const ag=active>=0?this.groupOf(active):-1;
+    this.tokens.forEach((t,i)=>{const g=this.groups[i];t.classList.toggle('done',this.step>=g.to);t.classList.toggle('active',i===ag);});
+    this.snaps.forEach((s,i)=>s.classList.toggle('active',active===-1&&this.bounds[i]===this.step));
+    this.desc.textContent=text??this.idleText();
+    const n=this.moves.length;
+    this.B('back').disabled=this.busy||this.step===0; this.B('step').disabled=this.busy||this.step===n;
+    this.B('play').disabled=this.busy; this.B('reset').disabled=this.busy; if(this.alg.repeat) this.B('rep').disabled=this.busy;
+  }
+  async forward(){ const mv=this.moves[this.step]; this.ui(this.step,`${mv}:  ${describe(mv)}`); await this.big.animate(mv,dur); if(this.dead)return; this.step++; this.ui(); }
+  async backward(){ const mv=this.moves[this.step-1]; this.ui(this.step-1,`Undo ${mv}:  ${describe(inverseTok(mv))}`); await this.big.animate(inverseTok(mv),dur); if(this.dead)return; this.step--; this.ui(); }
+  async run(fn){ if(this.busy)return; this.busy=true; this.ui(); await fn(); if(this.dead)return; this.busy=false; this.ui(); }
+  destroy(){ this.dead=true; this.big.dead=true; }
+}
+
+function route(){
+  if(player){ player.destroy(); player=null; }
+  const id=location.hash.slice(1), alg=ALGS.find(a=>a.id===id);
+  if(alg) player=new Player(alg); else renderOverview();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',route);
+route();
+</script>
+</body>
+</html>
