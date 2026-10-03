@@ -101,14 +101,15 @@
 const COLORS = {U:'var(--Y)', D:'var(--W)', F:'var(--G)', B:'var(--B)', R:'var(--O)', L:'var(--R)'};
 // Flipped grip: cube turned upside down with green still facing you, so yellow is on the bottom and red/orange swap sides.
 const COLORS_FLIP = {U:'var(--W)', D:'var(--Y)', F:'var(--G)', B:'var(--B)', R:'var(--R)', L:'var(--O)'};
-const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90] };
-const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back'};
+const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90], y:['y',null,-90] };
+const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back', y:'Whole cube'};
 const HINT = {
   "R":'push it up, away from you', "R'":'pull it down, toward you',
   "L":'pull it down, toward you',  "L'":'push it up, away from you',
   "U":'swing it to the left',      "U'":'swing it to the right',
   "D":'swing it to the right',     "D'":'swing it to the left',
   "F":'turn it clockwise, like a clock', "F'":'turn it anticlockwise',
+  "y":'turn it so the right side faces you', "y'":'turn it so the left side faces you',
   "B":'clockwise as seen from behind',  "B'":'anticlockwise as seen from behind',
 };
 const VIEWS = { above:'rotateX(-28deg) rotateY(-38deg)', below:'rotateX(26deg) rotateY(-38deg)' };
@@ -122,8 +123,9 @@ const inverseTok = t => t.endsWith('2') ? t : (t.endsWith("'") ? t[0] : t+"'");
 const inverseSeq = seq => seq.slice().reverse().map(inverseTok);
 function describe(tok){
   const f = tok[0], suf = tok.slice(1);
-  if (suf==='2') return `${FACE_NAME[f]} face: half a turn (turn it twice)`;
-  return `${FACE_NAME[f]} face: ${HINT[tok]}`;
+  const what = f==='y' ? FACE_NAME[f] : `${FACE_NAME[f]} face`;
+  if (suf==='2') return `${what}: half a turn (turn it twice)`;
+  return `${what}: ${HINT[tok]}`;
 }
 
 function rot(axis, deg){
@@ -165,7 +167,7 @@ class Cube {
   }
   render(){ for(const c of this.cubies) c.el.style.transform=css(c.M); }
   reset(){ for(const c of this.cubies) c.M=c.M0; this.render(); }
-  layer(m){ const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>Math.round(c.M[i][3]/this.S)===m.layer); }
+  layer(m){ if(m.layer===null) return this.cubies; const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>Math.round(c.M[i][3]/this.S)===m.layer); }
   apply(tok){ const m=parseMove(tok), Rm=rot(m.axis,m.angle); for(const c of this.layer(m)) c.M=snapInt(mul(Rm,c.M)); this.render(); }
   applyAll(seq){ for(const t of seq) this.apply(t); }
   isSolved(){ return this.cubies.every(c=>JSON.stringify(c.M)===JSON.stringify(c.M0)); }
@@ -250,17 +252,19 @@ const ALGS = [
           'Any corner case works with Righty alone: 1, 3 or 5 rounds. Cards 2a and 2b are just the short cuts.',
           'Its two side colours must match the centres next to it. If not, turn the top layer first.'] },
 
-  { id:'middle-right', step:'Step 3a · middle layer', title:'Edge goes right', moves:"U R U' R' U' F' U F", focus:'nonyellow',
-    purpose:'Drops an edge from the top layer into the front-right slot.',
+  { id:'middle-right', step:'Step 3a · middle layer', title:'Edge goes right', moves:"U R U R' U' y L' U' L", focus:'nonyellow',
+    purpose:'Drops an edge from the top layer into the front-right slot. U R U R\' U\', turn the whole cube so the right side faces you, then L\' U\' L.',
     hold:'White done, on the bottom. Find a top edge <b>with no yellow</b>. Turn the top so its front colour matches the front centre. If its top colour matches the <b>right</b> centre, use this.',
-    tips:['Two halves: "U R U\' R\'" then "U\' F\' U F". Learn them as two chunks.',
+    tips:['Two chunks: "U R U R\' U\'", then turn the whole cube (y) so the right side faces you, then "L\' U\' L".',
+          'Turn the cube the right way: the old right side must end up facing you. The other way breaks the white layer.',
+          'You end up looking at a new front side. That is fine, just find the next edge from there.',
           'A wrong edge sitting in the slot? Drop any other edge in with this formula to pop it out.',
           'Grey pieces are the yellow ones. They do not matter until step 4.'] },
 
   { id:'middle-left', step:'Step 3b · middle layer', title:'Edge goes left', moves:"U' L' U L U F U' F'", focus:'nonyellow',
     purpose:'Mirror image of 3a: drops the edge into the front-left slot.',
     hold:'Same as 3a, but the edge\'s top colour matches the <b>left</b> centre.',
-    tips:['It is 3a in a mirror: every R becomes L, every U becomes U\' and so on.',
+    tips:['Same job as 3a, but for the slot on the left.',
           'Once all four middle edges are in, the bottom two layers are done.'] },
 
   { id:'cross-line', step:'Step 4a · yellow cross', title:'Yellow cross from a line', moves:"F R U R' U' F'", focus:'all',
@@ -320,7 +324,19 @@ function groupsOf(alg){
   else for(const m of moves){ out.push({label:m, from:i, to:i+1}); i++; }
   return {moves, groups:out};
 }
-const startSeq = alg => alg.start==='solved' ? [] : inverseSeq(alg.moves.split(/\s+/));
+// Rewrite a sequence with whole-cube turns (y) as plain face turns in the starting grip,
+// so the start position is built with green still facing you.
+const Y_MAP = {F:'R', L:'F', B:'L', R:'B', U:'U', D:'D'};
+function flatten(seq){
+  const out=[]; let turns=0;
+  for(const t of seq){
+    if(t[0]==='y'){ turns=(turns+(t.endsWith("'")?3:t.endsWith('2')?2:1))%4; continue; }
+    let f=t[0]; for(let i=0;i<turns;i++) f=Y_MAP[f];
+    out.push(f+t.slice(1));
+  }
+  return out;
+}
+const startSeq = alg => alg.start==='solved' ? [] : inverseSeq(flatten(alg.moves.split(/\s+/)));
 const formulaText = alg => alg.short ? alg.short : alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
 
 function renderOverview(){
@@ -329,7 +345,7 @@ function renderOverview(){
     <p class="sub">The classic beginner method. Hold the cube with <b>yellow on top</b> and <b>green facing you</b>:
        white gets solved first at the bottom, yellow last on top. Click a step to watch it move.</p>
     <div class="legend">
-      <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span>
+      <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span><span><b>y</b> turn the whole cube, right side to the front</span>
       <span><b>'</b> = the other way</span><span><b>2</b> = twice</span><span>plain letter = clockwise as you look at that face</span>
     </div>
     <div class="grid"></div>`;
