@@ -282,11 +282,12 @@ const ALGS = [
           'The yellow corners will twist about. That is fine, steps 6 and 7 fix them.',
           'Opposite case needs two rounds, next-to-each-other case one round plus a top turn.'] },
 
-  { id:'corner-place', step:'Step 6 · yellow corners', title:'Yellow corners into place', moves:"U R U' L' U R' U' L", focus:'all',
-    purpose:'Moves three corners around so every corner sits between its own colours. Twist does not matter yet.',
-    hold:'Find a corner that is already <b>between the right colours</b> (twisted is fine) and hold it at the <b>front right</b>. None correct? Do it once from anywhere, then look again.',
-    tips:['The front-right corner stays put, the other three cycle around.',
-          'Might need two rounds. Keep the same corner at front right.'] },
+  { id:'corner-place', step:'Step 6 · yellow corners', title:'Yellow corners into place (Niklas)', moves:"R U' L' U R' U' L U", focus:'all',
+    purpose:'The Niklas. Moves three corners around so every corner sits between its own colours. Twist does not matter yet.',
+    hold:'Find a corner that is already <b>between the right colours</b> (twisted is fine) and hold it at the <b>front left</b>. None correct? Do it once from anywhere, then look again.',
+    tips:['The front-left corner stays put, the other three cycle around.',
+          'Do not forget the last U. Without it the top is one turn off and the yellow edges from step 5 no longer match.',
+          'Might need two rounds. Keep the same corner at front left.'] },
 
   { id:'corner-twist', step:'Step 7 · finish', title:'Twist the yellow corners',
     moves:"R U R' U' R U R' U' D R U R' U' R U R' U' R U R' U' R U R' U' D'",
