@@ -97,6 +97,8 @@
    which puts orange on the right and red on the left.
    ============================================================ */
 const COLORS = {U:'var(--Y)', D:'var(--W)', F:'var(--G)', B:'var(--B)', R:'var(--O)', L:'var(--R)'};
+// Flipped grip: cube turned upside down with green still facing you, so yellow is on the bottom and red/orange swap sides.
+const COLORS_FLIP = {U:'var(--W)', D:'var(--Y)', F:'var(--G)', B:'var(--B)', R:'var(--R)', L:'var(--O)'};
 const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90] };
 const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back'};
 const HINT = {
@@ -135,8 +137,8 @@ function css(M){ const o=[]; for(let j=0;j<4;j++)for(let i=0;i<4;i++)o.push(+M[i
 const snapInt = M => M.map(r=>r.map(v=>Math.round(v)));
 
 class Cube {
-  constructor(el, S, {view='above', focus='all'}={}){
-    this.el=el; this.S=S; this.cubies=[]; this.dead=false;
+  constructor(el, S, {view='above', focus='all', flip=false}={}){
+    this.el=el; this.S=S; this.cubies=[]; this.dead=false; const colors=flip?COLORS_FLIP:COLORS;
     el.style.transform = VIEWS[view];
     const gap=S*0.06, side=S-gap;
     for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
@@ -148,7 +150,7 @@ class Cube {
       for(const [t,f] of faces){
         const e=document.createElement('div'); e.className='face'+(f?'':' inner');
         e.style.transform=`${t} translateZ(${side/2}px)`;
-        if(f){ e.style.setProperty('--c',COLORS[f]); stickers.push(f); }
+        if(f){ e.style.setProperty('--c',colors[f]); stickers.push(f); }
         d.appendChild(e);
       }
       const hasWhite=stickers.includes('D'), hasYellow=stickers.includes('U');
@@ -284,9 +286,21 @@ const ALGS = [
     tips:['The front-right corner stays put, the other three cycle around.',
           'Might need two rounds. Keep the same corner at front right.'] },
 
-  { id:'corner-twist', step:'Step 7 · finish', title:'Twist the yellow corners', moves:"R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U'",
+  { id:'corner-twist-down', step:'Step 7a · finish', title:'Twist the yellow corners (yellow down)',
+    moves:"R U R' U' R U R' U' D R U R' U' R U R' U' R U R' U' R U R' U' D'",
+    groups:[["R U R' U'",4],["R U R' U'",4],["D",1],["R U R' U'",4],["R U R' U'",4],["R U R' U'",4],["R U R' U'",4],["D'",1]],
+    short:"(R U R' U') ×2  D  (R U R' U') ×4  D'", focus:'all', view:'below', flip:true,
+    purpose:'The easy finish: just the Righty move you already know. Flip the cube so yellow faces down, Righty until the corner is right, turn the bottom, repeat.',
+    hold:'<b>Flip the cube over: yellow on the bottom</b>, green still facing you. Put a twisted corner at the <b>bottom front right</b>. Do Righty (2 or 4 times) until its yellow faces the floor. Then turn <b>only the bottom layer (D)</b> to bring the next twisted corner there. Never turn the whole cube.',
+    tips:['Same idea as 7b, but with Righty instead of a new formula. Nothing new to learn!',
+          'This example twists two corners: Righty twice on the first, four times on the second.',
+          'The top two layers look scrambled halfway. Do not panic and do not fix them. They come back when the last corner is done.',
+          'Finish with a bottom turn to line up the yellow layer. Solved!'] },
+
+  { id:'corner-twist', step:'Step 7b · finish', title:'Twist the yellow corners (yellow up)', moves:"R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U'",
+    short:"(R' D' R D) ×2  U  (R' D' R D) ×4  U'",
     groups:[["R' D' R D",4],["R' D' R D",4],["U",1],["R' D' R D",4],["R' D' R D",4],["R' D' R D",4],["R' D' R D",4],["U'",1]], focus:'all',
-    purpose:'"R\' D\' R D" again and again until the corner shows yellow on top, then turn the top to the next corner. The bottom looks broken halfway. It comes back.',
+    purpose:'Same job as 7a without flipping the cube. "R\' D\' R D" again and again until the corner shows yellow on top, then turn the top to the next corner. The bottom looks broken halfway. It comes back.',
     hold:'A twisted corner at the <b>front right</b>. Repeat "R\' D\' R D" (2 or 4 times) until it is yellow on top. Then turn <b>only the top layer</b> to bring the next twisted corner to the front right. Never turn the whole cube.',
     tips:['This example twists two corners: two rounds on the first, four on the second.',
           'The bottom layers scramble while you work. Do not fix them. They are back when the last corner is done.',
@@ -308,7 +322,7 @@ function groupsOf(alg){
   return {moves, groups:out};
 }
 const startSeq = alg => alg.start==='solved' ? [] : inverseSeq(alg.moves.split(/\s+/));
-const formulaText = alg => alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
+const formulaText = alg => alg.short ? alg.short : alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
 
 function renderOverview(){
   app.innerHTML = `
@@ -325,7 +339,7 @@ function renderOverview(){
     const a=document.createElement('a'); a.className='card'; a.href='#'+alg.id;
     a.innerHTML=`<div class="step">${alg.step}</div><div class="scene"></div><h3>${alg.title}</h3><div class="f">${formulaText(alg)}</div><p>${alg.purpose}</p>`;
     grid.appendChild(a);
-    const c=makeCube(a.querySelector('.scene'), {view:alg.view||'above', focus:alg.focus});
+    const c=makeCube(a.querySelector('.scene'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip});
     c.applyAll(startSeq(alg));
   }
 }
@@ -360,7 +374,7 @@ class Player {
     this.tokens=groups.map(g=>{const s=document.createElement('span');s.className='tok';s.textContent=g.label;fEl.appendChild(s);return s;});
     this.desc=app.querySelector('.desc');
 
-    this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus});
+    this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip});
     this.start=startSeq(alg); this.big.applyAll(this.start);
 
     // snapshot strip: start, then one after each group
@@ -371,7 +385,7 @@ class Player {
       const sc=document.createElement('div'); sc.className='scene'; w.appendChild(sc);
       const l=document.createElement('div'); l.className='lbl'; l.innerHTML=`${label}<small>${small}</small>`; w.appendChild(l);
       strip.appendChild(w);
-      const c=makeCube(sc,{view:alg.view||'above',focus:alg.focus}); c.applyAll(seq);
+      const c=makeCube(sc,{view:alg.view||'above',focus:alg.focus,flip:alg.flip}); c.applyAll(seq);
       this.snaps.push(w); this.bounds.push(bound);
     };
     addSnap('Start', alg.start==='solved'?'solved':'before', this.start, 0);
