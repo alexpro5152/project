@@ -261,10 +261,12 @@ const ALGS = [
           'A wrong edge sitting in the slot? Drop any other edge in with this formula to pop it out.',
           'Grey pieces are the yellow ones. They do not matter until step 4.'] },
 
-  { id:'middle-left', step:'Step 3b · middle layer', title:'Edge goes left', moves:"U' L' U L U F U' F'", focus:'nonyellow',
-    purpose:'Mirror image of 3a: drops the edge into the front-left slot.',
+  { id:'middle-left', step:'Step 3b · middle layer', title:'Edge goes left', moves:"U' L' U' L U y' R U R'", focus:'nonyellow',
+    purpose:'Mirror image of 3a: drops the edge into the front-left slot. U\' L\' U\' L U, turn the whole cube so the left side faces you, then R U R\'.',
     hold:'Same as 3a, but the edge\'s top colour matches the <b>left</b> centre.',
-    tips:['Same job as 3a, but for the slot on the left.',
+    tips:['Two chunks: "U\' L\' U\' L U", then turn the whole cube (y\') so the left side faces you, then "R U R\'".',
+          'It is 3a in a mirror: R becomes L, every turn goes the other way, and the cube turns to the left instead of the right.',
+          'Turn the cube the right way: the old left side must end up facing you. The other way breaks the white layer.',
           'Once all four middle edges are in, the bottom two layers are done.'] },
 
   { id:'cross-line', step:'Step 4a · yellow cross', title:'Yellow cross from a line', moves:"F R U R' U' F'", focus:'all',
