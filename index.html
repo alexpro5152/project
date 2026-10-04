@@ -340,6 +340,14 @@ const ALGS = [
     hold:'Corner above the <b>front-right</b> slot with white <b>facing right</b> and green facing you. Its edge is at the <b>top front</b> with green facing you.',
     tips:['Mirror of insert 3: swap R for F and every U for U\'.'] },
 
+  { id:'f2l-block', level:'intermediate', step:'F2L · make a block', title:'Join corner and edge into a block', moves:"U R U2 R' U R U' R'",
+    groups:[["U R U2 R'",4,'Block made'],["U R U' R'",4,'Block in']], focus:'nonyellow',
+    purpose:'White facing up cannot go straight in. First join the corner and its edge into one block, then put the block in.',
+    hold:'Corner above the <b>front-right</b> slot with white <b>facing up</b>. Its edge is at the <b>top back</b> with green on top. <b>U R U2 R\'</b> joins them into a block, <b>U R U\' R\'</b> puts the block in.',
+    tips:['Watch the strip below: after the first half, corner and edge sit side by side with matching colours. That is the block.',
+          'The second half is basic insert 3. You already know it.',
+          'This is the main F2L idea: make a block in the top layer, then drop it in. Most F2L cases work this way.'] },
+
   { id:'oll-line', level:'intermediate', step:'OLL 1 · yellow cross', title:'Line', moves:"F R U R' U' F'", focus:'all', view:'top',
     purpose:'Yellow line on top becomes a yellow cross. Same as beginner step 4a.',
     hold:'Yellow line on top, held <b>left to right</b>.',
@@ -422,7 +430,7 @@ const pause = ms => new Promise(r=>setTimeout(r,ms));
 function groupsOf(alg){
   const moves = alg.moves.split(/\s+/);
   const out=[]; let i=0;
-  if (alg.groups){ for(const [label,n] of alg.groups){ out.push({label, from:i, to:i+n}); i+=n; } }
+  if (alg.groups){ for(const [label,n,name] of alg.groups){ out.push({label, name, from:i, to:i+n}); i+=n; } }
   else for(const m of moves){ out.push({label:m, from:i, to:i+1}); i++; }
   return {moves, groups:out};
 }
@@ -515,7 +523,7 @@ class Player {
       this.snaps.push(w); this.bounds.push(bound);
     };
     addSnap('Start', alg.start==='solved'?'solved':'before', this.start, 0);
-    groups.forEach((g,i)=>addSnap(i===groups.length-1?'End':`Step ${i+1}`, 'after '+g.label, [...this.start,...moves.slice(0,g.to)], g.to));
+    groups.forEach((g,i)=>addSnap(g.name || (i===groups.length-1?'End':`Step ${i+1}`), 'after '+g.label, [...this.start,...moves.slice(0,g.to)], g.to));
 
     const B=n=>app.querySelector(`[data-b="${n}"]`); this.B=B;
     const restart=()=>{ this.big.reset(); this.big.applyAll(this.start); this.step=0; };
