@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cube Beginner Method</title>
+<title>Cube Algorithms</title>
 <style>
   :root{
     --bg:#f4f6fb; --card:#ffffff; --ink:#1c2233; --muted:#6b7280;
@@ -32,6 +32,10 @@
   .cubie.dim .face.inner::after{background:#1b1b1b}
 
   /* --- overview --- */
+  .levels{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 16px}
+  .lvl{font-size:18px;font-weight:700;padding:10px 22px;border-radius:12px;border:2px solid #d7dbe6;background:#fff;color:var(--ink)}
+  .lvl:hover{border-color:var(--accent)}
+  .lvl.on{background:var(--accent);border-color:var(--accent);color:#fff}
   .legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;color:var(--muted);font-size:15px;margin:0 0 22px;
           background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 18px;max-width:760px}
   .legend b{color:var(--ink);font-family:ui-monospace,Consolas,monospace}
@@ -87,7 +91,7 @@
 </head>
 <body>
 <header>
-  <a class="brand" href="#">&#129513; Cube Beginner Method</a>
+  <a class="brand" href="#">&#129513; Cube Algorithms</a>
   <span class="grip">Grip: yellow on top, green facing you</span>
 </header>
 <main id="app"></main>
@@ -101,18 +105,23 @@
 const COLORS = {U:'var(--Y)', D:'var(--W)', F:'var(--G)', B:'var(--B)', R:'var(--O)', L:'var(--R)'};
 // Flipped grip: cube turned upside down with green still facing you, so yellow is on the bottom and red/orange swap sides.
 const COLORS_FLIP = {U:'var(--W)', D:'var(--Y)', F:'var(--G)', B:'var(--B)', R:'var(--R)', L:'var(--O)'};
-const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90], y:['y',null,-90] };
-const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back', y:'Whole cube'};
+const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90], y:['y',null,-90],
+                   r:['x',[1,0],90], l:['x',[-1,0],-90], f:['z',[1,0],90], M:['x',[0],-90] };
+const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back', y:'Whole cube', r:'Right two layers', l:'Left two layers', f:'Front two layers', M:'Middle slice'};
 const HINT = {
   "R":'push it up, away from you', "R'":'pull it down, toward you',
   "L":'pull it down, toward you',  "L'":'push it up, away from you',
   "U":'swing it to the left',      "U'":'swing it to the right',
   "D":'swing it to the right',     "D'":'swing it to the left',
   "F":'turn it clockwise, like a clock', "F'":'turn it anticlockwise',
+  "r":'push them up, away from you', "r'":'pull them down, toward you',
+  "l":'pull them down, toward you',  "l'":'push them up, away from you',
+  "f":'turn them clockwise, like a clock', "f'":'turn them anticlockwise',
+  "M":'pull it down, toward you (like L)', "M'":'push it up, away from you',
   "y":'turn it so the right side faces you', "y'":'turn it so the left side faces you',
   "B":'clockwise as seen from behind',  "B'":'anticlockwise as seen from behind',
 };
-const VIEWS = { above:'rotateX(-28deg) rotateY(-38deg)', below:'rotateX(26deg) rotateY(-38deg)' };
+const VIEWS = { above:'rotateX(-28deg) rotateY(-38deg)', below:'rotateX(26deg) rotateY(-38deg)', top:'rotateX(-52deg) rotateY(-32deg)' };
 
 function parseMove(tok){
   const f = tok[0], suf = tok.slice(1), [axis, layer, base] = FACE_DEF[f];
@@ -123,7 +132,7 @@ const inverseTok = t => t.endsWith('2') ? t : (t.endsWith("'") ? t[0] : t+"'");
 const inverseSeq = seq => seq.slice().reverse().map(inverseTok);
 function describe(tok){
   const f = tok[0], suf = tok.slice(1);
-  const what = f==='y' ? FACE_NAME[f] : `${FACE_NAME[f]} face`;
+  const what = 'RLUDFB'.includes(f) ? `${FACE_NAME[f]} face` : FACE_NAME[f];
   if (suf==='2') return `${what}: half a turn (turn it twice)`;
   return `${what}: ${HINT[tok]}`;
 }
@@ -167,7 +176,7 @@ class Cube {
   }
   render(){ for(const c of this.cubies) c.el.style.transform=css(c.M); }
   reset(){ for(const c of this.cubies) c.M=c.M0; this.render(); }
-  layer(m){ if(m.layer===null) return this.cubies; const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>Math.round(c.M[i][3]/this.S)===m.layer); }
+  layer(m){ if(m.layer===null) return this.cubies; if(Array.isArray(m.layer)){ const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>m.layer.includes(Math.round(c.M[i][3]/this.S))); } const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>Math.round(c.M[i][3]/this.S)===m.layer); }
   apply(tok){ const m=parseMove(tok), Rm=rot(m.axis,m.angle); for(const c of this.layer(m)) c.M=snapInt(mul(Rm,c.M)); this.render(); }
   applyAll(seq){ for(const t of seq) this.apply(t); }
   isSolved(){ return this.cubies.every(c=>JSON.stringify(c.M)===JSON.stringify(c.M0)); }
@@ -310,6 +319,97 @@ const ALGS = [
           'Not sure? Just keep doing Righty and check the corner after every 2. It is never more than 4.',
           'The top two layers look scrambled halfway. Do not panic and do not fix them. They come back when the last corner is done.',
           'Finish with a bottom turn to line up the yellow layer. Solved!'] },
+
+  /* ---------------- Intermediate 3x3: F2L basics, 2-look OLL, 2-look PLL ---------------- */
+  { id:'f2l-1', level:'intermediate', step:'F2L · basic insert 1', title:'Corner white right, edge at the back', moves:"R U R'", focus:'nonyellow',
+    purpose:'Corner and edge go into the slot together in one go, instead of corner first and edge later.',
+    hold:'Corner above the <b>front-right</b> slot with white <b>facing right</b>. Its edge is at the <b>top back</b> with green on top.',
+    tips:['F2L = first two layers. You build a white corner and its middle edge together, then drop them in as a pair.',
+          'Pair them yourself first: turn the top until the corner and edge sit like in the picture.',
+          'Start the white cross as before, then use F2L instead of beginner steps 2 and 3.'] },
+  { id:'f2l-2', level:'intermediate', step:'F2L · basic insert 2', title:'Corner white facing you, edge on the left', moves:"F' U' F", focus:'nonyellow',
+    purpose:'Mirror of insert 1, using the front face.',
+    hold:'Corner above the <b>front-right</b> slot with white <b>facing you</b>. Its edge is at the <b>top left</b> with orange on top.',
+    tips:['Same as insert 1 in a mirror: white faces you instead of right, so use F instead of R.'] },
+  { id:'f2l-3', level:'intermediate', step:'F2L · basic insert 3', title:'Corner and edge side by side (right)', moves:"U R U' R'", focus:'nonyellow',
+    purpose:'Corner and edge are next to each other in the top layer. U lines them up, then they drop in together.',
+    hold:'Corner above the <b>front-right</b> slot with white <b>facing you</b> and green on top. Its edge is at the <b>top right</b> with green on top.',
+    tips:['Looks like the start of the step 3a formula. That is no accident.'] },
+  { id:'f2l-4', level:'intermediate', step:'F2L · basic insert 4', title:'Corner and edge side by side (front)', moves:"U' F' U F", focus:'nonyellow',
+    purpose:'Mirror of insert 3, using the front face.',
+    hold:'Corner above the <b>front-right</b> slot with white <b>facing right</b> and green facing you. Its edge is at the <b>top front</b> with green facing you.',
+    tips:['Mirror of insert 3: swap R for F and every U for U\'.'] },
+
+  { id:'oll-line', level:'intermediate', step:'OLL 1 · yellow cross', title:'Line', moves:"F R U R' U' F'", focus:'all', view:'top',
+    purpose:'Yellow line on top becomes a yellow cross. Same as beginner step 4a.',
+    hold:'Yellow line on top, held <b>left to right</b>.',
+    tips:['2-look OLL: first make the yellow cross (3 cases), then turn all yellow corners up (7 cases).'] },
+  { id:'oll-L', level:'intermediate', step:'OLL 1 · yellow cross', title:'L shape', moves:"F U R U' R' F'", focus:'all', view:'top',
+    purpose:'Yellow L on top becomes a yellow cross. Same as beginner step 4b.',
+    hold:'Yellow L on top, arms pointing <b>back and left</b>.',
+    tips:['Only the middle changes compared with the line: "U R U\' R\'" instead of "R U R\' U\'".'] },
+  { id:'oll-dot', level:'intermediate', step:'OLL 1 · yellow cross', title:'Dot', moves:"F R U R' U' F' U2 F U R U' R' F'",
+    groups:[["F R U R' U' F'",6],["U2",1],["F U R U' R' F'",6]], focus:'all', view:'top',
+    purpose:'Only the yellow centre on top. Line formula, U2, then the L formula.',
+    hold:'No yellow edges on top, just the centre. Any way round.',
+    tips:['After the line formula you get an L. The U2 turns it so its arms point back and left.'] },
+
+  { id:'oll-sune', level:'intermediate', step:'OLL 2 · yellow corners', title:'Sune', moves:"R U R' U R U2 R'", focus:'all', view:'top',
+    purpose:'One yellow corner up. Looks like a fish.',
+    hold:'Yellow cross done. The one yellow-up corner at the <b>front left</b>. The front-right corner shows yellow <b>facing you</b>.',
+    tips:['You already know this one from beginner step 5.'] },
+  { id:'oll-antisune', level:'intermediate', step:'OLL 2 · yellow corners', title:'Antisune', moves:"R U2 R' U' R U' R'", focus:'all', view:'top',
+    purpose:'One yellow corner up, the fish the other way. Sune played backwards.',
+    hold:'The one yellow-up corner at the <b>back right</b>. The front-left corner shows yellow <b>facing you</b>.',
+    tips:['It is the Sune backwards: read the Sune from the end, every turn the other way.'] },
+  { id:'oll-H', level:'intermediate', step:'OLL 2 · yellow corners', title:'H (double headlights)', moves:"R U R' U R U' R' U R U2 R'", focus:'all', view:'top',
+    purpose:'No yellow corner up. Two pairs of yellow facing out on opposite sides.',
+    hold:'Yellow pairs on the <b>left</b> and <b>right</b> sides.',
+    tips:['Starts like the Sune, with an extra "R U\' R\' U" in the middle.'] },
+  { id:'oll-pi', level:'intermediate', step:'OLL 2 · yellow corners', title:'Pi', moves:"R U2 R2 U' R2 U' R2 U2 R", focus:'all', view:'top',
+    purpose:'No yellow corner up. One yellow pair on a side, the other two corners face away from each other.',
+    hold:'The yellow pair (headlights) on the <b>left</b>. On the right, one yellow faces you and one faces the back.',
+    tips:['R2 = turn the right face twice. Keep the rhythm: R2 U\' R2 U\' R2.'] },
+  { id:'oll-U', level:'intermediate', step:'OLL 2 · yellow corners', title:'Headlights', moves:"R2 D R' U2 R D' R' U2 R'", focus:'all', view:'top',
+    purpose:'Two yellow corners up next to each other, the other two look at you like headlights.',
+    hold:'The two yellow-up corners at the <b>back</b>. The headlights <b>facing you</b>.',
+    tips:['The D turn moves the white layer for a moment. D\' puts it back.'] },
+  { id:'oll-T', level:'intermediate', step:'OLL 2 · yellow corners', title:'T', moves:"r U R' U' r' F R F'", focus:'all', view:'top',
+    purpose:'Two yellow corners up next to each other, the other two face away from each other.',
+    hold:'The two yellow-up corners on the <b>right</b>. On the left, one yellow faces you and one faces the back.',
+    tips:['Small r = turn the right face together with the middle slice.'] },
+  { id:'oll-bowtie', level:'intermediate', step:'OLL 2 · yellow corners', title:'Bowtie', moves:"F' r U R' U' r' F R", focus:'all', view:'top',
+    purpose:'Two yellow corners up, diagonal from each other.',
+    hold:'Yellow-up corners at the <b>front left</b> and <b>back right</b>. The front-right corner shows yellow <b>facing you</b>.',
+    tips:['The middle part "r U R\' U\' r\'" is the same as in the T.'] },
+
+  { id:'pll-T', level:'intermediate', step:'PLL 1 · corners', title:'Headlights: T-perm', moves:"R U R' U' R' F R2 U' R' U' R U R' F'", focus:'all',
+    purpose:'Swaps two corners next to each other. Use it when one side already has matching corner colours (headlights).',
+    hold:'Turn the top until one side has <b>headlights</b> (both corners the same colour). Hold that side on the <b>left</b>.',
+    tips:['2-look PLL: first put the corners right (2 cases), then the edges (4 cases).',
+          'It also swaps the left and right edges. That is fine, the edge step fixes it.',
+          'Headlights on every side? Corners are done, go to the edges.'] },
+  { id:'pll-Y', level:'intermediate', step:'PLL 1 · corners', title:'No headlights: Y-perm', moves:"F R U' R' U' R U R' F' R U R' U' R' F R F'", focus:'all',
+    purpose:'Swaps two corners diagonally. Use it when no side has headlights.',
+    hold:'No headlights on any side. Hold it any way round.',
+    tips:['It is two OLL-style chunks in a row. Learn it in halves: "F R U\' R\' U\' R U R\' F\'" and "R U R\' U\' R\' F R F\'".'] },
+
+  { id:'pll-Ua', level:'intermediate', step:'PLL 2 · edges', title:'Ua-perm', moves:"R U' R U R U R U' R' U' R2", focus:'all',
+    purpose:'Three edges move round. The front edge goes to the right, right goes left, left goes to the front.',
+    hold:'Corners done. The one solved side (a full bar) at the <b>back</b>.',
+    tips:['Ua and Ub are the same idea in opposite directions. Pick by where the front edge needs to go.'] },
+  { id:'pll-Ub', level:'intermediate', step:'PLL 2 · edges', title:'Ub-perm', moves:"R2 U R U R' U' R' U' R' U R'", focus:'all',
+    purpose:'Three edges move round the other way. The front edge goes left, left goes right, right goes to the front.',
+    hold:'Corners done. The solved bar at the <b>back</b>.',
+    tips:['It is Ua played backwards.'] },
+  { id:'pll-H', level:'intermediate', step:'PLL 2 · edges', title:'H-perm', moves:"M2 U M2 U2 M2 U M2", focus:'all',
+    purpose:'Swaps opposite edges: front with back, left with right.',
+    hold:'Corners done, every edge is opposite its centre. Any way round.',
+    tips:['M = the middle slice between L and R, turned like L. M2 = twice.'] },
+  { id:'pll-Z', level:'intermediate', step:'PLL 2 · edges', title:'Z-perm', moves:"M' U' M2 U' M2 U' M' U2 M2 U", focus:'all',
+    purpose:'Swaps edges next to each other: front with right, back with left.',
+    hold:'Corners done. The swapped pairs at <b>front-right</b> and <b>back-left</b>.',
+    tips:['The last U lines the top back up with the centres.'] },
 ];
 
 /* ============================================================
@@ -341,18 +441,27 @@ function flatten(seq){
 const startSeq = alg => alg.start==='solved' ? [] : inverseSeq(flatten(alg.moves.split(/\s+/)));
 const formulaText = alg => alg.short ? alg.short : alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
 
-function renderOverview(){
+const LEVELS = {
+  beginner:{ name:'Beginner 3x3', intro:`The classic beginner method. Hold the cube with <b>yellow on top</b> and <b>green facing you</b>:
+       white gets solved first at the bottom, yellow last on top. Click a step to watch it move.` },
+  intermediate:{ name:'Intermediate 3x3', intro:`The next step up: white cross as before, then <b>F2L</b> (corner and edge together),
+       <b>2-look OLL</b> (all yellow on top) and <b>2-look PLL</b> (everything in place). Same grip: yellow on top, green facing you.` },
+};
+const levelOf = alg => alg.level || 'beginner';
+
+function renderOverview(level){
+  const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>` : '';
   app.innerHTML = `
-    <h1>Solve the cube, step by step</h1>
-    <p class="sub">The classic beginner method. Hold the cube with <b>yellow on top</b> and <b>green facing you</b>:
-       white gets solved first at the bottom, yellow last on top. Click a step to watch it move.</p>
+    <h1>Algorithms</h1>
+    <div class="levels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.name}</a>`).join('')}</div>
+    <p class="sub">${LEVELS[level].intro}</p>
     <div class="legend">
-      <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span><span><b>y</b> turn the whole cube, right side to the front</span>
+      <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span><span><b>y</b> turn the whole cube, right side to the front</span>${extra}
       <span><b>'</b> = the other way</span><span><b>2</b> = twice</span><span>plain letter = clockwise as you look at that face</span>
     </div>
     <div class="grid"></div>`;
   const grid = app.querySelector('.grid');
-  for(const alg of ALGS){
+  for(const alg of ALGS.filter(a=>levelOf(a)===level)){
     const a=document.createElement('a'); a.className='card'; a.href='#'+alg.id;
     a.innerHTML=`<div class="step">${alg.step}</div><div class="scene"></div><h3>${alg.title}</h3><div class="f">${formulaText(alg)}</div><p>${alg.purpose}</p>`;
     grid.appendChild(a);
@@ -365,9 +474,9 @@ class Player {
   constructor(alg){
     this.alg=alg; this.dead=false; this.step=0; this.busy=false;
     const {moves,groups}=groupsOf(alg); this.moves=moves; this.groups=groups;
-    const idx=ALGS.indexOf(alg), prev=ALGS[idx-1], next=ALGS[idx+1];
+    const level=levelOf(alg), list=ALGS.filter(a=>levelOf(a)===level), idx=list.indexOf(alg), prev=list[idx-1], next=list[idx+1];
     app.innerHTML=`
-      <a class="back" href="#">&larr; All steps</a>
+      <a class="back" href="#${level}">&larr; All ${LEVELS[level].name} steps</a>
       <div class="step">${alg.step}</div>
       <h2>${alg.title}</h2>
       <p class="sub">${alg.purpose}</p>
@@ -456,7 +565,7 @@ class Player {
 function route(){
   if(player){ player.destroy(); player=null; }
   const id=location.hash.slice(1), alg=ALGS.find(a=>a.id===id);
-  if(alg) player=new Player(alg); else renderOverview();
+  if(alg) player=new Player(alg); else renderOverview(LEVELS[id] ? id : 'beginner');
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
