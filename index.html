@@ -348,19 +348,18 @@ const ALGS = [
           'The second half is basic insert 3. You already know it.',
           'This is the main F2L idea: make a block in the top layer, then drop it in. Most F2L cases work this way.'] },
 
-  { id:'oll-line', level:'intermediate', step:'OLL 1 · yellow cross', title:'Line', moves:"F R U R' U' F'", focus:'all', view:'top',
-    purpose:'Yellow line on top becomes a yellow cross. Same as beginner step 4a.',
-    hold:'Yellow line on top, held <b>left to right</b>.',
-    tips:['2-look OLL: first make the yellow cross (3 cases), then turn all yellow corners up (7 cases).'] },
-  { id:'oll-L', level:'intermediate', step:'OLL 1 · yellow cross', title:'L shape', moves:"F U R U' R' F'", focus:'all', view:'top',
-    purpose:'Yellow L on top becomes a yellow cross. Same as beginner step 4b.',
-    hold:'Yellow L on top, arms pointing <b>back and left</b>.',
-    tips:['Only the middle changes compared with the line: "U R U\' R\'" instead of "R U R\' U\'".'] },
-  { id:'oll-dot', level:'intermediate', step:'OLL 1 · yellow cross', title:'Dot', moves:"F R U R' U' F' U2 F U R U' R' F'",
-    groups:[["F R U R' U' F'",6],["U2",1],["F U R U' R' F'",6]], focus:'all', view:'top',
-    purpose:'Only the yellow centre on top. Line formula, U2, then the L formula.',
-    hold:'No yellow edges on top, just the centre. Any way round.',
-    tips:['After the line formula you get an L. The U2 turns it so its arms point back and left.'] },
+  { id:'oll-dot', level:'intermediate', step:'OLL 1 · yellow cross', title:'Dot: make a line or an L', moves:"F R U R' U' F'", focus:'all', view:'top',
+    setup:"F R U R' U' F' U2 F R U R' U' R U R' U' F' U",
+    done:'Done! An L appeared. Turn the top so its arms point back and left, then do the L formula.',
+    purpose:'Only the yellow centre and the two back corners are yellow. No yellow edges. Do the line or the L formula, and a line or an L appears.',
+    hold:'Yellow on top: only the <b>centre</b>, the <b>top-left</b> and the <b>top-right</b> corner are yellow, no edges.'+
+         '<ul class="rule"><li>Line formula <b>F R U R\' U\' F\'</b> &rarr; an <b>L</b> appears</li>'+
+         '<li>L formula <b>F U R U\' R\' F\'</b> &rarr; a <b>line</b> appears</li></ul>'+
+         'Then finish the cross with the line or L formula, like beginner steps 4a and 4b.',
+    tips:['The animation does the line formula. The L appears with its arms at the front and right.',
+          'For the L formula the arms must point back and left, so turn the top twice (U2) first.',
+          'Got a line instead? Hold it left to right and do the line formula once more.',
+          'Corners do not matter yet. They get fixed in OLL 2.'] },
 
   { id:'oll-sune', level:'intermediate', step:'OLL 2 · yellow corners', title:'Sune', moves:"R U R' U R U2 R'", focus:'all', view:'top',
     purpose:'One yellow corner up. Looks like a fish.',
@@ -446,7 +445,7 @@ function flatten(seq){
   }
   return out;
 }
-const startSeq = alg => alg.start==='solved' ? [] : inverseSeq(flatten(alg.moves.split(/\s+/)));
+const startSeq = alg => alg.setup ? alg.setup.split(/\s+/) : alg.start==='solved' ? [] : inverseSeq(flatten(alg.moves.split(/\s+/)));
 const formulaText = alg => alg.short ? alg.short : alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
 
 const LEVELS = {
@@ -552,7 +551,7 @@ class Player {
   idleText(){
     const n=this.moves.length;
     if(this.step===0) return 'Press Play, or Step through one turn at a time.';
-    if(this.step===n) return this.alg.repeat ? 'Done! Try Play 6x: the cube comes back to the start.' : 'Done! That is what this step fixes.';
+    if(this.step===n) return this.alg.done ? this.alg.done : this.alg.repeat ? 'Done! Try Play 6x: the cube comes back to the start.' : 'Done! That is what this step fixes.';
     return `${this.step} of ${n} turns done. Next: ${this.moves[this.step]}.`;
   }
   ui(active=-1,text){
