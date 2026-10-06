@@ -469,6 +469,9 @@ const LEVELS = {
        white gets solved first at the bottom, yellow last on top. Click a step to watch it move.` },
   intermediate:{ name:'Intermediate 3x3', intro:`The next step up: white cross as before, then <b>F2L</b> (corner and edge together),
        <b>2-look OLL</b> (all yellow on top) and <b>2-look PLL</b> (everything in place). Same grip: yellow on top, green facing you.` },
+  'advanced-f2l':{ name:'Advanced F2L' },
+  'advanced-oll':{ name:'Advanced OLL' },
+  'advanced-pll':{ name:'Advanced PLL' },
 };
 const levelOf = alg => alg.level || 'beginner';
 
@@ -477,14 +480,16 @@ function renderOverview(level){
   app.innerHTML = `
     <h1>Algorithms</h1>
     <div class="levels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.name}</a>`).join('')}</div>
-    <p class="sub">${LEVELS[level].intro}</p>
+    ${LEVELS[level].intro ? `<p class="sub">${LEVELS[level].intro}</p>` : ''}
     <div class="legend">
       <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span><span><b>y</b> turn the whole cube, right side to the front</span>${extra}
       <span><b>'</b> = the other way</span><span><b>2</b> = twice</span><span><b>3</b> = three times</span><span>plain letter = clockwise as you look at that face</span>
     </div>
     <div class="grid"></div>`;
+  const algs = ALGS.filter(a=>levelOf(a)===level);
+  if(!algs.length){ app.querySelector('.legend').remove(); app.querySelector('.grid').remove(); return; }
   const grid = app.querySelector('.grid');
-  for(const alg of ALGS.filter(a=>levelOf(a)===level)){
+  for(const alg of algs){
     const a=document.createElement('a'); a.className='card'; a.href='#'+alg.id;
     a.innerHTML=`<div class="step">${alg.step}</div><div class="scene"></div><h3>${alg.title}</h3><div class="f">${formulaText(alg)}</div><p>${alg.purpose}</p>`;
     grid.appendChild(a);
