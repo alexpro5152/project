@@ -355,10 +355,21 @@ const ALGS = [
     hold:'Yellow on top: only the <b>centre</b>, the <b>top-left</b> and the <b>top-right</b> corner are yellow, no edges.'+
          '<ul class="rule"><li>Line formula <b>F R U R\' U\' F\'</b> &rarr; an <b>L</b> appears</li>'+
          '<li>L formula <b>F U R U\' R\' F\'</b> &rarr; a <b>line</b> appears</li></ul>'+
-         'Then finish the cross with the line or L formula, like beginner steps 4a and 4b.',
+         'Then finish the cross with the <b>Line</b> or <b>L shape</b> card below.',
     tips:['The animation does the line formula. The L appears with its arms at the front and right.',
           'For the L formula the arms must point back and left, so turn the top twice (U2) first.',
           'Got a line instead? Hold it left to right and do the line formula once more.',
+          'Corners do not matter yet. They get fixed in OLL 2.'] },
+
+  { id:'oll-line', level:'intermediate', step:'OLL 1 · yellow cross', title:'Line', moves:"F R U R' U' F'", focus:'all', view:'top',
+    purpose:'Yellow line on top becomes a yellow cross.',
+    hold:'Yellow line on top, held <b>left to right</b>. Line going front to back? Turn the top once (U) first.',
+    tips:['This is Righty wrapped in F and F\'. You already know the middle part.',
+          'Corners do not matter yet. They get fixed in OLL 2.'] },
+  { id:'oll-L', level:'intermediate', step:'OLL 1 · yellow cross', title:'L shape', moves:"F U R U' R' F'", focus:'all', view:'top',
+    purpose:'Yellow L on top becomes a yellow cross.',
+    hold:'Yellow L on top, its arms pointing <b>back and left</b> (like 9 and 12 on a clock). Pointing somewhere else? Turn only the top until it fits.',
+    tips:['Nearly the same as the line formula, only the middle is "U R U\' R\'" instead of "R U R\' U\'".',
           'Corners do not matter yet. They get fixed in OLL 2.'] },
 
   { id:'oll-sune', level:'intermediate', step:'OLL 2 · yellow corners', title:'Sune', moves:"R U R' U R U2 R'", focus:'all', view:'top',
