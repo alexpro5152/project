@@ -315,7 +315,7 @@ const ALGS = [
 
   { id:'cross-side', step:'Step 1b · white cross', title:'Edge on top, white facing sideways', moves:"F' D' L D", focus:'white-edges', view:'below',
     purpose:'A white edge in the top layer with white pointing at you. Drops it into the bottom the right way up.',
-    hold:'White on the bottom. The edge sits at the <b>top front</b> with the white sticker <b>facing you</b>, and its other colour matches the front centre. If not, turn the top until it does.',
+    hold:'White on the bottom. The edge sits at the <b>top front</b> with the white sticker <b>facing you</b>. Its other colour (on top) is the <b>same colour as the front centre</b>, here green. If not, turn the top until it is.',
     tips:['The other cross edges are not disturbed.',
           'Same ending as 1c: the last three turns tuck the edge in from the left.'] },
 
@@ -420,11 +420,11 @@ const ALGS = [
   { id:'f2l-3', level:'intermediate', step:'F2L · basic insert 3', title:'Corner and edge side by side (right)', moves:"U R U' R'", focus:'nonyellow',
     purpose:'Corner and edge are next to each other in the top layer. U lines them up, then they drop in together.',
     hold:'Corner above the <b>front-right</b> slot with white <b>facing you</b> and green on top. Its edge is at the <b>top right</b> with green on top.',
-    tips:['Looks like the start of the step 3a formula. That is no accident.'] },
+    tips:['The first U joins corner and edge into a block. R U\' R\' then puts the block in.'] },
   { id:'f2l-4', level:'intermediate', step:'F2L · basic insert 4', title:'Corner and edge side by side (front)', moves:"U' F' U F", focus:'nonyellow',
     purpose:'Mirror of insert 3, using the front face.',
     hold:'Corner above the <b>front-right</b> slot with white <b>facing right</b> and green facing you. Its edge is at the <b>top front</b> with green facing you.',
-    tips:['Mirror of insert 3: swap R for F and every U for U\'.'] },
+    tips:['Mirror of insert 3: R becomes F\', R\' becomes F, and every U turns the other way.'] },
 
   { id:'f2l-block', level:'intermediate', step:'F2L · make a block', title:'Join corner and edge into a block', moves:"U R U2 R' U R U' R'",
     groups:[["U R U2 R'",4,'Block made'],["U R U' R'",4,'Block in']], focus:'nonyellow',
