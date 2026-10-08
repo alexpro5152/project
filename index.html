@@ -68,7 +68,10 @@
         gap:6px;transition:border-color .2s,transform .2s;cursor:pointer}
   .card:hover{border-color:var(--accent);transform:translateY(-2px)}
   .step{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
-  .card .scene{width:100%;height:150px;perspective:600px;margin:2px 0}
+  .card .scene{width:100%;height:150px;perspective:600px;margin:2px 0;cursor:grab;touch-action:pan-y;user-select:none}
+  .card .scene.dragging{cursor:grabbing}
+  .scene-wrap{position:relative}
+  .card-reset{position:absolute;top:2px;right:0;font-size:18px;line-height:1;padding:6px 9px;border-radius:10px}
   .net{display:flex;justify-content:center;align-items:center;height:150px;margin:2px 0}
   .net svg{height:100%;width:auto}
   .net rect{stroke:#111;stroke-width:2}
@@ -180,20 +183,29 @@ const VIEWS = Object.fromEntries(Object.entries(VIEW_ANGLES).map(([k,v])=>[k,vie
 
 // Drag or swipe on a cube to turn the whole cube and look at it from any side.
 // Returns a function that turns it back to the starting view.
-function enableOrbit(scene, cubeEl, view){
-  const home=VIEW_ANGLES[view]; let angle=home.slice(), drag=null;
+// onTurn(turned) is called when the view leaves or returns to the start; moved() says whether
+// the last press was a drag (so a card link can ignore the click that ends a drag).
+function enableOrbit(scene, cubeEl, view, {onTurn=()=>{}, speed=0.5}={}){
+  const home=VIEW_ANGLES[view]; let angle=home.slice(), drag=null, wasDrag=false;
   const show=()=>{ cubeEl.style.transform=viewCSS(angle); };
+  scene.addEventListener('dragstart',e=>e.preventDefault());
   scene.addEventListener('pointerdown',e=>{
-    drag={x:e.clientX,y:e.clientY,start:angle.slice()}; cubeEl.classList.remove('settle');
+    if(e.button>0) return;
+    drag={x:e.clientX,y:e.clientY,start:angle.slice(),moved:false}; wasDrag=false; cubeEl.classList.remove('settle');
     scene.setPointerCapture(e.pointerId); scene.classList.add('dragging');
   });
   scene.addEventListener('pointermove',e=>{
     if(!drag) return;
-    angle=[drag.start[0]-(e.clientY-drag.y)*0.5, drag.start[1]+(e.clientX-drag.x)*0.5]; show();
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(!drag.moved && Math.hypot(dx,dy)<5) return;      // a small wobble is still a tap
+    drag.moved=true;
+    angle=[drag.start[0]-dy*speed, drag.start[1]+dx*speed]; show(); onTurn(true);
   });
-  const end=()=>{ drag=null; scene.classList.remove('dragging'); };
+  const end=()=>{ if(drag) wasDrag=drag.moved; drag=null; scene.classList.remove('dragging'); };
   scene.addEventListener('pointerup',end); scene.addEventListener('pointercancel',end);
-  return ()=>{ cubeEl.classList.add('settle'); angle=home.slice(); show(); };
+  const reset=()=>{ cubeEl.classList.add('settle'); angle=home.slice(); show(); onTurn(false); };
+  reset.moved=()=>wasDrag;
+  return reset;
 }
 
 function parseMove(tok){
@@ -811,12 +823,19 @@ function renderOverview(level){
   const grid = app.querySelector('.grid');
   for(const alg of algs){
     const a=document.createElement('a'); a.className='card'; a.href='#'+alg.id;
-    const pic = alg.diagram==='net' ? `<div class="net">${netSVG(alg)}</div>` : '<div class="scene"></div>';
+    const pic = alg.diagram==='net' ? `<div class="net">${netSVG(alg)}</div>`
+      : '<div class="scene-wrap"><div class="scene"></div><button class="card-reset" type="button" hidden aria-label="Turn the cube back" title="Turn the cube back">&#10227;</button></div>';
     a.innerHTML=`<div class="step">${alg.step}</div>${pic}<h3>${alg.title}</h3><div class="f">${formulaText(alg)}</div>${alg.purpose?`<p>${alg.purpose}</p>`:''}`;
     grid.appendChild(a);
     if(alg.diagram==='net') continue;
-    const c=makeCube(a.querySelector('.scene'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip});
+    const sc=a.querySelector('.scene'), back=a.querySelector('.card-reset');
+    const c=makeCube(sc, {view:alg.view||'above', focus:alg.focus, flip:alg.flip});
     c.applyAll(startSeq(alg));
+    // drag the small cube to turn it; a plain click still opens the step
+    const reset=enableOrbit(sc, c.el, alg.view||'above', {onTurn:t=>{ back.hidden=!t; }, speed:0.8});
+    a.draggable=false;
+    a.addEventListener('click',e=>{ if(reset.moved()){ e.preventDefault(); } },true);
+    back.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); reset(); });
   }
 }
 
