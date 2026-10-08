@@ -69,6 +69,10 @@
   .card:hover{border-color:var(--accent);transform:translateY(-2px)}
   .step{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
   .card .scene{width:100%;height:150px;perspective:600px;margin:2px 0}
+  .net{display:flex;justify-content:center;align-items:center;height:150px;margin:2px 0}
+  .net svg{height:100%;width:auto}
+  .net rect{stroke:#111;stroke-width:2}
+  .big-net{height:170px;margin:4px 0 12px}
   .card h3{margin:0;font-size:19px}
   .card .f{font-family:ui-monospace,Consolas,monospace;font-weight:800;font-size:18px;color:var(--ink);word-break:break-word}
   .card p{margin:0;color:var(--muted);font-size:14px;line-height:1.4}
@@ -677,6 +681,28 @@ const ALGS = [
     purpose:'2 yellow edges and no yellow corners on top.' },
   { id:'aoll-57', level:'advanced-oll', step:'OLL 57', title:'Case 57', moves:"R U R' U' M' U R U' r'", groups:[["R U R' U'",4],["M'",1],["U R U' r'",4]], focus:'all', view:'top',
     purpose:'2 yellow edges and 4 yellow corners on top.' },
+  /* ---------------- Advanced PLL (3x3): the 21 cases from the PLL chart ---------------- */
+  { id:'apll-1', level:'advanced-pll', step:'PLL 1', title:'Case 1', moves:"R U' R U R U R U' R' U' R2", groups:[["R U'",2],["R U R U",4],["R U' R' U' R2",5]], focus:'all', diagram:'net' },
+  { id:'apll-2', level:'advanced-pll', step:'PLL 2', title:'Case 2', moves:"R2 U R U R' U' R' U' R' U R'", groups:[["R2 U R U",4],["R' U' R' U'",4],["R' U R'",3]], focus:'all', diagram:'net' },
+  { id:'apll-3', level:'advanced-pll', step:'PLL 3', title:'Case 3', moves:"M2 U M2 U2 M2 U M2", groups:[["M2",1],["U",1],["M2",1],["U2",1],["M2",1],["U",1],["M2",1]], focus:'all', diagram:'net' },
+  { id:'apll-4', level:'advanced-pll', step:'PLL 4', title:'Case 4', moves:"U R' U' R U' R U R U' R' U R U R2 U' R' U", groups:[["U",1],["R' U' R U'",4],["R U R U'",4],["R' U R U",4],["R2 U' R' U",4]], focus:'all', diagram:'net' },
+  { id:'apll-5', level:'advanced-pll', step:'PLL 5', title:'Case 5', moves:"x' R2 D2 R' U' R D2 R' U R'", groups:[["x'",1],["R2",1],["D2",1],["R' U' R",3],["D2",1],["R' U R'",3]], focus:'all', diagram:'net' },
+  { id:'apll-6', level:'advanced-pll', step:'PLL 6', title:'Case 6', moves:"x' R U' R D2 R' U R D2 R2", groups:[["x'",1],["R U' R",3],["D2",1],["R' U R",3],["D2",1],["R2",1]], focus:'all', diagram:'net' },
+  { id:'apll-7', level:'advanced-pll', step:'PLL 7', title:'Case 7', moves:"x' R U' R' D R U R' D' R U R' D R U' R' D'", groups:[["x'",1],["R U' R' D",4],["R U R' D'",4],["R U R' D",4],["R U' R' D'",4]], focus:'all', diagram:'net' },
+  { id:'apll-8', level:'advanced-pll', step:'PLL 8', title:'Case 8', moves:"R U R' U' R' F R2 U' R' U' R U R' F'", groups:[["R U R' U'",4],["R' F R2 U'",4],["R' U' R U R' F'",6]], focus:'all', diagram:'net' },
+  { id:'apll-9', level:'advanced-pll', step:'PLL 9', title:'Case 9', moves:"R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R", groups:[["R' U' F' R U R' U'",7],["R' F R2 U' R' U' R U R' U R",11]], focus:'all', diagram:'net' },
+  { id:'apll-10', level:'advanced-pll', step:'PLL 10', title:'Case 10', moves:"R' U R' U' y R' F' R2 U' R' U R' F R F", groups:[["R' U R' U'",4],["y",1],["R' F' R2 U'",4],["R' U R' F",4],["R",1],["F",1]], focus:'all', diagram:'net' },
+  { id:'apll-11', level:'advanced-pll', step:'PLL 11', title:'Case 11', moves:"F R U' R' U' R U R' F' R U R' U' R' F R F'", groups:[["F",1],["R U' R' U'",4],["R U R' F'",4],["R U R' U'",4],["R' F R F'",4]], focus:'all', diagram:'net' },
+  { id:'apll-12', level:'advanced-pll', step:'PLL 12', title:'Case 12', moves:"z U' R D' R2 U R' U' R2 U D R'", groups:[["z",1],["U' R D'",3],["R2 U R' U' R2",5],["U D",2],["R'",1]], focus:'all', diagram:'net' },
+  { id:'apll-13', level:'advanced-pll', step:'PLL 13', title:'Case 13', moves:"R U R' F' R U R' U' R' F R2 U' R' U'", groups:[["R U R' F' R U R' U'",8],["R' F R2 U' R' U'",6]], focus:'all', diagram:'net' },
+  { id:'apll-14', level:'advanced-pll', step:'PLL 14', title:'Case 14', moves:"R U R' F' R U2 R' U2 R' F R U R U2 R' U'", groups:[["R U R' F'",4],["R U2",2],["R' U2",2],["R' F R U",4],["R U2 R' U'",4]], focus:'all', diagram:'net' },
+  { id:'apll-15', level:'advanced-pll', step:'PLL 15', title:'Case 15', moves:"R' U2 R U2 R' F R U R' U' R' F' R2", groups:[["R' U2 R U2",4],["R' F R U R' U' R' F'",8],["R2",1]], focus:'all', diagram:'net' },
+  { id:'apll-16', level:'advanced-pll', step:'PLL 16', title:'Case 16', moves:"R2 U' R U' R U R' U R2 U D' R U' R' D U'", groups:[["R2 U'",2],["R U' R U R' U",6],["R2",1],["U",1],["D'",1],["R U' R'",3],["D",1],["U'",1]], focus:'all', diagram:'net' },
+  { id:'apll-17', level:'advanced-pll', step:'PLL 17', title:'Case 17', moves:"R U R' U' D R2 U' R U' R' U R' U R2 D' U", groups:[["R U R'",3],["U' D",2],["R2 U' R U' R' U R' U R2 D'",10],["U",1]], focus:'all', diagram:'net' },
+  { id:'apll-18', level:'advanced-pll', step:'PLL 18', title:'Case 18', moves:"D' R2 U R' U R' U' R U' R2 U' D R' U R U", groups:[["D'",1],["R2 U R' U R' U' R U' R2",9],["U'",1],["D",1],["R' U R",3],["U",1]], focus:'all', diagram:'net' },
+  { id:'apll-19', level:'advanced-pll', step:'PLL 19', title:'Case 19', moves:"R' d' F R2 u R' U R U' R u' R2", groups:[["R' d' F",3],["R2 u",2],["R' U",2],["R U' R u' R2",5]], focus:'all', diagram:'net' },
+  { id:'apll-20', level:'advanced-pll', step:'PLL 20', title:'Case 20', moves:"R' U R U' R' F' U' F R U R' F R' F' R U' R", groups:[["R' U R U'",4],["R' F' U'",3],["F R U R' F",5],["R' F' R U' R",5]], focus:'all', diagram:'net' },
+  { id:'apll-21', level:'advanced-pll', step:'PLL 21', title:'Case 21', moves:"R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'", groups:[["R U R' U",4],["R U R' F'",4],["R U R' U' R' F",6],["R2 U' R' U2",4],["R",1],["U'",1],["R'",1]], focus:'all', diagram:'net' },
 ];
 
 /* ============================================================
@@ -725,9 +751,28 @@ const LEVELS = {
 };
 const levelOf = alg => alg.level || 'beginner';
 
+// Flat picture of the top layer at the start of a card: the 3x3 top face with
+// the side stickers of the top layer drawn as thin strips on all four sides.
+function netSVG(alg){
+  const cube=new Cube(document.createElement('div'),10,{}); cube.applyAll(startSeq(alg));
+  const S=cube.S, faceOf=n=>n[0]===1?'R':n[0]===-1?'L':n[1]===-1?'U':n[1]===1?'D':n[2]===1?'F':'B';
+  const colour=(x,z,d)=>{                       // sticker of the top-layer piece at (x,z) facing direction d
+    const q=cube.cubies.find(c=>Math.round(c.M[0][3]/S)===x&&Math.round(c.M[1][3]/S)===-1&&Math.round(c.M[2][3]/S)===z);
+    const n=[0,1,2].map(k=>Math.round(q.M[0][k]*d[0]+q.M[1][k]*d[1]+q.M[2][k]*d[2]));
+    return COLORS[faceOf(n)];
+  };
+  const C=30, G=3, T=12, P=4, F=T+P, W=3*C+2*G, total=F*2+W, rects=[];
+  const rect=(x,y,w,h,fill)=>rects.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" style="fill:${fill}"/>`);
+  for(let i=0;i<3;i++) for(let j=0;j<3;j++) rect(F+j*(C+G),F+i*(C+G),C,C,colour(j-1,i-1,[0,-1,0]));
+  for(let j=0;j<3;j++){ rect(F+j*(C+G),0,C,T,colour(j-1,-1,[0,0,-1])); rect(F+j*(C+G),F+W+P,C,T,colour(j-1,1,[0,0,1])); }
+  for(let i=0;i<3;i++){ rect(0,F+i*(C+G),T,C,colour(-1,i-1,[-1,0,0])); rect(F+W+P,F+i*(C+G),T,C,colour(1,i-1,[1,0,0])); }
+  return `<svg class="netsvg" viewBox="-2 -2 ${total+4} ${total+4}" role="img" aria-label="Top layer at the start">${rects.join('')}</svg>`;
+}
+
 function renderOverview(level){
   const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>`
               : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>`
+              : level==='advanced-pll' ? `<span><b>M</b> middle slice, like L</span><span><b>x z</b> tip / roll the whole cube</span><span><b>y</b> turn the whole cube</span><span><b>d u</b> bottom / top two layers</span>`
               : level==='advanced-oll' ? `<span><b>r l f</b> two layers at once</span><span><b>M</b> middle slice, like L</span><span><b>S</b> front-back middle slice, like F</span><span><b>x</b> tip the whole cube, like R</span><span><b>d</b> bottom two layers</span><span><b>(…)2</b> = do the bracket twice</span>` : '';
   app.innerHTML = `
     <h1>Algorithms</h1>
@@ -743,8 +788,10 @@ function renderOverview(level){
   const grid = app.querySelector('.grid');
   for(const alg of algs){
     const a=document.createElement('a'); a.className='card'; a.href='#'+alg.id;
-    a.innerHTML=`<div class="step">${alg.step}</div><div class="scene"></div><h3>${alg.title}</h3><div class="f">${formulaText(alg)}</div><p>${alg.purpose}</p>`;
+    const pic = alg.diagram==='net' ? `<div class="net">${netSVG(alg)}</div>` : '<div class="scene"></div>';
+    a.innerHTML=`<div class="step">${alg.step}</div>${pic}<h3>${alg.title}</h3><div class="f">${formulaText(alg)}</div>${alg.purpose?`<p>${alg.purpose}</p>`:''}`;
     grid.appendChild(a);
+    if(alg.diagram==='net') continue;
     const c=makeCube(a.querySelector('.scene'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip});
     c.applyAll(startSeq(alg));
   }
@@ -759,7 +806,8 @@ class Player {
       <a class="back" href="#${level}">&larr; All ${LEVELS[level].name} steps</a>
       <div class="step">${alg.step}</div>
       <h2>${alg.title}</h2>
-      <p class="sub">${alg.purpose}</p>
+      ${alg.purpose?`<p class="sub">${alg.purpose}</p>`:''}
+      ${alg.diagram==='net'?`<div class="net big-net">${netSVG(alg)}</div>`:''}
       ${alg.hold?`<div class="hold">${alg.hold}</div>`:''}
       <div class="formula ${moves.length>10?'long':''}"></div>
       <div class="desc"></div>
