@@ -49,9 +49,14 @@
   /* --- cube --- */
   .scene{perspective:1100px;perspective-origin:50% 45%}
   .cube{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+  .cube, .cube *{pointer-events:none}   /* the scene around the puzzle handles dragging; the puzzle never covers buttons */
   .cubie{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
   .face{position:absolute;background:#111}
   .cube.mirror .face::after{inset:3%;border-radius:6%}
+  .pyra-st{position:absolute;left:50%;top:50%;transform-origin:0 0;transform-style:preserve-3d}
+  .pyra-st i{position:absolute;left:0;top:0}
+  .pyra-back{background:#111;transform:translateZ(-.6px);backface-visibility:hidden}
+  .pyra-front{backface-visibility:hidden}
   .face::after{content:'';position:absolute;inset:4%;border-radius:12%;background:var(--c,#1b1b1b)}
   .cubie.dim .face::after{background:var(--dim)}
   .cubie.dim .face.inner::after{background:#1b1b1b}
@@ -185,7 +190,7 @@ const HINT = {
   "y":'turn it so the right side faces you', "y'":'turn it so the left side faces you',
   "B":'clockwise as seen from behind',  "B'":'anticlockwise as seen from behind',
 };
-const VIEW_ANGLES = { above:[-28,-38], below:[26,-38], top:[-52,-32] };   // [tilt, turn] in degrees
+const VIEW_ANGLES = { above:[-28,-38], below:[26,-38], top:[-52,-32], pyra:[-22,-52] };   // [tilt, turn] in degrees
 const viewCSS = ([tilt,turn]) => `rotateX(${tilt}deg) rotateY(${turn}deg)`;
 const VIEWS = Object.fromEntries(Object.entries(VIEW_ANGLES).map(([k,v])=>[k,viewCSS(v)]));
 
@@ -310,11 +315,93 @@ class Cube {
   }
 }
 // extra drawing options for puzzles that are not a normal 3x3
-const puzzleOpts = alg => ({ mirror: alg.level==='mirror', two: !!TWO_LEVELS[alg.level] });
+// default viewing angle for a card's puzzle
+const viewOf = alg => alg.view || (alg.level==='pyraminx' ? 'pyra' : 'above');
+const puzzleOpts = alg => ({ mirror: alg.level==='mirror', two: !!TWO_LEVELS[alg.level], pyra: alg.level==='pyraminx' });
+/* ============================================================
+   Pyraminx: 4 faces x 9 triangle stickers. Corners U (top), L (front-left), R (front-right),
+   B (back). Faces: front green, left red, right blue, bottom yellow. U L R B turn a corner with
+   its layer, u l r b turn only the tip; plain = clockwise as you look at that corner.
+   ============================================================ */
+const PYRA_V = (()=>{ const r=Math.sqrt(8)/3, h=Math.sqrt(3)/2;
+  return { U:[0,-1,0], L:[-r*h,1/3,r/2], R:[r*h,1/3,r/2], B:[0,1/3,-r] }; })();
+const PYRA_FACES = { F:['U','L','R'], L:['U','B','L'], R:['U','R','B'], D:['L','B','R'] };
+const PYRA_COLORS = { F:'var(--G)', L:'var(--R)', R:'var(--B)', D:'var(--Y)' };
+const v3 = { add:(a,b)=>a.map((x,i)=>x+b[i]), sub:(a,b)=>a.map((x,i)=>x-b[i]), mul:(a,k)=>a.map(x=>x*k),
+  dot:(a,b)=>a.reduce((t,x,i)=>t+x*b[i],0), cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
+  unit:a=>{const n=Math.hypot(...a);return a.map(x=>x/n);} };
+// all 36 sticker slots: triangle corners and centre (unit size)
+const PYRA_SLOTS = (()=>{ const out=[];
+  for(const [f,[a,b,c]] of Object.entries(PYRA_FACES)){ const A=PYRA_V[a],B=PYRA_V[b],C=PYRA_V[c];
+    const P=(i,j)=>v3.add(A,v3.add(v3.mul(v3.sub(B,A),i/3),v3.mul(v3.sub(C,A),j/3)));
+    for(let i=0;i<3;i++)for(let j=0;i+j<3;j++){ out.push({face:f,tri:[P(i,j),P(i+1,j),P(i,j+1)]}); if(i+j<2) out.push({face:f,tri:[P(i+1,j),P(i+1,j+1),P(i,j+1)]}); } }
+  for(const s of out) s.c=v3.mul(s.tri.reduce(v3.add),1/3);
+  return out; })();
+// rotation about a unit axis (same algebra as rot(): positive = clockwise seen from that side)
+function rotAxis(a,deg){ const t=deg*Math.PI/180,c=Math.cos(t),s=Math.sin(t),[x,y,z]=a,C=1-c;
+  return [[c+x*x*C,x*y*C-z*s,x*z*C+y*s,0],[y*x*C+z*s,c+y*y*C,y*z*C-x*s,0],[z*x*C-y*s,z*y*C+x*s,c+z*z*C,0],[0,0,0,1]]; }
+// for each move: which slots turn, and where each slot goes
+const PYRA_MOVES = (()=>{ const m={}; const near=(a,b)=>Math.hypot(...v3.sub(a,b))<1e-6;
+  for(const k of ['U','L','R','B','u','l','r','b']){ const axis=v3.unit(PYRA_V[k.toUpperCase()]), lim=k===k.toUpperCase()?1/9:5/9;
+    const set=PYRA_SLOTS.map((s,i)=>v3.dot(s.c,axis)>lim?i:-1).filter(i=>i>=0);
+    for(const [suf,deg] of [['',120],["'",-120]]){ const R=rotAxis(axis,deg), to={};
+      for(const i of set){ const c=PYRA_SLOTS[i].c, p=[0,1,2].map(r=>R[r][0]*c[0]+R[r][1]*c[1]+R[r][2]*c[2]); to[i]=PYRA_SLOTS.findIndex(s=>near(s.c,p)); }
+      m[k+suf]={axis,deg,set,to}; } }
+  return m; })();
+
+class Pyra {
+  constructor(el, S, {view='pyra'}={}){
+    this.el=el; this.S=S; this.dead=false; el.style.transform=VIEWS[view] || VIEWS.pyra;
+    const sz=S*2.7; this.sz=sz;
+    // each slot gets a fixed placement matrix: local x/y in the sticker's plane, local z = outward normal
+    this.slotM = PYRA_SLOTS.map(s=>{ const [P0,P1,P2]=s.tri, n=v3.unit(v3.cross(v3.sub(P1,P0),v3.sub(P2,P0)));
+      const out = v3.dot(n,s.c)>0 ? n : v3.mul(n,-1), e1=v3.unit(v3.sub(P1,P0)), e2=v3.cross(out,e1);
+      const loc=[P0,P1,P2].map(P=>[v3.dot(v3.sub(P,P0),e1)*sz, v3.dot(v3.sub(P,P0),e2)*sz]);
+      const minX=Math.min(...loc.map(p=>p[0])), minY=Math.min(...loc.map(p=>p[1]));
+      const O=v3.add(v3.mul(P0,sz), v3.add(v3.mul(e1,minX), v3.mul(e2,minY)));
+      return { M:[[e1[0],e2[0],out[0],O[0]],[e1[1],e2[1],out[1],O[1]],[e1[2],e2[2],out[2],O[2]],[0,0,0,1]], pts:loc.map(p=>[p[0]-minX,p[1]-minY]) }; });
+    this.cubies = PYRA_SLOTS.map((s,i)=>{
+      const {pts}=this.slotM[i], cx=(pts[0][0]+pts[1][0]+pts[2][0])/3, cy=(pts[0][1]+pts[1][1]+pts[2][1])/3;
+      const poly=k=>pts.map(([x,y])=>`${cx+(x-cx)*k}px ${cy+(y-cy)*k}px`).join(',');
+      const w=Math.max(...pts.map(p=>p[0])), h=Math.max(...pts.map(p=>p[1]));
+      const d=document.createElement('div'); d.className='pyra-st';
+      d.innerHTML=`<i class="pyra-back" style="width:${w}px;height:${h}px;clip-path:polygon(${poly(1)})"></i><i class="pyra-front" style="width:${w}px;height:${h}px;clip-path:polygon(${poly(.82)});background:${PYRA_COLORS[s.face]}"></i>`;
+      el.appendChild(d); return { el:d, slot:i, face:s.face, M:this.slotM[i].M, M0:this.slotM[i].M };
+    });
+    this.render();
+  }
+  render(){ for(const c of this.cubies) c.el.style.transform=css(c.M); }
+  reset(){ for(const c of this.cubies){ c.slot=this.cubies.indexOf(c); c.M=c.M0; } this.render(); }
+  moving(tok){ const m=PYRA_MOVES[tok]; return this.cubies.filter(c=>m.set.includes(c.slot)); }
+  apply(tok){ const m=PYRA_MOVES[tok]; for(const c of this.moving(tok)){ c.slot=m.to[c.slot]; c.M=this.slotM[c.slot].M; } this.render(); }
+  applyAll(seq){ for(const t of seq) this.apply(t); }
+  // each face shows one colour
+  isSolved(){ const byFace={}; for(const c of this.cubies){ const f=PYRA_SLOTS[c.slot].face; (byFace[f]??=new Set()).add(c.face); } return Object.values(byFace).every(s=>s.size===1); }
+  // colour in each slot, in slot order (used by the checks)
+  colours(){ const out=[]; for(const c of this.cubies) out[c.slot]=c.face; return out; }
+  animate(tok, dur){
+    return new Promise(res=>{
+      const m=PYRA_MOVES[tok], L=this.moving(tok), t0=performance.now();
+      const frame=now=>{
+        if(this.dead) return res();
+        const t=Math.min(1,(now-t0)/dur), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2, R=rotAxis(m.axis,m.deg*e);
+        for(const c of L) c.el.style.transform=css(mul(R,c.M));
+        if(t<1) requestAnimationFrame(frame); else { this.apply(tok); res(); }
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+}
+const PYRA_NAME = { U:'Top corner', L:'Left corner', R:'Right corner', B:'Back corner' };
+function describePyra(tok){
+  const k=tok[0], what = k===k.toUpperCase() ? `${PYRA_NAME[k]} with its layer` : `${PYRA_NAME[k.toUpperCase()].replace('corner','tip')} only`;
+  return `${what}: turn it ${tok.endsWith("'")?'anticlockwise':'clockwise'}, as you look at that corner`;
+}
+
 function makeCube(scene, opts){
   const cube=document.createElement('div'); cube.className='cube'; scene.appendChild(cube);
   const S=Math.max(8, Math.floor(Math.min(scene.clientWidth, scene.clientHeight)/6.2));
-  return new Cube(cube, S, opts);
+  return opts.pyra ? new Pyra(cube, S, opts) : new Cube(cube, S, opts);
 }
 
 /* ============================================================
@@ -859,6 +946,53 @@ const ALGS = [
   { id:'2x2-pbl-da', level:'2x2-adv', step:'2x2 · PBL 6 of 6', title:'Top: none, bottom: headlights', moves:"R D' R B2 R' D R'", focus:'all',
     purpose:'All yellow up, all white down. Fixes both layers at once.', hold:'Top layer: no headlights. Bottom layer: headlights at the <b>back</b>.', tips:['After the algorithm, turn the top and bottom until the cube is solved.'] },
 
+
+  /* ---------------- Pyraminx beginner: tips, centres, bottom edges, last 3 edges ---------------- */
+  { id:'pyra-tips', level:'pyraminx', step:'Pyraminx · Step 1 · tips', title:'Turn the tips', moves:"u l' r b", focus:'all',
+    purpose:'The easiest step: each tip turns on its own.',
+    hold:'Turn each tip (<b>u l r b</b>) until its three colours match the <b>three centres</b> right next to it.',
+    tips:['A tip has three colours. Each one must match the centre triangle just below it on the same face.',
+          'Turning a tip never moves anything else, so you can always fix the tips first.'] },
+  { id:'pyra-centres', level:'pyraminx', step:'Pyraminx · Step 2 · centres', title:'Match the centres', moves:"R L'", focus:'all',
+    purpose:'Turn whole corners until every face has three centres of the same colour.',
+    hold:'Turn whole corners (<b>U L R B</b>) until on every face the <b>three centres</b> show the same colour. Then hold the puzzle with the <b>yellow face on the bottom</b>.',
+    tips:['Each corner carries its tip and its three centres with it, so step 1 stays done.',
+          'The edges get mixed up while you do this. That is fine, steps 3 and 4 fix them.'] },
+  { id:'pyra-3a', level:'pyraminx', step:'Pyraminx · Step 3a · bottom edges', title:'Edge on the right, yellow facing you', moves:"U R U' R'", focus:'all',
+    purpose:'Puts the green-yellow edge into the front bottom.',
+    hold:'Yellow face on the bottom. The edge that belongs at the <b>front bottom</b> sits on the <b>front-right</b> edge, yellow <b>facing you</b>.',
+    tips:['Turn the whole puzzle (yellow stays down) so the spot you want to fill is at the front bottom.',
+          'Edge already in the bottom but in the wrong spot or flipped? Hold that spot at the front bottom and do this once to bring the edge up.'] },
+  { id:'pyra-3b', level:'pyraminx', step:'Pyraminx · Step 3b · bottom edges', title:'Edge on the right, yellow facing right', moves:"L' U L U'", focus:'all',
+    purpose:'Same edge, the other way round.',
+    hold:'The edge sits on the <b>front-right</b> edge, yellow facing <b>right</b>.' },
+  { id:'pyra-3c', level:'pyraminx', step:'Pyraminx · Step 3c · bottom edges', title:'Edge on the left, yellow facing you', moves:"L R' L' R", focus:'all',
+    purpose:'The edge is on the left side.',
+    hold:'The edge sits on the <b>front-left</b> edge, yellow <b>facing you</b>.' },
+  { id:'pyra-3d', level:'pyraminx', step:'Pyraminx · Step 3d · bottom edges', title:'Edge on the left, yellow facing left', moves:"R U' R' U", focus:'all',
+    purpose:'Mirror of 3b.',
+    hold:'The edge sits on the <b>front-left</b> edge, yellow facing <b>left</b>.' },
+  { id:'pyra-3e', level:'pyraminx', step:'Pyraminx · Step 3e · bottom edges', title:'Edge at the back, yellow facing right', moves:"R U R' U'", focus:'all',
+    purpose:'The edge is on the back edge.',
+    hold:'The edge sits on the <b>back</b> edge, yellow facing <b>right</b>.' },
+  { id:'pyra-3f', level:'pyraminx', step:'Pyraminx · Step 3f · bottom edges', title:'Edge at the back, yellow facing left', moves:"L' U' L U", focus:'all',
+    purpose:'Mirror of 3e.',
+    hold:'The edge sits on the <b>back</b> edge, yellow facing <b>left</b>.',
+    tips:['Do this for all three bottom edges. The yellow face is done when each bottom edge matches the centres on both sides.'] },
+  { id:'pyra-4a', level:'pyraminx', step:'Pyraminx · Step 4a · last edges', title:'Edges go round (one way)', moves:"R' U' L' U L R", focus:'all',
+    purpose:'Moves the three top edges round.',
+    hold:'Yellow face done, on the bottom. <b>No</b> top edge is in its place. The <b>front-left</b> edge belongs at the <b>front right</b>.',
+    tips:['After it, two edges may be flipped. Then do 4c.',
+          'You never need more than two algorithms for the last edges.'] },
+  { id:'pyra-4b', level:'pyraminx', step:'Pyraminx · Step 4b · last edges', title:'Edges go round (other way)', moves:"R' L' U' L U R", focus:'all',
+    purpose:'Moves the three top edges round the other way.',
+    hold:'<b>No</b> top edge is in its place. The <b>front-left</b> edge belongs at the <b>back</b>.',
+    tips:['After it, two edges may be flipped. Then do 4c.'] },
+  { id:'pyra-4c', level:'pyraminx', step:'Pyraminx · Step 4c · last edges', title:'Two edges flipped', moves:"L R' L' R U' R U R'", focus:'all',
+    purpose:'All three top edges are in their place, but two are flipped.',
+    hold:'All top edges in their place, two of them flipped. Hold the puzzle so the <b>good edge is at the back</b>.',
+    tips:['Solved!'] },
+
   /* ---------------- Mirror cube ---------------- */
   { id:'mirror-a', level:'mirror', step:'Mirror cube · last layer', title:'Three corners (A-perm)', moves:"R' F R' B2 R F' R' B2 R2", focus:'all',
     groups:[["R' F R'",3],["B2",1],["R F' R'",3],["B2",1],["R2",1]],
@@ -897,7 +1031,7 @@ function flatten(seq){
   }
   return out;
 }
-const startSeq = alg => alg.setup ? alg.setup.split(/\s+/) : alg.start==='solved' ? [] : inverseSeq(flatten(alg.moves.split(/\s+/)));
+const startSeq = alg => alg.setup ? alg.setup.split(/\s+/) : alg.start==='solved' ? [] : alg.level==='pyraminx' ? inverseSeq(alg.moves.split(/\s+/)) : inverseSeq(flatten(alg.moves.split(/\s+/)));
 const formulaText = alg => alg.short ? alg.short : alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
 
 const LEVELS = {
@@ -962,10 +1096,13 @@ function renderOverview(level, puzzle='3x3'){
     ${puzzles}
     ${sub}${third}
     ${(LEVELS[level]||TWO_LEVELS[level])?.intro ? `<p class="sub">${(LEVELS[level]||TWO_LEVELS[level]).intro}</p>` : ''}
-    <div class="legend">
+    ${level==='pyraminx' ? `<div class="legend">
+      <span><b>U</b> top corner</span><span><b>L</b> front-left corner</span><span><b>R</b> front-right corner</span><span><b>B</b> back corner</span>
+      <span>capital = the corner with its whole layer</span><span><b>u l r b</b> = just the tip</span><span><b>'</b> = the other way</span><span>plain letter = clockwise as you look at that corner</span>
+    </div>` : `<div class="legend">
       <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span><span><b>y</b> turn the whole cube, right side to the front</span>${extra}
       <span><b>'</b> = the other way</span><span><b>2</b> = twice</span><span><b>3</b> = three times</span><span>plain letter = clockwise as you look at that face</span>
-    </div>
+    </div>`}
     <div class="grid"></div>`;
   const algs = ALGS.filter(a=>levelOf(a)===level);
   // a turned card cube goes back to its start once it has been scrolled off the screen
@@ -982,10 +1119,10 @@ function renderOverview(level, puzzle='3x3'){
     grid.appendChild(a);
     if(alg.diagram==='net') continue;
     const sc=a.querySelector('.scene'), back=a.querySelector('.card-reset');
-    const c=makeCube(sc, {view:alg.view||'above', focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
+    const c=makeCube(sc, {view:viewOf(alg), focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
     c.applyAll(startSeq(alg));
     // drag the small cube to turn it; a plain click still opens the step
-    const reset=enableOrbit(sc, c.el, alg.view||'above', {onTurn:t=>{ back.hidden=!t; sc._turned=t; }, speed:0.8});
+    const reset=enableOrbit(sc, c.el, viewOf(alg), {onTurn:t=>{ back.hidden=!t; sc._turned=t; }, speed:0.8});
     sc._resetNow=()=>{ reset(); c.el.classList.remove('settle'); };   // no slide: it happens out of sight
     if(offScreen) offScreen.observe(sc);
     a.draggable=false;
@@ -1026,8 +1163,8 @@ class Player {
     this.tokens=groups.map(g=>{const s=document.createElement('span');s.className='tok';s.textContent=g.label;fEl.appendChild(s);return s;});
     this.desc=app.querySelector('.desc');
 
-    this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
-    this.resetView=enableOrbit(app.querySelector('.big'), this.big.el, alg.view||'above');
+    this.big=makeCube(app.querySelector('.big'), {view:viewOf(alg), focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
+    this.resetView=enableOrbit(app.querySelector('.big'), this.big.el, viewOf(alg));
     app.querySelector('.big').insertAdjacentHTML('afterend','<p class="drag-hint">Drag or swipe the cube to turn it around.</p>');
     this.start=startSeq(alg); this.big.applyAll(this.start);
 
@@ -1039,7 +1176,7 @@ class Player {
       const sc=document.createElement('div'); sc.className='scene'; w.appendChild(sc);
       const l=document.createElement('div'); l.className='lbl'; l.innerHTML=`${label}<small>${small}</small>`; w.appendChild(l);
       strip.appendChild(w);
-      const c=makeCube(sc,{view:alg.view||'above',focus:alg.focus,flip:alg.flip,...puzzleOpts(alg)}); c.applyAll(seq);
+      const c=makeCube(sc,{view:viewOf(alg),focus:alg.focus,flip:alg.flip,...puzzleOpts(alg)}); c.applyAll(seq);
       this.snaps.push(w); this.bounds.push(bound);
     };
     addSnap('Start', alg.start==='solved'?'solved':'before', this.start, 0);
@@ -1085,8 +1222,9 @@ class Player {
     this.B('back').disabled=this.busy||this.step===0; this.B('step').disabled=this.busy||this.step===n;
     this.B('play').disabled=this.busy; this.B('reset').disabled=this.busy; if(this.alg.repeat) this.B('rep').disabled=this.busy;
   }
-  async forward(){ const mv=this.moves[this.step]; this.ui(this.step,`${mv}:  ${describe(mv)}`); await this.big.animate(mv,dur); if(this.dead)return; this.step++; this.ui(); }
-  async backward(){ const mv=this.moves[this.step-1]; this.ui(this.step-1,`Undo ${mv}:  ${describe(inverseTok(mv))}`); await this.big.animate(inverseTok(mv),dur); if(this.dead)return; this.step--; this.ui(); }
+  hint(t){ return this.alg.level==='pyraminx' ? describePyra(t) : describe(t); }
+  async forward(){ const mv=this.moves[this.step]; this.ui(this.step,`${mv}:  ${this.hint(mv)}`); await this.big.animate(mv,dur); if(this.dead)return; this.step++; this.ui(); }
+  async backward(){ const mv=this.moves[this.step-1]; this.ui(this.step-1,`Undo ${mv}:  ${this.hint(inverseTok(mv))}`); await this.big.animate(inverseTok(mv),dur); if(this.dead)return; this.step--; this.ui(); }
   async run(fn){ if(this.busy)return; this.busy=true; this.ui(); await fn(); if(this.dead)return; this.busy=false; this.ui(); }
   destroy(){ this.dead=true; this.big.dead=true; }
 }
