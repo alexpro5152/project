@@ -209,7 +209,8 @@ function enableOrbit(scene, cubeEl, view, {onTurn=()=>{}, speed=0.5}={}){
     drag.moved=true;
     angle=[drag.start[0]-dy*speed, drag.start[1]+dx*speed]; show(); onTurn(true);
   });
-  const end=()=>{ if(drag) wasDrag=drag.moved; drag=null; scene.classList.remove('dragging'); };
+  // the click that follows a drag is ignored; forget the drag right after that click
+  const end=()=>{ if(drag){ wasDrag=drag.moved; if(wasDrag) setTimeout(()=>{ wasDrag=false; },0); } drag=null; scene.classList.remove('dragging'); };
   scene.addEventListener('pointerup',end); scene.addEventListener('pointercancel',end);
   const reset=()=>{ cubeEl.classList.add('settle'); angle=home.slice(); show(); onTurn(false); };
   reset.moved=()=>wasDrag;
@@ -967,6 +968,10 @@ function renderOverview(level, puzzle='3x3'){
     </div>
     <div class="grid"></div>`;
   const algs = ALGS.filter(a=>levelOf(a)===level);
+  // a turned card cube goes back to its start once it has been scrolled off the screen
+  const offScreen = 'IntersectionObserver' in window ? new IntersectionObserver(entries=>{
+    for(const e of entries) if(!e.isIntersecting && e.target._turned) e.target._resetNow();
+  }) : null;
   if(!algs.length){ app.querySelector('.legend').remove(); app.querySelector('.grid').remove(); return; }
   const grid = app.querySelector('.grid');
   for(const alg of algs){
@@ -980,7 +985,9 @@ function renderOverview(level, puzzle='3x3'){
     const c=makeCube(sc, {view:alg.view||'above', focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
     c.applyAll(startSeq(alg));
     // drag the small cube to turn it; a plain click still opens the step
-    const reset=enableOrbit(sc, c.el, alg.view||'above', {onTurn:t=>{ back.hidden=!t; }, speed:0.8});
+    const reset=enableOrbit(sc, c.el, alg.view||'above', {onTurn:t=>{ back.hidden=!t; sc._turned=t; }, speed:0.8});
+    sc._resetNow=()=>{ reset(); c.el.classList.remove('settle'); };   // no slide: it happens out of sight
+    if(offScreen) offScreen.observe(sc);
     a.draggable=false;
     a.addEventListener('click',e=>{ if(reset.moved()){ e.preventDefault(); } },true);
     back.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); reset(); });
