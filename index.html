@@ -50,7 +50,8 @@
   .scene{perspective:1100px;perspective-origin:50% 45%}
   .cube{width:100%;height:100%;position:relative;transform-style:preserve-3d}
   .cubie{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
-  .face{position:absolute;inset:0;background:#111}
+  .face{position:absolute;background:#111}
+  .cube.mirror .face::after{inset:3%;border-radius:6%}
   .face::after{content:'';position:absolute;inset:4%;border-radius:12%;background:var(--c,#1b1b1b)}
   .cubie.dim .face::after{background:var(--dim)}
   .cubie.dim .face.inner::after{background:#1b1b1b}
@@ -241,27 +242,42 @@ function mul(A,B){
 function css(M){ const o=[]; for(let j=0;j<4;j++)for(let i=0;i<4;i++)o.push(+M[i][j].toFixed(5)); return `matrix3d(${o.join(',')})`; }
 const snapInt = M => M.map(r=>r.map(v=>Math.round(v)));
 
+// Mirror cube: every piece is silver and the layers have different thicknesses, so the
+// cube changes shape when turned. Outer edges of the solved cube along each axis, in
+// cubie units measured from the turning centre (CSS frame: x right, y down, z toward you).
+const MIRROR_EXTENT = { x:[-1.1,1.9], y:[-1.8,1.2], z:[-1.3,1.7] };
+const MIRROR_SHADE = {U:'#eceef2', D:'#9ea2aa', F:'#cfd2d8', B:'#b4b8bf', R:'#c0c4cb', L:'#dcdfe4'};
+const COLORS_MIRROR = Object.fromEntries(Object.entries(MIRROR_SHADE).map(([k,v])=>[k,`linear-gradient(135deg,rgba(255,255,255,.75),rgba(255,255,255,0) 55%),${v}`]));
+
 class Cube {
-  constructor(el, S, {view='above', focus='all', flip=false}={}){
-    this.el=el; this.S=S; this.cubies=[]; this.dead=false; const colors=flip?COLORS_FLIP:COLORS;
+  constructor(el, S, {view='above', focus='all', flip=false, mirror=false}={}){
+    this.el=el; this.S=S; this.cubies=[]; this.dead=false; const colors=mirror?COLORS_MIRROR:flip?COLORS_FLIP:COLORS;
     el.style.transform = VIEWS[view];
+    if(mirror) el.classList.add('mirror');
     const gap=S*0.06, side=S-gap;
+    // size and centre of the piece in layer i (-1, 0, 1) along one axis
+    const span=(axis,i)=>{ if(!mirror) return [side, i*S];
+      const [lo,hi] = i===-1 ? [MIRROR_EXTENT[axis][0],-0.5] : i===1 ? [0.5,MIRROR_EXTENT[axis][1]] : [-0.5,0.5];
+      return [(hi-lo)*S-gap, Math.round((lo+hi)/2*S)]; };
     for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+      const [w,cx]=span('x',x), [h,cy]=span('y',y), [dz,cz]=span('z',z);
       const d=document.createElement('div'); d.className='cubie';
-      d.style.width=d.style.height=side+'px'; d.style.margin=(-side/2)+'px';
-      const faces=[['rotateY(0deg)',z===1&&'F'],['rotateY(180deg)',z===-1&&'B'],['rotateY(90deg)',x===1&&'R'],
-                   ['rotateY(-90deg)',x===-1&&'L'],['rotateX(90deg)',y===-1&&'U'],['rotateX(-90deg)',y===1&&'D']];
+      d.style.width=w+'px'; d.style.height=h+'px'; d.style.marginLeft=(-w/2)+'px'; d.style.marginTop=(-h/2)+'px';
+      // [rotation, sticker, face width, face height, distance from the middle]
+      const faces=[['rotateY(0deg)',z===1&&'F',w,h,dz/2],['rotateY(180deg)',z===-1&&'B',w,h,dz/2],['rotateY(90deg)',x===1&&'R',dz,h,w/2],
+                   ['rotateY(-90deg)',x===-1&&'L',dz,h,w/2],['rotateX(90deg)',y===-1&&'U',w,dz,h/2],['rotateX(-90deg)',y===1&&'D',w,dz,h/2]];
       const stickers=[];
-      for(const [t,f] of faces){
+      for(const [t,f,fw,fh,tz] of faces){
         const e=document.createElement('div'); e.className='face'+(f?'':' inner');
-        e.style.transform=`${t} translateZ(${side/2}px)`;
+        e.style.width=fw+'px'; e.style.height=fh+'px'; e.style.left=((w-fw)/2)+'px'; e.style.top=((h-fh)/2)+'px';
+        e.style.transform=`${t} translateZ(${tz}px)`;
         if(f){ e.style.setProperty('--c',colors[f]); stickers.push(f); }
         d.appendChild(e);
       }
       const hasWhite=stickers.includes('D'), hasYellow=stickers.includes('U');
       const relevant = focus==='all' ? true : focus==='white' ? hasWhite : focus==='white-edges' ? (hasWhite && stickers.length<=2) : !hasYellow;
       if(!relevant) d.classList.add('dim');
-      const M0=[[1,0,0,x*S],[0,1,0,y*S],[0,0,1,z*S],[0,0,0,1]];
+      const M0=[[1,0,0,cx],[0,1,0,cy],[0,0,1,cz],[0,0,0,1]];
       this.cubies.push({el:d,M:M0,M0,stickers}); el.appendChild(d);
     }
     this.render();
@@ -744,6 +760,10 @@ const ALGS = [
   { id:'apll-19', level:'advanced-pll', step:'PLL 19', title:'Case 19', moves:"R' d' F R2 u R' U R U' R u' R2", groups:[["R' d' F",3],["R2 u",2],["R' U",2],["R U' R u' R2",5]], focus:'all', diagram:'net' },
   { id:'apll-20', level:'advanced-pll', step:'PLL 20', title:'Case 20', moves:"R' U R U' R' F' U' F R U R' F R' F' R U' R", groups:[["R' U R U'",4],["R' F' U'",3],["F R U R' F",5],["R' F' R U' R",5]], focus:'all', diagram:'net' },
   { id:'apll-21', level:'advanced-pll', step:'PLL 21', title:'Case 21', moves:"R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'", groups:[["R U R' U",4],["R U R' F'",4],["R U R' U' R' F",6],["R2 U' R' U2",4],["R",1],["U'",1],["R'",1]], focus:'all', diagram:'net' },
+  /* ---------------- Mirror cube ---------------- */
+  { id:'mirror-a', level:'mirror', step:'Mirror cube · last layer', title:'Three corners (A-perm)', moves:"R' F R' B2 R F' R' B2 R2", focus:'all',
+    groups:[["R' F R'",3],["B2",1],["R F' R'",3],["B2",1],["R2",1]],
+    purpose:'Moves three top corners around. Everything else stays where it is.' },
 ];
 
 /* ============================================================
@@ -819,11 +839,13 @@ function netSVG(alg){
 function renderOverview(level, puzzle='3x3'){
   const puzzles = `<div class="levels puzzles">${Object.entries(PUZZLES).map(([k,v])=>
       `<a class="lvl pz${k===puzzle?' on':''}" href="#${k}"${k==='3x3'?` aria-expanded="${puzzle==='3x3'}"`:''}>${v.icon||''}${v.name}${k==='3x3'?'<span class="caret">&#9662;</span>':''}</a>`).join('')}</div>`;
-  if(puzzle!=='3x3' || !level){
+  if(puzzle!=='3x3' && ALGS.some(a=>levelOf(a)===puzzle)){ level=puzzle; }
+  else if(puzzle!=='3x3' || !level){
     app.innerHTML = `<h1>Algorithms</h1>${puzzles}` +
       (puzzle==='3x3' ? `<div class="levels sublevels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl" href="#${k}">${v.short}</a>`).join('')}</div>` : '');
     return;
   }
+  const sub = puzzle==='3x3' ? `<div class="levels sublevels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.short}</a>`).join('')}</div>` : '';
   const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>`
               : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>`
               : level==='advanced-pll' ? `<span><b>M</b> middle slice, like L</span><span><b>x z</b> tip / roll the whole cube</span><span><b>y</b> turn the whole cube</span><span><b>d u</b> bottom / top two layers</span>`
@@ -831,8 +853,8 @@ function renderOverview(level, puzzle='3x3'){
   app.innerHTML = `
     <h1>Algorithms</h1>
     ${puzzles}
-    <div class="levels sublevels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.short}</a>`).join('')}</div>
-    ${LEVELS[level].intro ? `<p class="sub">${LEVELS[level].intro}</p>` : ''}
+    ${sub}
+    ${LEVELS[level]?.intro ? `<p class="sub">${LEVELS[level].intro}</p>` : ''}
     <div class="legend">
       <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span><span><b>y</b> turn the whole cube, right side to the front</span>${extra}
       <span><b>'</b> = the other way</span><span><b>2</b> = twice</span><span><b>3</b> = three times</span><span>plain letter = clockwise as you look at that face</span>
@@ -849,7 +871,7 @@ function renderOverview(level, puzzle='3x3'){
     grid.appendChild(a);
     if(alg.diagram==='net') continue;
     const sc=a.querySelector('.scene'), back=a.querySelector('.card-reset');
-    const c=makeCube(sc, {view:alg.view||'above', focus:alg.focus, flip:alg.flip});
+    const c=makeCube(sc, {view:alg.view||'above', focus:alg.focus, flip:alg.flip, mirror:alg.level==='mirror'});
     c.applyAll(startSeq(alg));
     // drag the small cube to turn it; a plain click still opens the step
     const reset=enableOrbit(sc, c.el, alg.view||'above', {onTurn:t=>{ back.hidden=!t; }, speed:0.8});
@@ -865,7 +887,7 @@ class Player {
     const {moves,groups}=groupsOf(alg); this.moves=moves; this.groups=groups;
     const level=levelOf(alg), list=ALGS.filter(a=>levelOf(a)===level), idx=list.indexOf(alg), prev=list[idx-1], next=list[idx+1];
     app.innerHTML=`
-      <a class="back" href="#${level}">&larr; All ${LEVELS[level].name} steps</a>
+      <a class="back" href="#${level}">&larr; All ${(LEVELS[level]||PUZZLES[level]).name} steps</a>
       <div class="step">${alg.step}</div>
       <h2>${alg.title}</h2>
       ${alg.purpose?`<p class="sub">${alg.purpose}</p>`:''}
@@ -891,7 +913,7 @@ class Player {
     this.tokens=groups.map(g=>{const s=document.createElement('span');s.className='tok';s.textContent=g.label;fEl.appendChild(s);return s;});
     this.desc=app.querySelector('.desc');
 
-    this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip});
+    this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip, mirror:alg.level==='mirror'});
     this.resetView=enableOrbit(app.querySelector('.big'), this.big.el, alg.view||'above');
     app.querySelector('.big').insertAdjacentHTML('afterend','<p class="drag-hint">Drag or swipe the cube to turn it around.</p>');
     this.start=startSeq(alg); this.big.applyAll(this.start);
@@ -904,7 +926,7 @@ class Player {
       const sc=document.createElement('div'); sc.className='scene'; w.appendChild(sc);
       const l=document.createElement('div'); l.className='lbl'; l.innerHTML=`${label}<small>${small}</small>`; w.appendChild(l);
       strip.appendChild(w);
-      const c=makeCube(sc,{view:alg.view||'above',focus:alg.focus,flip:alg.flip}); c.applyAll(seq);
+      const c=makeCube(sc,{view:alg.view||'above',focus:alg.focus,flip:alg.flip,mirror:alg.level==='mirror'}); c.applyAll(seq);
       this.snaps.push(w); this.bounds.push(bound);
     };
     addSnap('Start', alg.start==='solved'?'solved':'before', this.start, 0);
