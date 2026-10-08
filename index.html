@@ -91,7 +91,10 @@
   .tok.done{color:var(--ink)}
   .tok.active{border-color:var(--accent);background:var(--hi);color:var(--on-hi);transform:scale(1.1)}
   .desc{min-height:32px;font-size:21px;color:var(--muted);margin:8px 0 4px;text-align:center;max-width:700px}
-  .big{width:min(520px,100%);height:520px;margin:4px 0 8px}
+  .big{width:min(520px,100%);height:520px;margin:4px 0 0;touch-action:none;cursor:grab;user-select:none}
+  .big.dragging{cursor:grabbing}
+  .cube.settle{transition:transform .45s ease}
+  .drag-hint{color:var(--muted);font-size:14px;margin:0 0 6px;text-align:center}
   .controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin:8px 0 4px}
   button{font:inherit;font-size:18px;font-weight:600;padding:10px 18px;border-radius:12px;border:2px solid var(--edge);background:var(--panel);color:var(--ink);cursor:pointer}
   button:hover:not(:disabled){border-color:var(--accent)}
@@ -171,7 +174,27 @@ const HINT = {
   "y":'turn it so the right side faces you', "y'":'turn it so the left side faces you',
   "B":'clockwise as seen from behind',  "B'":'anticlockwise as seen from behind',
 };
-const VIEWS = { above:'rotateX(-28deg) rotateY(-38deg)', below:'rotateX(26deg) rotateY(-38deg)', top:'rotateX(-52deg) rotateY(-32deg)' };
+const VIEW_ANGLES = { above:[-28,-38], below:[26,-38], top:[-52,-32] };   // [tilt, turn] in degrees
+const viewCSS = ([tilt,turn]) => `rotateX(${tilt}deg) rotateY(${turn}deg)`;
+const VIEWS = Object.fromEntries(Object.entries(VIEW_ANGLES).map(([k,v])=>[k,viewCSS(v)]));
+
+// Drag or swipe on a cube to turn the whole cube and look at it from any side.
+// Returns a function that turns it back to the starting view.
+function enableOrbit(scene, cubeEl, view){
+  const home=VIEW_ANGLES[view]; let angle=home.slice(), drag=null;
+  const show=()=>{ cubeEl.style.transform=viewCSS(angle); };
+  scene.addEventListener('pointerdown',e=>{
+    drag={x:e.clientX,y:e.clientY,start:angle.slice()}; cubeEl.classList.remove('settle');
+    scene.setPointerCapture(e.pointerId); scene.classList.add('dragging');
+  });
+  scene.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    angle=[drag.start[0]-(e.clientY-drag.y)*0.5, drag.start[1]+(e.clientX-drag.x)*0.5]; show();
+  });
+  const end=()=>{ drag=null; scene.classList.remove('dragging'); };
+  scene.addEventListener('pointerup',end); scene.addEventListener('pointercancel',end);
+  return ()=>{ cubeEl.classList.add('settle'); angle=home.slice(); show(); };
+}
 
 function parseMove(tok){
   const f = tok[0], suf = tok.slice(1), [axis, layer, base] = FACE_DEF[f];
@@ -817,6 +840,7 @@ class Player {
         <button data-b="play" class="primary">&#9654; Play</button>
         <button data-b="step">Step &#9654;</button>
         <button data-b="reset">&#8635; Reset</button>
+        <button data-b="view">&#10227; Reset view</button>
         ${alg.repeat?`<button data-b="rep">Play ${alg.repeat}&times; (back to start!)</button>`:''}
         <label class="speed">Speed <input type="range" min="1" max="10" value="${Math.round((1400-dur)/130)+1}"></label>
       </div>
@@ -829,6 +853,8 @@ class Player {
     this.desc=app.querySelector('.desc');
 
     this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip});
+    this.resetView=enableOrbit(app.querySelector('.big'), this.big.el, alg.view||'above');
+    app.querySelector('.big').insertAdjacentHTML('afterend','<p class="drag-hint">Drag or swipe the cube to turn it around.</p>');
     this.start=startSeq(alg); this.big.applyAll(this.start);
 
     // snapshot strip: start, then one after each group
@@ -850,6 +876,7 @@ class Player {
     B('step').onclick=()=>this.run(async()=>{ if(this.step<moves.length) await this.forward(); });
     B('back').onclick=()=>this.run(async()=>{ if(this.step>0) await this.backward(); });
     B('reset').onclick=()=>this.run(async()=>restart());
+    B('view').onclick=()=>this.resetView();
     B('play').onclick=()=>this.run(async()=>{
       if(this.step===moves.length){ restart(); this.ui(); await pause(400); }
       while(this.step<moves.length && !this.dead){ await this.forward(); await pause(250); }
