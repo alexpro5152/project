@@ -67,6 +67,7 @@
   .caret{font-size:11px;opacity:.8}
   .sublevels{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;margin-top:0}
   .sublevels .lvl{font-size:14px;padding:6px 12px}
+  .sublevels.third{margin-top:-8px}
   .legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;color:var(--muted);font-size:15px;margin:0 0 22px;
           background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 18px;max-width:760px}
   .legend b{color:var(--ink);font-family:ui-monospace,Consolas,monospace}
@@ -308,7 +309,7 @@ class Cube {
   }
 }
 // extra drawing options for puzzles that are not a normal 3x3
-const puzzleOpts = alg => ({ mirror: alg.level==='mirror', two: alg.level==='2x2' });
+const puzzleOpts = alg => ({ mirror: alg.level==='mirror', two: !!TWO_LEVELS[alg.level] });
 function makeCube(scene, opts){
   const cube=document.createElement('div'); cube.className='cube'; scene.appendChild(cube);
   const S=Math.max(8, Math.floor(Math.min(scene.clientWidth, scene.clientHeight)/6.2));
@@ -802,6 +803,61 @@ const ALGS = [
     tips:['The white layer looks scrambled halfway. Keep going, it comes back when the last corner is done.',
           'At the end, turn one layer until the two layers line up. Solved!'] },
 
+
+  /* ---------------- 2x2 intermediate: 3 orientation + 2 permutation algorithms ---------------- */
+  { id:'2x2-co-sune', level:'2x2-int', step:'2x2 · Orientation 1 of 3', title:'Sune: one yellow corner up', moves:"R U R' U R U2 R'", focus:'all', view:'top',
+    purpose:'One yellow corner up. Makes the top yellow, or another case you then fix.',
+    hold:'White layer done, on the bottom. Hold the yellow-up corner at the <b>front left</b>. The front-right corner shows yellow <b>facing you</b>.',
+    tips:['Two yellow corners up? Hold the cube so the front-left corner shows yellow facing you, do the Sune, then look again.',
+          'It never takes more than three orientation algorithms in a row.'] },
+  { id:'2x2-co-antisune', level:'2x2-int', step:'2x2 · Orientation 2 of 3', title:'Antisune: one yellow corner up, other way', moves:"R U2 R' U' R U' R'", focus:'all', view:'top',
+    purpose:'One yellow corner up, the other way round from the Sune.',
+    hold:'Hold the yellow-up corner at the <b>back right</b>. The front-left corner shows yellow <b>facing you</b>.',
+    tips:['If neither the Sune nor the Antisune picture fits, turn the top and look again.'] },
+  { id:'2x2-co-pi', level:'2x2-int', step:'2x2 · Orientation 3 of 3', title:'Pi: no yellow corner up', moves:"R U2 R2 U' R2 U' R2 U2 R", focus:'all', view:'top',
+    purpose:'No yellow corner up. After it, all yellow is up or you get a Sune or Antisune case.',
+    hold:'No yellow on top. Hold the cube so both <b>left</b> corners show yellow <b>on the left</b>.',
+    tips:['Yellow pairs on the left and on the right? Hold either pair on the left.',
+          'R2 = turn the right side twice.'] },
+  { id:'2x2-cp-t', level:'2x2-int', step:'2x2 · Permutation 1 of 2', title:'T-perm: headlights on one side', moves:"R U R' U' R' F R2 U' R' U' R U R' F'", focus:'all',
+    purpose:'All yellow is up. Swaps two corners next to each other.',
+    hold:'Look for <b>headlights</b>: a side where both top stickers are the same colour. Hold that side on the <b>left</b>.',
+    tips:['Headlights on every side? Nothing to swap: just turn the top to line it up.',
+          'After the T-perm, turn the top until the cube is solved.'] },
+  { id:'2x2-cp-y', level:'2x2-int', step:'2x2 · Permutation 2 of 2', title:'Y-perm: no headlights', moves:"F R U' R' U' R U R' F' R U R' U' R' F R F'", focus:'all',
+    purpose:'All yellow is up but no side has headlights. Swaps two corners diagonally.',
+    hold:'No headlights anywhere. Hold it any way round.',
+    tips:['After the Y-perm, turn the top until the cube is solved.',
+          'Learn it in two halves: "F R U\' R\' U\' R U R\' F\'" and "R U R\' U\' R\' F R F\'".'] },
+
+  /* ---------------- 2x2 advanced: Ortega (7 OLL + 6 PBL) ---------------- */
+  { id:'2x2-oll-sune', level:'2x2-adv', step:'2x2 · OLL 1 of 7', title:'Sune', moves:"R U R' U R U2 R'", focus:'all', view:'top',
+    purpose:'Turns all yellow up. The white face stays on the bottom.', hold:'One yellow corner up at the <b>front left</b>. The front-right corner shows yellow <b>facing you</b>.', tips:['White face on the bottom first: only white needs to be down, the sides can be mixed.'] },
+  { id:'2x2-oll-antisune', level:'2x2-adv', step:'2x2 · OLL 2 of 7', title:'Antisune', moves:"R U2 R' U' R U' R'", focus:'all', view:'top',
+    purpose:'Turns all yellow up. The white face stays on the bottom.', hold:'One yellow corner up at the <b>back right</b>. The front-left corner shows yellow <b>facing you</b>.', tips:[] },
+  { id:'2x2-oll-H', level:'2x2-adv', step:'2x2 · OLL 3 of 7', title:'H', moves:"R U R' U R U' R' U R U2 R'", focus:'all', view:'top',
+    purpose:'Turns all yellow up. The white face stays on the bottom.', hold:'No yellow corner up. Yellow pairs on the <b>left</b> and <b>right</b> sides.', tips:[] },
+  { id:'2x2-oll-pi', level:'2x2-adv', step:'2x2 · OLL 4 of 7', title:'Pi', moves:"R U2 R2 U' R2 U' R2 U2 R", focus:'all', view:'top',
+    purpose:'Turns all yellow up. The white face stays on the bottom.', hold:'No yellow corner up. A yellow pair on the <b>left</b>; on the right one yellow faces you and one faces the back.', tips:[] },
+  { id:'2x2-oll-U', level:'2x2-adv', step:'2x2 · OLL 5 of 7', title:'Headlights', moves:"R2 D R' U2 R D' R' U2 R'", focus:'all', view:'top',
+    purpose:'Turns all yellow up. The white face stays on the bottom.', hold:'Two yellow corners up at the <b>back</b>. The other two show yellow <b>facing you</b>.', tips:[] },
+  { id:'2x2-oll-T', level:'2x2-adv', step:'2x2 · OLL 6 of 7', title:'T', moves:"R U R' U' R' F R F'", focus:'all', view:'top',
+    purpose:'Turns all yellow up. The white face stays on the bottom.', hold:'Two yellow corners up on the <b>right</b>. On the left one yellow faces you and one faces the back.', tips:[] },
+  { id:'2x2-oll-L', level:'2x2-adv', step:'2x2 · OLL 7 of 7', title:'Bowtie', moves:"F' R U R' U' R' F R", focus:'all', view:'top',
+    purpose:'Turns all yellow up. The white face stays on the bottom.', hold:'Yellow corners up at the <b>front left</b> and <b>back right</b>. The front-right corner shows yellow <b>facing you</b>.', tips:[] },
+  { id:'2x2-pbl-t', level:'2x2-adv', step:'2x2 · PBL 1 of 6', title:'Top: headlights, bottom: done', moves:"R U R' U' R' F R2 U' R' U' R U R' F'", focus:'all',
+    purpose:'All yellow up, all white down. Fixes both layers at once.', hold:'Top layer: headlights on the <b>left</b>. Bottom layer: already right.', tips:['<b>Headlights</b> = a side where both stickers of that layer are the same colour.','Top right but bottom wrong? Turn the whole cube over so the bad layer is on top, then use card 1 or 2.','After the algorithm, turn the top and bottom until the cube is solved.'] },
+  { id:'2x2-pbl-y', level:'2x2-adv', step:'2x2 · PBL 2 of 6', title:'Top: no headlights, bottom: done', moves:"F R U' R' U' R U R' F' R U R' U' R' F R F'", focus:'all',
+    purpose:'All yellow up, all white down. Fixes both layers at once.', hold:'Top layer: no headlights. Bottom layer: already right.', tips:['After the algorithm, turn the top and bottom until the cube is solved.'] },
+  { id:'2x2-pbl-aa', level:'2x2-adv', step:'2x2 · PBL 3 of 6', title:'Both layers: headlights', moves:"R2 U' B2 U2 R2 U' R2", focus:'all',
+    purpose:'All yellow up, all white down. Fixes both layers at once.', hold:'Headlights in <b>both</b> layers. Turn the top and the bottom so both are at the <b>front</b>.', tips:['After the algorithm, turn the top and bottom until the cube is solved.'] },
+  { id:'2x2-pbl-dd', level:'2x2-adv', step:'2x2 · PBL 4 of 6', title:'Both layers: no headlights', moves:"R2 F2 R2", focus:'all',
+    purpose:'All yellow up, all white down. Fixes both layers at once.', hold:'No headlights in either layer. Hold it any way round.', tips:['After the algorithm, turn the top and bottom until the cube is solved.'] },
+  { id:'2x2-pbl-ad', level:'2x2-adv', step:'2x2 · PBL 5 of 6', title:'Top: headlights, bottom: none', moves:"R U' R F2 R' U R'", focus:'all',
+    purpose:'All yellow up, all white down. Fixes both layers at once.', hold:'Top layer: headlights at the <b>front</b>. Bottom layer: no headlights.', tips:['After the algorithm, turn the top and bottom until the cube is solved.'] },
+  { id:'2x2-pbl-da', level:'2x2-adv', step:'2x2 · PBL 6 of 6', title:'Top: none, bottom: headlights', moves:"R D' R B2 R' D R'", focus:'all',
+    purpose:'All yellow up, all white down. Fixes both layers at once.', hold:'Top layer: no headlights. Bottom layer: headlights at the <b>back</b>.', tips:['After the algorithm, turn the top and bottom until the cube is solved.'] },
+
   /* ---------------- Mirror cube ---------------- */
   { id:'mirror-a', level:'mirror', step:'Mirror cube · last layer', title:'Three corners (A-perm)', moves:"R' F R' B2 R F' R' B2 R2", focus:'all',
     groups:[["R' F R'",3],["B2",1],["R F' R'",3],["B2",1],["R2",1]],
@@ -857,6 +913,12 @@ const ICON_3X3 = (()=>{ const c=['--R','--W','--G','--Y','--B','--O','--G','--R'
   c.forEach((v,i)=>{ r+=`<rect x="${(i%3)*7+1}" y="${Math.floor(i/3)*7+1}" width="6" height="6" rx="1.5" style="fill:var(${v})"/>`; });
   return `<svg class="pz-icon" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="3.5" style="fill:#111"/>${r}</svg>`; })();
 // Two main buttons: 3x3 opens the 3x3 levels, Twisty puzzles opens the other puzzles.
+// The 2x2 page has its own three levels.
+const TWO_LEVELS = {
+  '2x2':     { name:'2x2 Beginner', short:'Beginner' },
+  '2x2-int': { name:'2x2 Intermediate', short:'Intermediate', intro:`White layer as in Beginner. Then <b>3 algorithms</b> make the whole top yellow and <b>2 algorithms</b> put the corners in place.` },
+  '2x2-adv': { name:'2x2 Advanced', short:'Advanced', intro:`The <b>Ortega</b> method. First make the <b>white face</b> on the bottom (the sides do not need to match yet). Then one of <b>7 algorithms</b> turns all yellow up, and one of <b>6 algorithms</b> fixes both layers at once.` },
+};
 const TWISTY = { pyraminx:{ name:'Pyraminx' }, mirror:{ name:'Mirror cube' }, megaminx:{ name:'Megaminx' }, '2x2':{ name:'2x2' }, '4x4':{ name:'4x4' } };
 const PUZZLES = { '3x3':{ name:'3x3', icon:ICON_3X3 }, twisty:{ name:'Twisty puzzles' }, ...TWISTY };
 const levelOf = alg => alg.level || 'beginner';
@@ -885,7 +947,10 @@ function renderOverview(level, puzzle='3x3'){
       `<a class="lvl pz${k===group?' on':''}" href="#${k}" aria-expanded="${k===group}">${PUZZLES[k].icon||''}${PUZZLES[k].name}<span class="caret">&#9662;</span></a>`).join('')}</div>`;
   const options = group==='3x3' ? Object.entries(LEVELS).map(([k,v])=>[k,v.short,k===level]) : Object.entries(TWISTY).map(([k,v])=>[k,v.name,k===puzzle]);
   const sub = `<div class="levels sublevels">${options.map(([k,name,on])=>`<a class="lvl${on?' on':''}" href="#${k}">${name}</a>`).join('')}</div>`;
-  if(group==='twisty' && ALGS.some(a=>levelOf(a)===puzzle)){ level=puzzle; }
+  let third='';
+  if(puzzle==='2x2'){ level = TWO_LEVELS[level] ? level : '2x2';
+    third=`<div class="levels sublevels third">${Object.entries(TWO_LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.short}</a>`).join('')}</div>`; }
+  else if(group==='twisty' && ALGS.some(a=>levelOf(a)===puzzle)){ level=puzzle; }
   else if(group==='twisty' || !level){ app.innerHTML = `<h1>Algorithms</h1>${puzzles}${sub}`; return; }
   const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>`
               : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>`
@@ -894,8 +959,8 @@ function renderOverview(level, puzzle='3x3'){
   app.innerHTML = `
     <h1>Algorithms</h1>
     ${puzzles}
-    ${sub}
-    ${LEVELS[level]?.intro ? `<p class="sub">${LEVELS[level].intro}</p>` : ''}
+    ${sub}${third}
+    ${(LEVELS[level]||TWO_LEVELS[level])?.intro ? `<p class="sub">${(LEVELS[level]||TWO_LEVELS[level]).intro}</p>` : ''}
     <div class="legend">
       <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span><span><b>y</b> turn the whole cube, right side to the front</span>${extra}
       <span><b>'</b> = the other way</span><span><b>2</b> = twice</span><span><b>3</b> = three times</span><span>plain letter = clockwise as you look at that face</span>
@@ -928,7 +993,7 @@ class Player {
     const {moves,groups}=groupsOf(alg); this.moves=moves; this.groups=groups;
     const level=levelOf(alg), list=ALGS.filter(a=>levelOf(a)===level), idx=list.indexOf(alg), prev=list[idx-1], next=list[idx+1];
     app.innerHTML=`
-      <a class="back" href="#${level}">&larr; All ${(LEVELS[level]||PUZZLES[level]).name} steps</a>
+      <a class="back" href="#${level}">&larr; All ${(LEVELS[level]||TWO_LEVELS[level]||PUZZLES[level]).name} steps</a>
       <div class="step">${alg.step}</div>
       <h2>${alg.title}</h2>
       ${alg.purpose?`<p class="sub">${alg.purpose}</p>`:''}
@@ -1023,6 +1088,7 @@ function route(){
   if(player){ player.destroy(); player=null; }
   const id=location.hash.slice(1), alg=ALGS.find(a=>a.id===id);
   if(alg) player=new Player(alg);
+  else if(TWO_LEVELS[id]) renderOverview(id, '2x2');
   else if(PUZZLES[id]) renderOverview(null, id);
   else renderOverview(LEVELS[id] ? id : 'beginner');
   window.scrollTo(0,0);
