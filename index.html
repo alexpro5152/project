@@ -9,13 +9,28 @@
     --bg:#f4f6fb; --card:#ffffff; --ink:#1c2233; --muted:#6b7280;
     --accent:#2563eb; --hi:#fde047; --line:#e3e7f0;
     --W:#ffffff; --Y:#ffd500; --R:#e53935; --O:#ff8c00; --G:#2ecc40; --B:#1e63d4; --dim:#c3c8d4;
+    --panel:#ffffff; --edge:#d7dbe6; --faint:#9aa3b5; --body:#3b4254; --on-accent:#ffffff; --on-hi:#1c2233;
+    color-scheme:light;
+  }
+  /* dark theme: picked with the header button, or the system setting when nothing is picked */
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1420; --card:#1a2130; --panel:#1a2130; --ink:#e7eaf3; --muted:#a3abbd; --line:#2a3346; --edge:#364055;
+      --faint:#6c768c; --body:#c9cfdc; --accent:#4f8cff; --dim:#4a5368; color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1420; --card:#1a2130; --panel:#1a2130; --ink:#e7eaf3; --muted:#a3abbd; --line:#2a3346; --edge:#364055;
+    --faint:#6c768c; --body:#c9cfdc; --accent:#4f8cff; --dim:#4a5368; color-scheme:dark;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
   a{color:inherit;text-decoration:none}
-  header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
   header .brand{font-weight:800;font-size:18px}
   header .grip{color:var(--muted);font-size:15px}
+  header .right{display:flex;align-items:center;gap:14px}
+  .theme{font-size:15px;padding:6px 12px;border-radius:10px}
   main{max-width:1100px;margin:0 auto;padding:24px 16px 56px;display:flex;flex-direction:column;align-items:center}
   h1{font-size:34px;margin:0 0 6px;text-align:center}
   h2{font-size:30px;margin:0 0 4px;text-align:center}
@@ -32,12 +47,12 @@
   .cubie.dim .face.inner::after{background:#1b1b1b}
 
   /* --- overview --- */
-  .levels{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 16px}
-  .lvl{font-size:18px;font-weight:700;padding:10px 22px;border-radius:12px;border:2px solid #d7dbe6;background:#fff;color:var(--ink)}
+  .levels{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0 16px}
+  .lvl{font-size:15px;font-weight:700;padding:7px 14px;border-radius:10px;border:2px solid var(--edge);background:var(--panel);color:var(--ink)}
   .lvl:hover{border-color:var(--accent)}
-  .lvl.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .lvl.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
   .legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;color:var(--muted);font-size:15px;margin:0 0 22px;
-          background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 18px;max-width:760px}
+          background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 18px;max-width:760px}
   .legend b{color:var(--ink);font-family:ui-monospace,Consolas,monospace}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;width:100%}
   .card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px 16px 16px;display:flex;flex-direction:column;
@@ -51,24 +66,24 @@
 
   /* --- detail --- */
   .back{align-self:flex-start;color:var(--accent);font-weight:600;font-size:16px;margin-bottom:10px}
-  .hold{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 18px;font-size:17px;max-width:720px;text-align:center;
+  .hold{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 18px;font-size:17px;max-width:720px;text-align:center;
         margin:0 0 14px;line-height:1.45}
   .hold b{color:var(--accent)}
   .hold .rule{list-style:none;padding:0;margin:8px 0;display:flex;flex-wrap:wrap;gap:6px 10px;justify-content:center}
   .hold .rule li{background:var(--bg);border-radius:10px;padding:4px 12px}
   .formula{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;font-size:42px;font-weight:800;font-family:ui-monospace,Consolas,monospace;margin:4px 0}
   .formula.long{font-size:26px;gap:8px}
-  .tok{padding:4px 18px;border-radius:14px;background:var(--card);border:3px solid transparent;color:#9aa3b5;transition:all .25s;white-space:nowrap}
+  .tok{padding:4px 18px;border-radius:14px;background:var(--card);border:3px solid transparent;color:var(--faint);transition:all .25s;white-space:nowrap}
   .formula.long .tok{padding:2px 12px}
   .tok.done{color:var(--ink)}
-  .tok.active{border-color:var(--accent);background:var(--hi);color:var(--ink);transform:scale(1.1)}
+  .tok.active{border-color:var(--accent);background:var(--hi);color:var(--on-hi);transform:scale(1.1)}
   .desc{min-height:32px;font-size:21px;color:var(--muted);margin:8px 0 4px;text-align:center;max-width:700px}
   .big{width:min(520px,100%);height:520px;margin:4px 0 8px}
   .controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin:8px 0 4px}
-  button{font:inherit;font-size:18px;font-weight:600;padding:10px 18px;border-radius:12px;border:2px solid #d7dbe6;background:#fff;cursor:pointer}
+  button{font:inherit;font-size:18px;font-weight:600;padding:10px 18px;border-radius:12px;border:2px solid var(--edge);background:var(--panel);color:var(--ink);cursor:pointer}
   button:hover:not(:disabled){border-color:var(--accent)}
   button:disabled{opacity:.45;cursor:default}
-  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
   .speed{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:16px;margin-left:8px}
   .strip{display:flex;gap:6px;align-items:center;margin-top:20px;flex-wrap:wrap;justify-content:center}
   .snap{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 10px 6px;border-radius:14px;background:var(--card);
@@ -77,8 +92,8 @@
   .snap .scene{width:130px;height:145px;perspective:520px}
   .snap .lbl{font-weight:700;font-size:15px;text-align:center}
   .snap .lbl small{display:block;color:var(--muted);font-weight:500;font-size:12px;font-family:ui-monospace,Consolas,monospace}
-  .arrow{font-size:28px;color:#9aa3b5}
-  .tips{max-width:720px;margin:24px 0 0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 22px 14px 36px;font-size:16px;line-height:1.55;color:#3b4254}
+  .arrow{font-size:28px;color:var(--faint)}
+  .tips{max-width:720px;margin:24px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 22px 14px 36px;font-size:16px;line-height:1.55;color:var(--body)}
   .tips li{margin:4px 0}
   .nav{display:flex;gap:14px;margin-top:22px;font-weight:600;color:var(--accent);font-size:17px;flex-wrap:wrap;justify-content:center}
   @media (max-width:560px){
@@ -92,11 +107,25 @@
 <body>
 <header>
   <a class="brand" href="#">&#129513; Cube Algorithms</a>
-  <span class="grip">Grip: yellow on top, green facing you</span>
+  <div class="right">
+    <span class="grip">Grip: yellow on top, green facing you</span>
+    <button class="theme" id="theme" type="button"></button>
+  </div>
 </header>
 <main id="app"></main>
 
 <script>
+/* Light / dark switch. The choice is remembered in this browser; with no choice the system setting is used. */
+(function(){
+  const root=document.documentElement, btn=document.getElementById('theme');
+  let saved=null; try{ saved=localStorage.getItem('theme'); }catch(e){}
+  if(saved==='dark'||saved==='light') root.dataset.theme=saved;
+  const isDark=()=>root.dataset.theme ? root.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const label=()=>{ btn.textContent=isDark() ? '\u2600\uFE0F Light' : '\uD83C\uDF19 Dark'; btn.setAttribute('aria-label', isDark() ? 'Switch to light mode' : 'Switch to dark mode'); };
+  btn.onclick=()=>{ const next=isDark()?'light':'dark'; root.dataset.theme=next; try{ localStorage.setItem('theme',next); }catch(e){} label(); };
+  label();
+})();
+
 /* ============================================================
    Cube engine (CSS frame: x right, y down, z toward viewer)
    Grip for the beginner method: yellow up, white down, green front,
