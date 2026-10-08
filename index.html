@@ -245,7 +245,9 @@ const snapInt = M => M.map(r=>r.map(v=>Math.round(v)));
 // Mirror cube: every piece is silver and the layers have different thicknesses, so the
 // cube changes shape when turned. Outer edges of the solved cube along each axis, in
 // cubie units measured from the turning centre (CSS frame: x right, y down, z toward you).
-const MIRROR_EXTENT = { x:[-1.1,1.9], y:[-1.8,1.2], z:[-1.3,1.7] };
+// The top layer is the thinnest, so the 9 smallest pieces of the cube are the top layer, where
+// the last-layer algorithms work. Layer thickness: top 0.5 / bottom 1.5, left 0.85 / right 1.15, back 0.9 / front 1.1.
+const MIRROR_EXTENT = { x:[-1.35,1.65], y:[-1.0,2.0], z:[-1.4,1.6] };
 const MIRROR_SHADE = {U:'#eceef2', D:'#9ea2aa', F:'#cfd2d8', B:'#b4b8bf', R:'#c0c4cb', L:'#dcdfe4'};
 const COLORS_MIRROR = Object.fromEntries(Object.entries(MIRROR_SHADE).map(([k,v])=>[k,`linear-gradient(135deg,rgba(255,255,255,.75),rgba(255,255,255,0) 55%),${v}`]));
 
