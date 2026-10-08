@@ -60,6 +60,12 @@
   .lvl{font-size:15px;font-weight:700;padding:7px 14px;border-radius:10px;border:2px solid var(--edge);background:var(--panel);color:var(--ink)}
   .lvl:hover{border-color:var(--accent)}
   .lvl.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .puzzles{margin-bottom:10px}
+  .lvl.pz{display:inline-flex;align-items:center;gap:7px}
+  .pz-icon{width:20px;height:20px;flex:none}
+  .caret{font-size:11px;opacity:.8}
+  .sublevels{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;margin-top:0}
+  .sublevels .lvl{font-size:14px;padding:6px 12px}
   .legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;color:var(--muted);font-size:15px;margin:0 0 22px;
           background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 18px;max-width:760px}
   .legend b{color:var(--ink);font-family:ui-monospace,Consolas,monospace}
@@ -776,14 +782,20 @@ const startSeq = alg => alg.setup ? alg.setup.split(/\s+/) : alg.start==='solved
 const formulaText = alg => alg.short ? alg.short : alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
 
 const LEVELS = {
-  beginner:{ name:'Beginner 3x3', intro:`The classic beginner method. Hold the cube with <b>yellow on top</b> and <b>green facing you</b>:
+  beginner:{ name:'Beginner 3x3', short:'Beginner', intro:`The classic beginner method. Hold the cube with <b>yellow on top</b> and <b>green facing you</b>:
        white gets solved first at the bottom, yellow last on top. Click a step to watch it move.` },
-  intermediate:{ name:'Intermediate 3x3', intro:`The next step up: white cross as before, then <b>F2L</b> (corner and edge together),
+  intermediate:{ name:'Intermediate 3x3', short:'Intermediate', intro:`The next step up: white cross as before, then <b>F2L</b> (corner and edge together),
        <b>2-look OLL</b> (all yellow on top) and <b>2-look PLL</b> (everything in place). Same grip: yellow on top, green facing you.` },
-  'advanced-f2l':{ name:'Advanced F2L (3x3)' },
-  'advanced-oll':{ name:'Advanced OLL (3x3)' },
-  'advanced-pll':{ name:'Advanced PLL (3x3)' },
+  'advanced-f2l':{ name:'Advanced F2L (3x3)', short:'Advanced F2L' },
+  'advanced-oll':{ name:'Advanced OLL (3x3)', short:'Advanced OLL' },
+  'advanced-pll':{ name:'Advanced PLL (3x3)', short:'Advanced PLL' },
 };
+// Puzzle buttons. Only the 3x3 has content: its button opens the level options.
+const ICON_3X3 = (()=>{ const c=['--R','--W','--G','--Y','--B','--O','--G','--R','--Y']; let r='';
+  c.forEach((v,i)=>{ r+=`<rect x="${(i%3)*7+1}" y="${Math.floor(i/3)*7+1}" width="6" height="6" rx="1.5" style="fill:var(${v})"/>`; });
+  return `<svg class="pz-icon" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="3.5" style="fill:#111"/>${r}</svg>`; })();
+const PUZZLES = { '3x3':{ name:'3x3', icon:ICON_3X3 }, pyraminx:{ name:'Pyraminx' }, mirror:{ name:'Mirror cube' },
+                  megaminx:{ name:'Megaminx' }, '2x2':{ name:'2x2' }, '4x4':{ name:'4x4' } };
 const levelOf = alg => alg.level || 'beginner';
 
 // Flat picture of the top layer at the start of a card: the 3x3 top face with
@@ -804,14 +816,22 @@ function netSVG(alg){
   return `<svg class="netsvg" viewBox="-2 -2 ${total+4} ${total+4}" role="img" aria-label="Top layer at the start">${rects.join('')}</svg>`;
 }
 
-function renderOverview(level){
+function renderOverview(level, puzzle='3x3'){
+  const puzzles = `<div class="levels puzzles">${Object.entries(PUZZLES).map(([k,v])=>
+      `<a class="lvl pz${k===puzzle?' on':''}" href="#${k}"${k==='3x3'?` aria-expanded="${puzzle==='3x3'}"`:''}>${v.icon||''}${v.name}${k==='3x3'?'<span class="caret">&#9662;</span>':''}</a>`).join('')}</div>`;
+  if(puzzle!=='3x3' || !level){
+    app.innerHTML = `<h1>Algorithms</h1>${puzzles}` +
+      (puzzle==='3x3' ? `<div class="levels sublevels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl" href="#${k}">${v.short}</a>`).join('')}</div>` : '');
+    return;
+  }
   const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>`
               : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>`
               : level==='advanced-pll' ? `<span><b>M</b> middle slice, like L</span><span><b>x z</b> tip / roll the whole cube</span><span><b>y</b> turn the whole cube</span><span><b>d u</b> bottom / top two layers</span>`
               : level==='advanced-oll' ? `<span><b>r l f</b> two layers at once</span><span><b>M</b> middle slice, like L</span><span><b>S</b> front-back middle slice, like F</span><span><b>x</b> tip the whole cube, like R</span><span><b>d</b> bottom two layers</span><span><b>(…)2</b> = do the bracket twice</span>` : '';
   app.innerHTML = `
     <h1>Algorithms</h1>
-    <div class="levels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.name}</a>`).join('')}</div>
+    ${puzzles}
+    <div class="levels sublevels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.short}</a>`).join('')}</div>
     ${LEVELS[level].intro ? `<p class="sub">${LEVELS[level].intro}</p>` : ''}
     <div class="legend">
       <span><b>R</b> right</span><span><b>L</b> left</span><span><b>U</b> top</span><span><b>D</b> bottom</span><span><b>F</b> front</span><span><b>y</b> turn the whole cube, right side to the front</span>${extra}
@@ -939,7 +959,9 @@ class Player {
 function route(){
   if(player){ player.destroy(); player=null; }
   const id=location.hash.slice(1), alg=ALGS.find(a=>a.id===id);
-  if(alg) player=new Player(alg); else renderOverview(LEVELS[id] ? id : 'beginner');
+  if(alg) player=new Player(alg);
+  else if(PUZZLES[id]) renderOverview(null, id);
+  else renderOverview(LEVELS[id] ? id : 'beginner');
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
