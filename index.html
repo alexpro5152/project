@@ -135,8 +135,8 @@ const COLORS = {U:'var(--Y)', D:'var(--W)', F:'var(--G)', B:'var(--B)', R:'var(-
 // Flipped grip: cube turned upside down with green still facing you, so yellow is on the bottom and red/orange swap sides.
 const COLORS_FLIP = {U:'var(--W)', D:'var(--Y)', F:'var(--G)', B:'var(--B)', R:'var(--R)', L:'var(--O)'};
 const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90], y:['y',null,-90],
-                   r:['x',[1,0],90], l:['x',[-1,0],-90], f:['z',[1,0],90], M:['x',[0],-90] };
-const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back', y:'Whole cube', r:'Right two layers', l:'Left two layers', f:'Front two layers', M:'Middle slice'};
+                   r:['x',[1,0],90], l:['x',[-1,0],-90], f:['z',[1,0],90], d:['y',[1,0],90], M:['x',[0],-90] };
+const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back', y:'Whole cube', r:'Right two layers', l:'Left two layers', f:'Front two layers', d:'Bottom two layers', M:'Middle slice'};
 const HINT = {
   "R":'push it up, away from you', "R'":'pull it down, toward you',
   "L":'pull it down, toward you',  "L'":'push it up, away from you',
@@ -146,6 +146,7 @@ const HINT = {
   "r":'push them up, away from you', "r'":'pull them down, toward you',
   "l":'pull them down, toward you',  "l'":'push them up, away from you',
   "f":'turn them clockwise, like a clock', "f'":'turn them anticlockwise',
+  "d":'swing them to the right', "d'":'swing them to the left',
   "M":'pull it down, toward you (like L)', "M'":'push it up, away from you',
   "y":'turn it so the right side faces you', "y'":'turn it so the left side faces you',
   "B":'clockwise as seen from behind',  "B'":'anticlockwise as seen from behind',
@@ -462,6 +463,89 @@ const ALGS = [
     purpose:'Swaps edges next to each other: front with right, back with left.',
     hold:'Corners done. The swapped pairs at <b>front-right</b> and <b>back-left</b>.',
     tips:['The last U lines the top back up with the centres.'] },
+  /* ---------------- Advanced F2L (3x3): the 41 cases from the F2L chart ---------------- */
+  { id:'af2l-1', level:'advanced-f2l', step:'F2L 1', title:'Case 1', moves:"R' F R F' R U' R' U R U' R' U2 R U' R'", groups:[["R' F R F'",4],["R U' R' U",4],["R U' R' U2 R U' R'",7]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing down. The edge in the slot, flipped.' },
+  { id:'af2l-2', level:'advanced-f2l', step:'F2L 2', title:'Case 2', moves:"U R U' R' U' y L' U L", groups:[["U R U' R' U'",5],["y",1],["L' U L",3]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing down. The edge on top at the front, green facing out.' },
+  { id:'af2l-3', level:'advanced-f2l', step:'F2L 3', title:'Case 3', moves:"R' U' R' U' R' U R U R", groups:[["R' U' R' U'",4],["R' U R U R",5]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing down. The edge on top at the right, green on top.' },
+  { id:'af2l-4', level:'advanced-f2l', step:'F2L 4', title:'Case 4', moves:"R U R' U' R U2 R' U' R U R'", groups:[["R U R' U'",4],["R U2 R' U'",4],["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing you. The edge in the slot, the right way round.' },
+  { id:'af2l-5', level:'advanced-f2l', step:'F2L 5', title:'Case 5', moves:"r U' r' U2 r U r' R U R'", groups:[["r U' r' U2 r U r'",7],["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing you. The edge in the slot, flipped.' },
+  { id:'af2l-6', level:'advanced-f2l', step:'F2L 6', title:'Case 6', moves:"y' R' U' R U R' U' R", groups:[["y'",1],["R' U' R U",4],["R' U' R",3]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing you. The edge on top at the front, green facing out.' },
+  { id:'af2l-7', level:'advanced-f2l', step:'F2L 7', title:'Case 7', moves:"R U' R' U R U' R'", groups:[["R U' R' U",4],["R U' R'",3]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing you. The edge on top at the right, green on top.' },
+  { id:'af2l-8', level:'advanced-f2l', step:'F2L 8', title:'Case 8', moves:"R U' R' U R U2 R' U R U' R'", groups:[["R U' R' U",4],["R U2 R' U",4],["R U' R'",3]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing right. The edge in the slot, the right way round.' },
+  { id:'af2l-9', level:'advanced-f2l', step:'F2L 9', title:'Case 9', moves:"R U F R U R' U' F' R'", groups:[["R U F",3],["R U R' U'",4],["F' R'",2]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing right. The edge in the slot, flipped.' },
+  { id:'af2l-10', level:'advanced-f2l', step:'F2L 10', title:'Case 10', moves:"y L' U L U' L' U L", groups:[["y",1],["L' U L U'",4],["L' U L",3]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing right. The edge on top at the front, green facing out.' },
+  { id:'af2l-11', level:'advanced-f2l', step:'F2L 11', title:'Case 11', moves:"R U R' U' R U R'", groups:[["R U R' U'",4],["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner in the slot, white facing right. The edge on top at the right, green on top.' },
+  { id:'af2l-12', level:'advanced-f2l', step:'F2L 12', title:'Case 12', moves:"R U R' U' R U R' U' R U R' U'", groups:[["R U R' U'",4],["R U R' U'",4],["R U R' U'",4]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge in the slot, the right way round.' },
+  { id:'af2l-13', level:'advanced-f2l', step:'F2L 13', title:'Case 13', moves:"U' R' F R F' R U' R'", groups:[["U'",1],["R' F R F'",4],["R",1],["U'",1],["R'",1]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge in the slot, flipped.' },
+  { id:'af2l-14', level:'advanced-f2l', step:'F2L 14', title:'Case 14', moves:"y' R' U2 R U R' U' R", groups:[["y'",1],["R' U2 R U",4],["R' U' R",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge on top at the front, green facing out.' },
+  { id:'af2l-15', level:'advanced-f2l', step:'F2L 15', title:'Case 15', moves:"y U' L' U2 L U' L' U L", groups:[["y",1],["U'",1],["L' U2 L U'",4],["L' U L",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge on top at the left, green facing out.' },
+  { id:'af2l-16', level:'advanced-f2l', step:'F2L 16', title:'Case 16', moves:"y' U2 R' U' R U' R' U R", groups:[["y'",1],["U2",1],["R' U' R U'",4],["R' U R",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge on top at the back, green facing out.' },
+  { id:'af2l-17', level:'advanced-f2l', step:'F2L 17', title:'Case 17', moves:"F U R U' R' F' R U' R'", groups:[["F",1],["U R U' R'",4],["F'",1],["R U' R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge on top at the right, green facing out.' },
+  { id:'af2l-18', level:'advanced-f2l', step:'F2L 18', title:'Case 18', moves:"R U R' U2 R U R' U' R U R'", groups:[["R U R' U2",4],["R U R' U'",4],["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge on top at the front, green on top.' },
+  { id:'af2l-19', level:'advanced-f2l', step:'F2L 19', title:'Case 19', moves:"R U' R' U2 R U R'", groups:[["R U'",2],["R' U2",2],["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge on top at the left, green on top.' },
+  { id:'af2l-20', level:'advanced-f2l', step:'F2L 20', title:'Case 20', moves:"U R U2 R' U R U' R'", groups:[["U",1],["R U2 R'",3],["U",1],["R U' R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge on top at the back, green on top.' },
+  { id:'af2l-21', level:'advanced-f2l', step:'F2L 21', title:'Case 21', moves:"R U2 R' U' R U R'", groups:[["R U2",2],["R' U' R U R'",5]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing up. The edge on top at the right, green on top.' },
+  { id:'af2l-22', level:'advanced-f2l', step:'F2L 22', title:'Case 22', moves:"U' R U' R' U2 R U' R'", groups:[["U'",1],["R U' R' U2",4],["R U' R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge in the slot, the right way round.' },
+  { id:'af2l-23', level:'advanced-f2l', step:'F2L 23', title:'Case 23', moves:"U' R U R' d R' U' R", groups:[["U'",1],["R U R'",3],["d",1],["R' U' R",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge in the slot, flipped.' },
+  { id:'af2l-24', level:'advanced-f2l', step:'F2L 24', title:'Case 24', moves:"d R' U R U' R' U' R", groups:[["d",1],["R' U R U'",4],["R' U' R",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge on top at the front, green facing out.' },
+  { id:'af2l-25', level:'advanced-f2l', step:'F2L 25', title:'Case 25', moves:"F' U' F", groups:[["F'",1],["U'",1],["F",1]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge on top at the left, green facing out.' },
+  { id:'af2l-26', level:'advanced-f2l', step:'F2L 26', title:'Case 26', moves:"U' R U' R' U F' U' F", groups:[["U'",1],["R U' R' U",4],["F' U' F",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge on top at the back, green facing out.' },
+  { id:'af2l-27', level:'advanced-f2l', step:'F2L 27', title:'Case 27', moves:"U' R U2 R' U y' R' U' R", groups:[["U'",1],["R U2 R' U",4],["y'",1],["R' U' R",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge on top at the right, green facing out.' },
+  { id:'af2l-28', level:'advanced-f2l', step:'F2L 28', title:'Case 28', moves:"R' D' R U' R' D R U R U' R'", groups:[["R' D' R U' R' D R U",8],["R",1],["U'",1],["R'",1]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge on top at the front, green on top.' },
+  { id:'af2l-29', level:'advanced-f2l', step:'F2L 29', title:'Case 29', moves:"U' R U2 R' U2 R U' R'", groups:[["U'",1],["R",1],["U2",1],["R'",1],["U2",1],["R",1],["U'",1],["R'",1]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge on top at the left, green on top.' },
+  { id:'af2l-30', level:'advanced-f2l', step:'F2L 30', title:'Case 30', moves:"U' R U R' U2 R U' R'", groups:[["U'",1],["R U R' U2",4],["R U' R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge on top at the back, green on top.' },
+  { id:'af2l-31', level:'advanced-f2l', step:'F2L 31', title:'Case 31', moves:"U R U' R'", groups:[["U",1],["R",1],["U'",1],["R'",1]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing you. The edge on top at the right, green on top.' },
+  { id:'af2l-32', level:'advanced-f2l', step:'F2L 32', title:'Case 32', moves:"U' R U2 R' U R U R'", groups:[["U'",1],["R U2 R' U",4],["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge in the slot, the right way round.' },
+  { id:'af2l-33', level:'advanced-f2l', step:'F2L 33', title:'Case 33', moves:"U F' U' F U' R U R'", groups:[["U",1],["F' U' F U'",4],["R",1],["U",1],["R'",1]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge in the slot, flipped.' },
+  { id:'af2l-34', level:'advanced-f2l', step:'F2L 34', title:'Case 34', moves:"U' F' U F", groups:[["U'",1],["F'",1],["U",1],["F",1]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge on top at the front, green facing out.' },
+  { id:'af2l-35', level:'advanced-f2l', step:'F2L 35', title:'Case 35', moves:"d R' U' R U2 R' U R", groups:[["d",1],["R' U' R U2",4],["R' U R",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge on top at the left, green facing out.' },
+  { id:'af2l-36', level:'advanced-f2l', step:'F2L 36', title:'Case 36', moves:"d R' U2 R U2 R' U R", groups:[["d",1],["R' U2 R U2",4],["R' U R",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge on top at the back, green facing out.' },
+  { id:'af2l-37', level:'advanced-f2l', step:'F2L 37', title:'Case 37', moves:"R U' R' U2 y' R' U' R", groups:[["R U' R' U2",4],["y'",1],["R' U' R",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge on top at the right, green facing out.' },
+  { id:'af2l-38', level:'advanced-f2l', step:'F2L 38', title:'Case 38', moves:"R U' R' U R U' R' U2 R U' R'", groups:[["R U'",2],["R' U R U'",4],["R' U2",2],["R U' R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge on top at the front, green on top.' },
+  { id:'af2l-39', level:'advanced-f2l', step:'F2L 39', title:'Case 39', moves:"U' R U R' U R U R'", groups:[["U'",1],["R U R' U",4],["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge on top at the left, green on top.' },
+  { id:'af2l-40', level:'advanced-f2l', step:'F2L 40', title:'Case 40', moves:"R U R'", groups:[["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge on top at the back, green on top.' },
+  { id:'af2l-41', level:'advanced-f2l', step:'F2L 41', title:'Case 41', moves:"U' R U' R' U R U R'", groups:[["U'",1],["R U' R' U",4],["R U R'",3]], focus:'nonyellow',
+    purpose:'Corner on top above the slot, white facing right. The edge on top at the right, green on top.' },
 ];
 
 /* ============================================================
@@ -478,15 +562,17 @@ function groupsOf(alg){
   else for(const m of moves){ out.push({label:m, from:i, to:i+1}); i++; }
   return {moves, groups:out};
 }
-// Rewrite a sequence with whole-cube turns (y) as plain face turns in the starting grip,
+// Rewrite a sequence with whole-cube turns (y, and the y' inside d) as plain face turns in the starting grip,
 // so the start position is built with green still facing you.
 const Y_MAP = {F:'R', L:'F', B:'L', R:'B', U:'U', D:'D'};
 function flatten(seq){
   const out=[]; let turns=0;
   for(const t of seq){
-    if(t[0]==='y'){ turns=(turns+(t.endsWith("'")?3:t.endsWith('2')?2:1))%4; continue; }
-    let f=t[0]; for(let i=0;i<turns;i++) f=Y_MAP[f];
+    const amt = t.endsWith("'")?3:t.endsWith('2')?2:1;
+    if(t[0]==='y'){ turns=(turns+amt)%4; continue; }
+    let f = t[0]==='d' ? 'U' : t[0]; for(let i=0;i<turns;i++) f=Y_MAP[f];
     out.push(f+t.slice(1));
+    if(t[0]==='d') turns=(turns+4-amt)%4;   // d = U with the whole cube turned y'
   }
   return out;
 }
@@ -505,7 +591,8 @@ const LEVELS = {
 const levelOf = alg => alg.level || 'beginner';
 
 function renderOverview(level){
-  const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>` : '';
+  const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>`
+              : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>` : '';
   app.innerHTML = `
     <h1>Algorithms</h1>
     <div class="levels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.name}</a>`).join('')}</div>
@@ -537,7 +624,7 @@ class Player {
       <div class="step">${alg.step}</div>
       <h2>${alg.title}</h2>
       <p class="sub">${alg.purpose}</p>
-      <div class="hold">${alg.hold}</div>
+      ${alg.hold?`<div class="hold">${alg.hold}</div>`:''}
       <div class="formula ${moves.length>10?'long':''}"></div>
       <div class="desc"></div>
       <div class="scene big"></div>
@@ -550,7 +637,7 @@ class Player {
         <label class="speed">Speed <input type="range" min="1" max="10" value="${Math.round((1400-dur)/130)+1}"></label>
       </div>
       <div class="strip"></div>
-      <ul class="tips">${alg.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
+      ${alg.tips&&alg.tips.length?`<ul class="tips">${alg.tips.map(t=>`<li>${t}</li>`).join('')}</ul>`:''}
       <div class="nav">${prev?`<a href="#${prev.id}">&larr; ${prev.title}</a>`:''}${next?`<a href="#${next.id}">${next.title} &rarr;</a>`:''}</div>`;
 
     const fEl=app.querySelector('.formula');
