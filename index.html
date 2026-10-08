@@ -252,18 +252,21 @@ const MIRROR_SHADE = {U:'#eceef2', D:'#9ea2aa', F:'#cfd2d8', B:'#b4b8bf', R:'#c0
 const COLORS_MIRROR = Object.fromEntries(Object.entries(MIRROR_SHADE).map(([k,v])=>[k,`linear-gradient(135deg,rgba(255,255,255,.75),rgba(255,255,255,0) 55%),${v}`]));
 
 class Cube {
-  constructor(el, S, {view='above', focus='all', flip=false, mirror=false}={}){
+  constructor(el, S, {view='above', focus='all', flip=false, mirror=false, two=false}={}){
     this.el=el; this.S=S; this.cubies=[]; this.dead=false; const colors=mirror?COLORS_MIRROR:flip?COLORS_FLIP:COLORS;
     el.style.transform = VIEWS[view];
     if(mirror) el.classList.add('mirror');
     const gap=S*0.06, side=S-gap;
     // size and centre of the piece in layer i (-1, 0, 1) along one axis
-    const span=(axis,i)=>{ if(!mirror) return [side, i*S];
+    const span=(axis,i)=>{
+      if(two){ const [lo,hi] = i===-1 ? [-1.5,0] : i===1 ? [0,1.5] : [-0.5,0.5]; return [(hi-lo)*S-gap, Math.round((lo+hi)/2*S)]; }
+      if(!mirror) return [side, i*S];
       const [lo,hi] = i===-1 ? [MIRROR_EXTENT[axis][0],-0.5] : i===1 ? [0.5,MIRROR_EXTENT[axis][1]] : [-0.5,0.5];
       return [(hi-lo)*S-gap, Math.round((lo+hi)/2*S)]; };
     for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
       const [w,cx]=span('x',x), [h,cy]=span('y',y), [dz,cz]=span('z',z);
       const d=document.createElement('div'); d.className='cubie';
+      if(two && !(x&&y&&z)) d.style.display='none';          // a 2x2 has only the corners
       d.style.width=w+'px'; d.style.height=h+'px'; d.style.marginLeft=(-w/2)+'px'; d.style.marginTop=(-h/2)+'px';
       // [rotation, sticker, face width, face height, distance from the middle]
       const faces=[['rotateY(0deg)',z===1&&'F',w,h,dz/2],['rotateY(180deg)',z===-1&&'B',w,h,dz/2],['rotateY(90deg)',x===1&&'R',dz,h,w/2],
@@ -304,6 +307,8 @@ class Cube {
     });
   }
 }
+// extra drawing options for puzzles that are not a normal 3x3
+const puzzleOpts = alg => ({ mirror: alg.level==='mirror', two: alg.level==='2x2' });
 function makeCube(scene, opts){
   const cube=document.createElement('div'); cube.className='cube'; scene.appendChild(cube);
   const S=Math.max(8, Math.floor(Math.min(scene.clientWidth, scene.clientHeight)/6.2));
@@ -762,6 +767,41 @@ const ALGS = [
   { id:'apll-19', level:'advanced-pll', step:'PLL 19', title:'Case 19', moves:"R' d' F R2 u R' U R U' R u' R2", groups:[["R' d' F",3],["R2 u",2],["R' U",2],["R U' R u' R2",5]], focus:'all', diagram:'net' },
   { id:'apll-20', level:'advanced-pll', step:'PLL 20', title:'Case 20', moves:"R' U R U' R' F' U' F R U R' F R' F' R U' R", groups:[["R' U R U'",4],["R' F' U'",3],["F R U R' F",5],["R' F' R U' R",5]], focus:'all', diagram:'net' },
   { id:'apll-21', level:'advanced-pll', step:'PLL 21', title:'Case 21', moves:"R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'", groups:[["R U R' U",4],["R U R' F'",4],["R U R' U' R' F",6],["R2 U' R' U2",4],["R",1],["U'",1],["R'",1]], focus:'all', diagram:'net' },
+  /* ---------------- 2x2 beginner: the corner steps of the 3x3 beginner method ---------------- */
+  { id:'2x2-white-right', level:'2x2', step:'2x2 · Step 1a · white layer', title:'Corner above its spot, white facing right', moves:"R U R'", focus:'white', view:'below',
+    purpose:'Same as 3x3 step 2a. Three turns and the white corner drops in.',
+    hold:'<b>White on the bottom</b>. A 2x2 has no centres: the <b>first</b> white corner can go anywhere. Every next corner goes where its side colours <b>match the white corners next to it</b>. Here: the corner is <b>above its spot</b> at the front right, white <b>facing right</b>.',
+    tips:['Not above its spot yet? Turn the top until it is.',
+          'Corner already in the bottom but in the wrong spot or twisted? Hold it at the front right and do one Righty to pop it out.',
+          'Righty once works here too.'] },
+  { id:'2x2-white-front', level:'2x2', step:'2x2 · Step 1b · white layer', title:'Corner above its spot, white facing you', moves:"F' U' F", focus:'white', view:'below',
+    purpose:'Same as 3x3 step 2b: white facing you, so use the front face.',
+    hold:'White on the bottom. The white corner is <b>above its spot</b> at the front right, white <b>facing you</b>.',
+    tips:['Righty five times also does it.'] },
+  { id:'2x2-white-up', level:'2x2', step:'2x2 · Step 1c · white layer', title:'Corner above its spot, white facing up', moves:"R U R' U' R U R' U' R U R' U'",
+    groups:[["R U R' U'",4],["R U R' U'",4],["R U R' U'",4]], focus:'white', view:'below',
+    purpose:'Same as 3x3 step 2c: Righty three times.',
+    hold:'White on the bottom. The white corner is <b>above its spot</b> at the front right, white <b>facing up</b>. Do Righty until white faces down.',
+    tips:['Any white corner works with Righty alone: 1, 3 or 5 times.',
+          'Do this for all four white corners. The white layer is done when the side colours of each white corner match the ones next to it.'] },
+  { id:'2x2-niklas', level:'2x2', step:'2x2 · Step 2 · yellow corners', title:'Yellow corners into place (Niklas)', moves:"R U' L' U R' U' L U", focus:'all',
+    purpose:'Same as 3x3 step 6. Moves three top corners around so every corner sits above its matching white corner. Twist does not matter yet.',
+    hold:'White layer done, on the bottom. A top corner is <b>in place</b> when its side colours match the white corners below it (twisted is fine). Turn the top until <b>exactly one</b> corner is in place and hold it at the <b>front left</b>.',
+    tips:['The front-left corner stays put, the other three move round. You may need it twice.',
+          'No turn of the top gives exactly one corner in place? Do it once from anywhere, then look again. This can happen on a 2x2, it never happens on a 3x3.',
+          'All four in place? Go to step 3.'] },
+  { id:'2x2-twist', level:'2x2', step:'2x2 · Step 3 · finish', title:'Twist the yellow corners', moves:"R U R' U' R U R' U' D R U R' U' R U R' U' R U R' U' R U R' U' D'",
+    groups:[["R U R' U'",4],["R U R' U'",4],["D",1],["R U R' U'",4],["R U R' U'",4],["R U R' U'",4],["R U R' U'",4],["D'",1]],
+    short:"R U R' U'", focus:'all', view:'below', flip:true,
+    purpose:'Same as 3x3 step 7. Yellow down, twisted corner at the bottom front right. Yellow facing sideways: Righty 2 times. Yellow facing you: Righty 4 times. Then turn the bottom (D) to the next corner.',
+    hold:'<b>Flip the cube over: yellow on the bottom.</b> Put a twisted corner at the <b>bottom front right</b> and look where its yellow sticker points:'+
+         '<ul class="rule"><li>Yellow facing <b>sideways</b> (right) &rarr; Righty <b>2 times</b></li>'+
+         '<li>Yellow facing <b>you</b> &rarr; Righty <b>4 times</b></li>'+
+         '<li>Yellow facing <b>down</b> &rarr; this corner is done</li></ul>'+
+         'Then turn <b>only the bottom layer (D)</b> to bring the next twisted corner there. Never turn the whole cube.',
+    tips:['The white layer looks scrambled halfway. Keep going, it comes back when the last corner is done.',
+          'At the end, turn one layer until the two layers line up. Solved!'] },
+
   /* ---------------- Mirror cube ---------------- */
   { id:'mirror-a', level:'mirror', step:'Mirror cube · last layer', title:'Three corners (A-perm)', moves:"R' F R' B2 R F' R' B2 R2", focus:'all',
     groups:[["R' F R'",3],["B2",1],["R F' R'",3],["B2",1],["R2",1]],
@@ -872,7 +912,7 @@ function renderOverview(level, puzzle='3x3'){
     grid.appendChild(a);
     if(alg.diagram==='net') continue;
     const sc=a.querySelector('.scene'), back=a.querySelector('.card-reset');
-    const c=makeCube(sc, {view:alg.view||'above', focus:alg.focus, flip:alg.flip, mirror:alg.level==='mirror'});
+    const c=makeCube(sc, {view:alg.view||'above', focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
     c.applyAll(startSeq(alg));
     // drag the small cube to turn it; a plain click still opens the step
     const reset=enableOrbit(sc, c.el, alg.view||'above', {onTurn:t=>{ back.hidden=!t; }, speed:0.8});
@@ -914,7 +954,7 @@ class Player {
     this.tokens=groups.map(g=>{const s=document.createElement('span');s.className='tok';s.textContent=g.label;fEl.appendChild(s);return s;});
     this.desc=app.querySelector('.desc');
 
-    this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip, mirror:alg.level==='mirror'});
+    this.big=makeCube(app.querySelector('.big'), {view:alg.view||'above', focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
     this.resetView=enableOrbit(app.querySelector('.big'), this.big.el, alg.view||'above');
     app.querySelector('.big').insertAdjacentHTML('afterend','<p class="drag-hint">Drag or swipe the cube to turn it around.</p>');
     this.start=startSeq(alg); this.big.applyAll(this.start);
@@ -927,7 +967,7 @@ class Player {
       const sc=document.createElement('div'); sc.className='scene'; w.appendChild(sc);
       const l=document.createElement('div'); l.className='lbl'; l.innerHTML=`${label}<small>${small}</small>`; w.appendChild(l);
       strip.appendChild(w);
-      const c=makeCube(sc,{view:alg.view||'above',focus:alg.focus,flip:alg.flip,mirror:alg.level==='mirror'}); c.applyAll(seq);
+      const c=makeCube(sc,{view:alg.view||'above',focus:alg.focus,flip:alg.flip,...puzzleOpts(alg)}); c.applyAll(seq);
       this.snaps.push(w); this.bounds.push(bound);
     };
     addSnap('Start', alg.start==='solved'?'solved':'before', this.start, 0);
