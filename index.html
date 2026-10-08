@@ -134,9 +134,10 @@
 const COLORS = {U:'var(--Y)', D:'var(--W)', F:'var(--G)', B:'var(--B)', R:'var(--O)', L:'var(--R)'};
 // Flipped grip: cube turned upside down with green still facing you, so yellow is on the bottom and red/orange swap sides.
 const COLORS_FLIP = {U:'var(--W)', D:'var(--Y)', F:'var(--G)', B:'var(--B)', R:'var(--R)', L:'var(--O)'};
-const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90], y:['y',null,-90],
-                   r:['x',[1,0],90], l:['x',[-1,0],-90], f:['z',[1,0],90], d:['y',[1,0],90], M:['x',[0],-90] };
-const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back', y:'Whole cube', r:'Right two layers', l:'Left two layers', f:'Front two layers', d:'Bottom two layers', M:'Middle slice'};
+const FACE_DEF = { R:['x', 1, 90], L:['x',-1,-90], U:['y',-1,-90], D:['y', 1, 90], F:['z', 1, 90], B:['z',-1,-90], y:['y',null,-90], x:['x',null,90], z:['z',null,90],
+                   r:['x',[1,0],90], l:['x',[-1,0],-90], f:['z',[1,0],90], d:['y',[1,0],90], u:['y',[-1,0],-90], b:['z',[-1,0],-90],
+                   M:['x',[0],-90], E:['y',[0],90], S:['z',[0],90] };
+const FACE_NAME = {R:'Right', L:'Left', U:'Top', D:'Bottom', F:'Front', B:'Back', y:'Whole cube', x:'Whole cube', z:'Whole cube', r:'Right two layers', l:'Left two layers', f:'Front two layers', d:'Bottom two layers', u:'Top two layers', b:'Back two layers', M:'Middle slice', E:'Middle layer', S:'Front-back middle slice'};
 const HINT = {
   "R":'push it up, away from you', "R'":'pull it down, toward you',
   "L":'pull it down, toward you',  "L'":'push it up, away from you',
@@ -147,6 +148,12 @@ const HINT = {
   "l":'pull them down, toward you',  "l'":'push them up, away from you',
   "f":'turn them clockwise, like a clock', "f'":'turn them anticlockwise',
   "d":'swing them to the right', "d'":'swing them to the left',
+  "u":'swing them to the left', "u'":'swing them to the right',
+  "b":'clockwise as seen from behind', "b'":'anticlockwise as seen from behind',
+  "E":'swing it to the right (like D)', "E'":'swing it to the left',
+  "S":'turn it clockwise, like F', "S'":'turn it anticlockwise',
+  "x":'tip it so the front comes to the top', "x'":'tip it so the top comes to the front',
+  "z":'roll it to the right, like F', "z'":'roll it to the left',
   "M":'pull it down, toward you (like L)', "M'":'push it up, away from you',
   "y":'turn it so the right side faces you', "y'":'turn it so the left side faces you',
   "B":'clockwise as seen from behind',  "B'":'anticlockwise as seen from behind',
@@ -546,6 +553,121 @@ const ALGS = [
     purpose:'Corner on top above the slot, white facing right. The edge on top at the back, green on top.' },
   { id:'af2l-41', level:'advanced-f2l', step:'F2L 41', title:'Case 41', moves:"U' R U' R' U R U R'", groups:[["U'",1],["R U' R' U",4],["R U R'",3]], focus:'nonyellow',
     purpose:'Corner on top above the slot, white facing right. The edge on top at the right, green on top.' },
+  /* ---------------- Advanced OLL (3x3): the 57 cases from the OLL chart ---------------- */
+  { id:'aoll-1', level:'advanced-oll', step:'OLL 1', title:'Case 1', moves:"R U2 R2 F R F' U2 R' F R F'", groups:[["R U2",2],["R2 F R F'",4],["U2",1],["R' F R F'",4]], focus:'all', view:'top',
+    purpose:'No yellow edges and no yellow corners on top.' },
+  { id:'aoll-2', level:'advanced-oll', step:'OLL 2', title:'Case 2', moves:"F R U R' U' F' f R U R' U' f'", groups:[["F R U R' U' F'",6],["f R U R' U' f'",6]], focus:'all', view:'top',
+    purpose:'No yellow edges and no yellow corners on top.' },
+  { id:'aoll-3', level:'advanced-oll', step:'OLL 3', title:'Case 3', moves:"f R U R' U' f' U' F R U R' U' F'", groups:[["f R U R' U' f'",6],["U'",1],["F R U R' U' F'",6]], focus:'all', view:'top',
+    purpose:'No yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-4', level:'advanced-oll', step:'OLL 4', title:'Case 4', moves:"f R U R' U' f' U F R U R' U' F'", groups:[["f R U R' U' f'",6],["U",1],["F R U R' U' F'",6]], focus:'all', view:'top',
+    purpose:'No yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-5', level:'advanced-oll', step:'OLL 5', title:'Case 5', moves:"r' U2 R U R' U r", groups:[["r' U2",2],["R U R' U r",5]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-6', level:'advanced-oll', step:'OLL 6', title:'Case 6', moves:"r U2 R' U' R U' r'", groups:[["r",1],["U2",1],["R'",1],["U'",1],["R",1],["U'",1],["r'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-7', level:'advanced-oll', step:'OLL 7', title:'Case 7', moves:"r U R' U R U2 r'", groups:[["r",1],["U",1],["R'",1],["U",1],["R",1],["U2",1],["r'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-8', level:'advanced-oll', step:'OLL 8', title:'Case 8', moves:"r' U' R U' R' U2 r", groups:[["r'",1],["U'",1],["R",1],["U'",1],["R'",1],["U2",1],["r",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-9', level:'advanced-oll', step:'OLL 9', title:'Case 9', moves:"R U R' U' R' F R2 U R' U' F'", groups:[["R U R' U' R' F R2",7],["U R' U' F'",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-10', level:'advanced-oll', step:'OLL 10', title:'Case 10', moves:"R U R' U R' F R F' R U2 R'", groups:[["R U R' U",4],["R' F R F'",4],["R U2 R'",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-11', level:'advanced-oll', step:'OLL 11', title:'Case 11', moves:"r' R R U R' U R U2 R' U r R'", groups:[["r'",1],["R",1],["R U R' U R U2 R'",7],["U",1],["r",1],["R'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-12', level:'advanced-oll', step:'OLL 12', title:'Case 12', moves:"r R' R' U' R U' R' U2 R U' r' R", groups:[["r",1],["R'",1],["R' U' R U' R' U2 R",7],["U'",1],["r'",1],["R",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-13', level:'advanced-oll', step:'OLL 13', title:'Case 13', moves:"r U' r' U' r U r' F' U F", groups:[["r U' r' U'",4],["r U r'",3],["F' U F",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-14', level:'advanced-oll', step:'OLL 14', title:'Case 14', moves:"R' F R U R' F' R F U' F'", groups:[["R' F",2],["R U R' F' R",5],["F U' F'",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-15', level:'advanced-oll', step:'OLL 15', title:'Case 15', moves:"r' U' r R' U' R U r' U r", groups:[["r' U' r",3],["R' U' R U",4],["r' U r",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-16', level:'advanced-oll', step:'OLL 16', title:'Case 16', moves:"r U r' R U R' U' r U' r'", groups:[["r U r'",3],["R U R' U'",4],["r U' r'",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-17', level:'advanced-oll', step:'OLL 17', title:'Case 17', moves:"f R U R' U' f' U R U R' U' R' F R F'", groups:[["f R U R' U' f'",6],["U",1],["R U R' U' R' F R F'",8]], focus:'all', view:'top',
+    purpose:'No yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-18', level:'advanced-oll', step:'OLL 18', title:'Case 18', moves:"r U R' U R U2 r' r' U' R U' R' U2 r", groups:[["r U R' U R U2 r'",7],["r' U' R U' R' U2 r",7]], focus:'all', view:'top',
+    purpose:'No yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-19', level:'advanced-oll', step:'OLL 19', title:'Case 19', moves:"r' R U R U R' U' r R' R' F R F'", groups:[["r' R U",3],["R U R' U'",4],["r",1],["R'",1],["R' F R F'",4]], focus:'all', view:'top',
+    purpose:'No yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-20', level:'advanced-oll', step:'OLL 20', title:'Case 20', moves:"r U R' U' M2 U R U' R' U' r R'", groups:[["r U R' U'",4],["M2",1],["U R U' R' U'",5],["r",1],["R'",1]], focus:'all', view:'top',
+    purpose:'No yellow edges and 4 yellow corners on top.' },
+  { id:'aoll-21', level:'advanced-oll', step:'OLL 21', title:'Case 21', moves:"R U2 R' U' R U R' U' R U' R'", groups:[["R U2",2],["R' U' R U R' U'",6],["R U' R'",3]], focus:'all', view:'top',
+    purpose:'4 yellow edges and no yellow corners on top.' },
+  { id:'aoll-22', level:'advanced-oll', step:'OLL 22', title:'Case 22', moves:"R U2 R2 U' R2 U' R2 U2 R", groups:[["R U2",2],["R2 U'",2],["R2 U'",2],["R2 U2 R",3]], focus:'all', view:'top',
+    purpose:'4 yellow edges and no yellow corners on top.' },
+  { id:'aoll-23', level:'advanced-oll', step:'OLL 23', title:'Case 23', moves:"R2 D R' U2 R D' R' U2 R'", groups:[["R2",1],["D",1],["R'",1],["U2",1],["R",1],["D'",1],["R'",1],["U2",1],["R'",1]], focus:'all', view:'top',
+    purpose:'4 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-24', level:'advanced-oll', step:'OLL 24', title:'Case 24', moves:"x' R U R' D R U' R' D'", groups:[["x'",1],["R U R' D",4],["R U' R' D'",4]], focus:'all', view:'top',
+    purpose:'4 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-25', level:'advanced-oll', step:'OLL 25', title:'Case 25', moves:"x' R U' R' D R U R' D'", groups:[["x'",1],["R U' R' D",4],["R U R' D'",4]], focus:'all', view:'top',
+    purpose:'4 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-26', level:'advanced-oll', step:'OLL 26', title:'Case 26', moves:"R' U' R U' R' U2 R", groups:[["R'",1],["U'",1],["R",1],["U'",1],["R'",1],["U2",1],["R",1]], focus:'all', view:'top',
+    purpose:'4 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-27', level:'advanced-oll', step:'OLL 27', title:'Case 27', moves:"R U R' U R U2 R'", groups:[["R",1],["U",1],["R'",1],["U",1],["R",1],["U2",1],["R'",1]], focus:'all', view:'top',
+    purpose:'4 yellow edges and 1 yellow corner on top.' },
+  { id:'aoll-28', level:'advanced-oll', step:'OLL 28', title:'Case 28', moves:"r U R' U' r' R U R U' R'", groups:[["r U R' U'",4],["r' R U",3],["R U' R'",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 4 yellow corners on top.' },
+  { id:'aoll-29', level:'advanced-oll', step:'OLL 29', title:'Case 29', moves:"U' R U R' U' R U' R' F' U' F R U R'", groups:[["U'",1],["R U R' U' R U' R'",7],["F' U' F",3],["R U R'",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-30', level:'advanced-oll', step:'OLL 30', title:'Case 30', moves:"f R U R2 U' R' U R2 U' R' f'", groups:[["f R U",3],["R2 U' R' U",4],["R2 U' R' f'",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-31', level:'advanced-oll', step:'OLL 31', title:'Case 31', moves:"U2 R' U' F U R U' R' F' R", groups:[["U2",1],["R' U'",2],["F U R U' R' F' R",7]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-32', level:'advanced-oll', step:'OLL 32', title:'Case 32', moves:"S R U R' U' R' F R f'", groups:[["S",1],["R U R' U'",4],["R' F R f'",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-33', level:'advanced-oll', step:'OLL 33', title:'Case 33', moves:"R U R' U' R' F R F'", groups:[["R U R' U'",4],["R' F R F'",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-34', level:'advanced-oll', step:'OLL 34', title:'Case 34', moves:"R U R2 U' R' F R U R U' F'", groups:[["R U R2 U'",4],["R' F",2],["R U R U' F'",5]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-35', level:'advanced-oll', step:'OLL 35', title:'Case 35', moves:"R U2 R2 F R F' R U2 R'", groups:[["R U2",2],["R2 F R F'",4],["R U2 R'",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-36', level:'advanced-oll', step:'OLL 36', title:'Case 36', moves:"R' U' R U' R' U R U l U' R' U", groups:[["R' U' R U'",4],["R' U R U",4],["l U' R' U",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-37', level:'advanced-oll', step:'OLL 37', title:'Case 37', moves:"F R U' R' U' R U R' F'", groups:[["F",1],["R U' R' U'",4],["R U R' F'",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-38', level:'advanced-oll', step:'OLL 38', title:'Case 38', moves:"R U R' U R U' R' U' R' F R F'", groups:[["R U R' U",4],["R U' R' U'",4],["R' F R F'",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-39', level:'advanced-oll', step:'OLL 39', title:'Case 39', moves:"U2 R U R' F' U' F U R U2 R'", groups:[["U2",1],["R U R' F'",4],["U' F",2],["U R U2 R'",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-40', level:'advanced-oll', step:'OLL 40', title:'Case 40', moves:"R' F R U R' U' F' U R", groups:[["R' F",2],["R U R' U'",4],["F' U R",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-41', level:'advanced-oll', step:'OLL 41', title:'Case 41', moves:"R U R' U R U2 R' F R U R' U' F'", groups:[["R U R' U R U2 R'",7],["F",1],["R U R' U'",4],["F'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-42', level:'advanced-oll', step:'OLL 42', title:'Case 42', moves:"R' U' R U' R' U2 R F R U R' U' F'", groups:[["R' U' R U' R' U2 R",7],["F",1],["R U R' U'",4],["F'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-43', level:'advanced-oll', step:'OLL 43', title:'Case 43', moves:"U R' U' F' U F R", groups:[["U",1],["R' U' F' U F R",6]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-44', level:'advanced-oll', step:'OLL 44', title:'Case 44', moves:"f R U R' U' f'", groups:[["f",1],["R U R' U'",4],["f'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-45', level:'advanced-oll', step:'OLL 45', title:'Case 45', moves:"F R U R' U' F'", groups:[["F",1],["R U R' U'",4],["F'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-46', level:'advanced-oll', step:'OLL 46', title:'Case 46', moves:"R' U' R' F R F' U R", groups:[["R' U'",2],["R' F R F'",4],["U R",2]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 2 yellow corners on top.' },
+  { id:'aoll-47', level:'advanced-oll', step:'OLL 47', title:'Case 47', moves:"F' L' U' L U L' U' L U F", groups:[["F'",1],["L' U' L U",4],["L' U' L U",4],["F",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-48', level:'advanced-oll', step:'OLL 48', title:'Case 48', moves:"F R U R' U' R U R' U' F'", groups:[["F",1],["R U R' U'",4],["R U R' U'",4],["F'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-49', level:'advanced-oll', step:'OLL 49', title:'Case 49', moves:"R B' R2 F R2 B R2 F' R", groups:[["R",1],["B'",1],["R2 F",2],["R2 B",2],["R2",1],["F'",1],["R",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-50', level:'advanced-oll', step:'OLL 50', title:'Case 50', moves:"r' U r2 U' r2 U' r2 U r'", groups:[["r'",1],["U",1],["r2",1],["U'",1],["r2",1],["U'",1],["r2",1],["U",1],["r'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-51', level:'advanced-oll', step:'OLL 51', title:'Case 51', moves:"f R U R' U' R U R' U' f'", groups:[["f",1],["R U R' U'",4],["R U R' U'",4],["f'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-52', level:'advanced-oll', step:'OLL 52', title:'Case 52', moves:"R' U' R U' R' d R' U R B", groups:[["R' U' R U' R' d",6],["R' U R B",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-53', level:'advanced-oll', step:'OLL 53', title:'Case 53', moves:"r' U' R U' R' U R U' R' U2 r", groups:[["r'",1],["U'",1],["R U' R' U",4],["R U' R' U2 r",5]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-54', level:'advanced-oll', step:'OLL 54', title:'Case 54', moves:"r U2 R' U' R U R' U' R U' r'", groups:[["r",1],["U2",1],["R'",1],["U'",1],["R",1],["U",1],["R'",1],["U'",1],["R",1],["U'",1],["r'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-55', level:'advanced-oll', step:'OLL 55', title:'Case 55', moves:"U R' F R U R U' R2 F' R2 U' R' U R U R'", groups:[["U",1],["R' F R U R U'",6],["R2 F' R2 U' R' U",6],["R U R'",3]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-56', level:'advanced-oll', step:'OLL 56', title:'Case 56', moves:"r U r' U R U' R' U R U' R' r U' r'", groups:[["r",1],["U",1],["r'",1],["U R U' R'",4],["U R U' R'",4],["r",1],["U'",1],["r'",1]], focus:'all', view:'top',
+    purpose:'2 yellow edges and no yellow corners on top.' },
+  { id:'aoll-57', level:'advanced-oll', step:'OLL 57', title:'Case 57', moves:"R U R' U' M' U R U' r'", groups:[["R U R' U'",4],["M'",1],["U R U' r'",4]], focus:'all', view:'top',
+    purpose:'2 yellow edges and 4 yellow corners on top.' },
 ];
 
 /* ============================================================
@@ -562,17 +684,21 @@ function groupsOf(alg){
   else for(const m of moves){ out.push({label:m, from:i, to:i+1}); i++; }
   return {moves, groups:out};
 }
-// Rewrite a sequence with whole-cube turns (y, and the y' inside d) as plain face turns in the starting grip,
-// so the start position is built with green still facing you.
-const Y_MAP = {F:'R', L:'F', B:'L', R:'B', U:'U', D:'D'};
+// Rewrite wide moves, slices and whole-cube turns as plain face turns in the starting grip,
+// so the start position is built with green still facing you and yellow on top.
+const DECOMP = {r:['L','x'], l:['R',"x'"], f:['B','z'], b:['F',"z'"], u:['D','y'], d:['U',"y'"],
+                M:['R',"L'","x'"], E:['U',"D'","y'"], S:["F'",'B','z']};
+const TURN = {x:{U:'F',F:'D',D:'B',B:'U'}, y:{F:'R',R:'B',B:'L',L:'F'}, z:{R:'U',D:'R',L:'D',U:'L'}};
+const quarters = t => t.endsWith("'") ? 3 : t.endsWith('2') ? 2 : t.endsWith('3') ? 3 : 1;
 function flatten(seq){
-  const out=[]; let turns=0;
+  let map={U:'U',D:'D',F:'F',B:'B',R:'R',L:'L'}; const out=[];
+  const rotate=(axis,n)=>{ for(let i=0;i<n;i++){ const m={...map}; for(const [k,v] of Object.entries(TURN[axis])) m[k]=map[v]; map=m; } };
+  const turn=(face,n)=>{ n%=4; if(n) out.push(map[face]+(n===1?'':n===2?'2':"'")); };
   for(const t of seq){
-    const amt = t.endsWith("'")?3:t.endsWith('2')?2:1;
-    if(t[0]==='y'){ turns=(turns+amt)%4; continue; }
-    let f = t[0]==='d' ? 'U' : t[0]; for(let i=0;i<turns;i++) f=Y_MAP[f];
-    out.push(f+t.slice(1));
-    if(t[0]==='d') turns=(turns+4-amt)%4;   // d = U with the whole cube turned y'
+    const c=t[0], k=quarters(t);
+    if(TURN[c]) rotate(c,k);
+    else if(DECOMP[c]) for(const part of DECOMP[c]){ const n=quarters(part)*k; if(TURN[part[0]]) rotate(part[0],n%4); else turn(part[0],n); }
+    else out.push(map[c]+t.slice(1));
   }
   return out;
 }
@@ -592,7 +718,8 @@ const levelOf = alg => alg.level || 'beginner';
 
 function renderOverview(level){
   const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>`
-              : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>` : '';
+              : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>`
+              : level==='advanced-oll' ? `<span><b>r l f</b> two layers at once</span><span><b>M</b> middle slice, like L</span><span><b>S</b> front-back middle slice, like F</span><span><b>x</b> tip the whole cube, like R</span><span><b>d</b> bottom two layers</span><span><b>(…)2</b> = do the bracket twice</span>` : '';
   app.innerHTML = `
     <h1>Algorithms</h1>
     <div class="levels">${Object.entries(LEVELS).map(([k,v])=>`<a class="lvl${k===level?' on':''}" href="#${k}">${v.name}</a>`).join('')}</div>
