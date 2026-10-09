@@ -25,6 +25,7 @@
     --good:#34d399; --warn:#fb923c; --water:#38bdf8; --danger:#f87171; color-scheme:dark;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none!important}
   body{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
   a{color:inherit;text-decoration:none}
   button,input,select{font:inherit;color:inherit}
@@ -86,8 +87,21 @@
   .goal-head{margin-bottom:14px}
   .goal-count{display:flex;align-items:center;gap:6px;font-size:18px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
   .goal-count b{color:var(--ink)}
-  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
-  .week div{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;width:100%;border:0;background:none;padding:0;font-weight:400}
+  .week > span{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+
+  /* --- month calendar pop-up --- */
+  .overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:rgb(0 0 0 / .45)}
+  .month{width:min(100%,440px);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px 18px}
+  .month-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .month-head h2{margin:0}
+  .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+  .month-grid .wd{font-size:13px;color:var(--muted);padding-bottom:4px}
+  .month-grid .d{display:grid;place-items:center;aspect-ratio:1;border-radius:50%;font-size:16px;font-variant-numeric:tabular-nums}
+  .month-grid .d.done{background:var(--accent);color:var(--on-accent);font-weight:700}
+  .month-grid .d.today{outline:2px solid var(--accent);outline-offset:2px}
+  .legend{display:flex;align-items:center;gap:8px;margin:14px 0 0;font-size:14px;color:var(--muted)}
+  .legend i{width:14px;height:14px;border-radius:50%;background:var(--accent)}
   .week b{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
   .week .today b{border:2px solid var(--accent);color:var(--accent)}
 
@@ -364,7 +378,31 @@ function toast(msg){
 /* ============================================================
    Pages
    ============================================================ */
-let kind='strength', pick='abs', query='', editGoal=false, armed=null, restore=null;
+let kind='strength', pick='abs', query='', editGoal=false, monthOpen=false, armed=null, restore=null;
+
+/* The big calendar for this month; days with a workout are filled in. */
+function monthCalendar(){
+  const now=new Date(), y=now.getFullYear(), m=now.getMonth();
+  const lead=(new Date(y,m,1).getDay()+6)%7, count=new Date(y,m+1,0).getDate();
+  const names=weekDays().map(d=>d.toLocaleDateString(undefined,{weekday:'short'}));
+  const cells=[];
+  for(let i=0;i<lead;i++) cells.push('<span></span>');
+  for(let n=1;n<=count;n++){
+    const k=dayKey(new Date(y,m,n)), done=(data.days[k]?.workouts||[]).length>0;
+    cells.push(`<span class="d${done?' done':''}${k===today()?' today':''}"${done?' title="Worked out"':''}>${n}</span>`);
+  }
+  return `
+  <div class="overlay" id="overlay">
+    <div class="month" role="dialog" aria-modal="true" aria-label="Month calendar">
+      <div class="month-head">
+        <h2>${now.toLocaleDateString(undefined,{month:'long', year:'numeric'})}</h2>
+        <button type="button" class="x" data-close-month aria-label="Close the calendar">&times;</button>
+      </div>
+      <div class="month-grid">${names.map(n=>`<span class="wd">${n}</span>`).join('')}${cells.join('')}</div>
+      <p class="legend"><i></i>Worked out</p>
+    </div>
+  </div>`;
+}
 
 /* This week, Monday to Sunday. */
 function weekDays(){
@@ -434,10 +472,11 @@ function workoutPage(){
         <label style="flex:1 1 140px">Days a week<input id="goal-days" name="days" type="number" min="1" max="7" step="1" inputmode="numeric" value="${g.days}"></label>
         <button class="primary" type="submit">Save</button>
       </form>` : ''}
-    <div class="week">${weekDays().map(d=>`
-      <div class="${dayKey(d)===today()?'today':''}"><span>${d.toLocaleDateString(undefined,{weekday:'short'})}</span><b>${d.getDate()}</b></div>`).join('')}
-    </div>
+    <button type="button" class="week" data-open-month aria-label="Open the month calendar">${weekDays().map(d=>`
+      <span class="${dayKey(d)===today()?'today':''}"><span>${d.toLocaleDateString(undefined,{weekday:'short'})}</span><b>${d.getDate()}</b></span>`).join('')}
+    </button>
   </section>
+  ${monthOpen ? monthCalendar() : ''}
 
   <section class="card" id="workouts">
     <h2>Workouts</h2>
@@ -645,7 +684,8 @@ function render(){
   document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on', a.hash==='#'+page));
   paintTimer(); paintResults();
 }
-window.addEventListener('hashchange', ()=>{ armed=null; restore=null; render(); });
+window.addEventListener('hashchange', ()=>{ armed=null; restore=null; monthOpen=false; render(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && monthOpen){ monthOpen=false; render(); } });
 
 /* A change from your other device redraws the page, but not while you are typing in a box. */
 let waiting=false;
@@ -665,9 +705,12 @@ function download(){
 }
 
 app.addEventListener('click', e=>{
+  if(e.target.id==='overlay'){ monthOpen=false; render(); return; }   // tap outside the calendar closes it
   const b=e.target.closest('button'); if(!b) return;
   const t=day(today()), p=data.profile;
   if(b.dataset.kind){ kind=b.dataset.kind; render(); document.getElementById('ex-name').focus(); }
+  else if(b.dataset.openMonth!=null){ monthOpen=true; render(); document.querySelector('[data-close-month]').focus(); }
+  else if(b.dataset.closeMonth!=null){ monthOpen=false; render(); }
   else if(b.dataset.editGoal!=null){ editGoal=!editGoal; render(); if(editGoal) document.getElementById('goal-days').focus(); }
   else if(b.dataset.pick){ pick=b.dataset.pick; render(); }
   else if(b.dataset.findWorkout){
