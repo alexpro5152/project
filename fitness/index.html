@@ -79,6 +79,16 @@
   .results .hits button{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;width:100%;overflow-wrap:anywhere}
   .results .hits small{font-weight:500;color:var(--muted);font-size:13px;flex:none}
 
+  /* --- weekly goal --- */
+  .goal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .pencil{border:0;background:none;padding:4px;line-height:0}
+  .pencil svg{width:20px;height:20px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .goal-line{margin:0 0 14px;font-size:17px}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+  .week div{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+  .week b{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .week .today b{border:2px solid var(--accent);color:var(--accent)}
+
   /* --- ready-made workouts --- */
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
   .chips button{padding:6px 14px;border-radius:999px}
@@ -160,7 +170,7 @@
    syncs to your account, so phone and computer share one log.
    ============================================================ */
 const KEY='fitness-data';
-const DEFAULT_GOALS={water:8, steps:10000, sleep:8, weight:null};
+const DEFAULT_GOALS={water:8, steps:10000, sleep:8, weight:null, days:3};
 const EXERCISES=['Push-ups','Pull-ups','Squats','Lunges','Plank','Bench press','Deadlift','Overhead press','Barbell row','Bicep curls','Running','Cycling','Walking','Swimming','Rowing','Jump rope','Yoga'];
 
 /* Ready-made workouts on the Workout page. Each line is one exercise:
@@ -352,7 +362,13 @@ function toast(msg){
 /* ============================================================
    Pages
    ============================================================ */
-let kind='strength', pick='abs', query='', armed=null, restore=null;
+let kind='strength', pick='abs', query='', editGoal=false, armed=null, restore=null;
+
+/* This week, Monday to Sunday. */
+function weekDays(){
+  const d=new Date(); d.setDate(d.getDate()-(d.getDay()+6)%7);
+  return Array.from({length:7},(_,i)=>{ const x=new Date(d); x.setDate(d.getDate()+i); return x; });
+}
 
 function greeting(){
   const h=new Date().getHours();
@@ -405,6 +421,19 @@ function workoutPage(){
   <section class="hello">
     <h1>${esc(greeting())}</h1>
     <p>${status}</p>
+  </section>
+
+  <section class="card">
+    <h2 class="goal-head">Weekly goal
+      <button type="button" class="pencil" data-edit-goal aria-label="Change weekly goal"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button></h2>
+    ${editGoal ? `
+      <form id="weekgoal" class="row" style="margin-bottom:14px">
+        <label style="flex:1 1 140px">Days a week<input id="goal-days" name="days" type="number" min="1" max="7" step="1" inputmode="numeric" value="${g.days}"></label>
+        <button class="primary" type="submit">Save</button>
+      </form>` : `<p class="goal-line"><b>${g.days}</b> out of 7 days</p>`}
+    <div class="week">${weekDays().map(d=>`
+      <div class="${dayKey(d)===today()?'today':''}"><span>${d.toLocaleDateString(undefined,{weekday:'short'})}</span><b>${d.getDate()}</b></div>`).join('')}
+    </div>
   </section>
 
   <section class="card" id="workouts">
@@ -636,6 +665,7 @@ app.addEventListener('click', e=>{
   const b=e.target.closest('button'); if(!b) return;
   const t=day(today()), p=data.profile;
   if(b.dataset.kind){ kind=b.dataset.kind; render(); document.getElementById('ex-name').focus(); }
+  else if(b.dataset.editGoal!=null){ editGoal=!editGoal; render(); if(editGoal) document.getElementById('goal-days').focus(); }
   else if(b.dataset.pick){ pick=b.dataset.pick; render(); }
   else if(b.dataset.findWorkout){
     pick=b.dataset.findWorkout; query=''; render();
@@ -709,6 +739,9 @@ app.addEventListener('submit', e=>{
       : {name, kind, min:num(f.get('min')), km:num(f.get('km'))};
     t.workouts.push(w); saveDay(today()); render();
     document.getElementById('ex-name').focus();
+  } else if(e.target.id==='weekgoal'){
+    p.goals.days=Math.min(7, Math.max(1, Math.round(num(f.get('days'))||DEFAULT_GOALS.days)));
+    editGoal=false; saveProfile(); render();
   } else if(e.target.id==='checkin'){
     t.weight=num(f.get('weight')); t.sleep=num(f.get('sleep')); t.steps=num(f.get('steps'));
     saveDay(today()); render(); toast('Check-in saved');
@@ -719,7 +752,7 @@ app.addEventListener('submit', e=>{
     saveProfile(); render(); toast(old ? `Updated ${old.name}` : `Saved ${name}`);
   } else if(e.target.id==='profile'){
     p.name=String(f.get('name')).trim();
-    p.goals={water:num(f.get('water'))||DEFAULT_GOALS.water, steps:num(f.get('steps'))||DEFAULT_GOALS.steps,
+    p.goals={...p.goals, water:num(f.get('water'))||DEFAULT_GOALS.water, steps:num(f.get('steps'))||DEFAULT_GOALS.steps,
              sleep:num(f.get('sleep'))||DEFAULT_GOALS.sleep, weight:num(f.get('weight'))};
     saveProfile(); render(); toast('Saved');
   }
