@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fitness Log</title>
 <style>
   :root{
@@ -30,20 +30,27 @@
   button,input,select{font:inherit;color:inherit}
   button{cursor:pointer;background:var(--panel);border:2px solid var(--edge);border-radius:10px;padding:7px 14px;font-weight:600}
   button:hover{border-color:var(--accent)}
+  button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
   button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  button.danger{border-color:var(--danger);color:var(--danger)}
   input,select{background:var(--bg);border:2px solid var(--edge);border-radius:10px;padding:8px 10px;width:100%;min-width:0}
   input:focus,select:focus{outline:none;border-color:var(--accent)}
   label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
 
-  header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
   header .brand{font-weight:800;font-size:18px}
+  header .right{display:flex;align-items:center;gap:12px}
+  .sync{font-size:13px;color:var(--muted)}
+  .sync.ok{color:var(--good)} .sync.bad{color:var(--warn)}
   .theme{font-size:15px;padding:6px 12px}
   nav.tabs{display:flex;gap:8px;justify-content:center;padding:14px 16px 0;flex-wrap:wrap}
   nav.tabs a{font-weight:700;padding:8px 16px;border-radius:10px;border:2px solid var(--edge);background:var(--panel)}
   nav.tabs a:hover{border-color:var(--accent)}
   nav.tabs a.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-  main{max-width:760px;margin:0 auto;padding:18px 16px 56px;display:flex;flex-direction:column;gap:16px}
+  main{max-width:760px;margin:0 auto;padding:18px 16px 72px;display:flex;flex-direction:column;gap:16px}
+  h1{font-size:26px;margin:0;text-wrap:balance}
   h2{font-size:20px;margin:0 0 12px}
+  .hello p{margin:4px 0 0;color:var(--muted)}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
   .muted{color:var(--muted)}
   .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
@@ -55,15 +62,24 @@
   /* --- logged entries --- */
   ul.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
   ul.log li{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
-  ul.log .what{flex:1;min-width:0}
+  ul.log .what{flex:1;min-width:0;overflow-wrap:anywhere}
   ul.log .what b{display:block}
   ul.log .what span{font-size:14px;color:var(--muted)}
   .x{border:0;background:none;color:var(--faint);font-size:20px;padding:2px 8px}
   .x:hover{color:var(--danger)}
+  .saveas{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+
+  /* --- routines --- */
+  .routines{display:flex;flex-wrap:wrap;gap:8px}
+  .routines button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .routines button small{font-weight:500;color:var(--muted);font-size:13px}
+  .routine{border-top:1px solid var(--line);padding:14px 0}
+  .routine:first-of-type{border-top:0;padding-top:0}
+  .routine h3{font-size:17px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;gap:10px;overflow-wrap:anywhere}
 
   /* --- stats --- */
   .stat{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
-  .stat b{display:block;font-size:26px}
+  .stat b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
   .stat span{font-size:13px;color:var(--muted)}
 
   /* --- rest timer --- */
@@ -78,29 +94,37 @@
   .glass.full{background:var(--water)}
   .bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:8px}
   .bar i{display:block;height:100%;background:var(--good)}
-  svg.spark{width:100%;height:auto;display:block;margin-top:12px}
+  svg.spark{width:100%;height:auto;display:block;margin-top:12px;overflow:visible}
 
   /* --- history --- */
   .day{border-top:1px solid var(--line);padding:12px 0}
   .day:first-child{border-top:0;padding-top:0}
   .day h3{font-size:16px;margin:0 0 6px;display:flex;justify-content:space-between;gap:10px}
   .day h3 small{font-weight:500;color:var(--muted)}
-  .day p{margin:2px 0;font-size:15px;color:var(--body)}
-  .empty{color:var(--muted);text-align:center;padding:10px 0}
-  @media (max-width:560px){ .timer{font-size:44px} }
+  .day p{margin:2px 0;font-size:15px;color:var(--body);overflow-wrap:anywhere}
+  .empty{color:var(--muted);text-align:center;padding:10px 0;margin:0}
+  .note{margin:0 0 12px;color:var(--muted);line-height:1.45}
+
+  .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
+  @media (max-width:560px){ .timer{font-size:44px} header{padding:12px 16px} }
 </style>
 </head>
 <body>
 <header>
   <a class="brand" href="#workout">&#128170; Fitness Log</a>
-  <button class="theme" id="theme" type="button"></button>
+  <div class="right">
+    <span class="sync" id="sync"></span>
+    <button class="theme" id="theme" type="button"></button>
+  </div>
 </header>
 <nav class="tabs" id="tabs">
   <a href="#workout">Workout</a>
   <a href="#health">Health</a>
   <a href="#history">History</a>
+  <a href="#me">Me</a>
 </nav>
 <main id="app"></main>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script>
 /* Light / dark switch. The choice is remembered in this browser; with no choice the system setting is used. */
@@ -115,22 +139,42 @@
 })();
 
 /* ============================================================
-   Data: one record per calendar day, kept in this browser.
+   Data: one record per calendar day, plus your profile (name, goals, routines).
    days['2026-10-09'] = { workouts:[...], water, weight, sleep, steps }
+   Always kept in this browser; when the page is opened in Claude it also
+   syncs to your account, so phone and computer share one log.
    ============================================================ */
 const KEY='fitness-data';
-const WATER_GOAL=8, STEP_GOAL=10000;
+const DEFAULT_GOALS={water:8, steps:10000, sleep:8, weight:null};
 const EXERCISES=['Push-ups','Pull-ups','Squats','Lunges','Plank','Bench press','Deadlift','Overhead press','Barbell row','Bicep curls','Running','Cycling','Walking','Swimming','Rowing','Jump rope','Yoga'];
 
-let data={days:{}};
-try{ const raw=localStorage.getItem(KEY); if(raw) data=JSON.parse(raw); }catch(e){}
-if(!data.days) data={days:{}};
-const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} };
+const clone=o=>JSON.parse(JSON.stringify(o));
+function normProfile(p){
+  p=p && typeof p==='object' ? p : {};
+  return {name:typeof p.name==='string' ? p.name : '', goals:{...DEFAULT_GOALS, ...(p.goals||{})}, routines:Array.isArray(p.routines) ? p.routines : []};
+}
+function normalize(d){
+  d=d && typeof d==='object' ? d : {};
+  const days={};
+  for(const [k,x] of Object.entries(d.days||{})){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(k) || !x) continue;
+    days[k]={workouts:Array.isArray(x.workouts) ? x.workouts : [], water:+x.water||0, weight:x.weight??null, sleep:x.sleep??null, steps:x.steps??null};
+  }
+  return {days, profile:normProfile(d.profile)};
+}
+
+let data=normalize(null);
+try{ const raw=localStorage.getItem(KEY); if(raw) data=normalize(JSON.parse(raw)); }catch(e){}
+const saveLocal=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} };
+const saveDay=k=>{ saveLocal(); queueMonth(k.slice(0,7)); };
+const saveProfile=()=>{ saveLocal(); queue('profile', ()=>clone(data.profile)); };
 
 const pad=n=>String(n).padStart(2,'0');
 const dayKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());   // local date, not UTC
 const today=()=>dayKey(new Date());
 const day=k=>data.days[k] || (data.days[k]={workouts:[], water:0, weight:null, sleep:null, steps:null});
+const hasContent=d=>d && (d.workouts.length || d.water || d.weight!=null || d.sleep!=null || d.steps!=null);
+const goals=()=>data.profile.goals;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>{ const n=parseFloat(v); return isFinite(n) && n>=0 ? n : null; };
 const niceDate=k=>new Date(k+'T12:00').toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
@@ -142,6 +186,7 @@ function describe(w){
   return s;
 }
 const volume=w=>w.kind==='strength' ? (w.sets||1)*(w.reps||0)*(w.weight||0) : 0;
+const copyExercise=w=>w.kind==='cardio' ? {name:w.name, kind:'cardio', min:w.min??null, km:w.km??null} : {name:w.name, kind:'strength', sets:w.sets||1, reps:w.reps||0, weight:w.weight??null};
 
 /* Consecutive days with a workout, ending today (or yesterday, so the streak survives until today is over). */
 function streak(){
@@ -159,15 +204,91 @@ function workoutDaysThisWeek(){
 }
 
 /* ============================================================
+   Sync to your Claude account (only when opened inside Claude).
+   Your private space holds one document per month ('m-2026-10': {days})
+   plus 'profile'. Writes to one document go one at a time, and a burst
+   of edits is folded into the next write.
+   ============================================================ */
+const cloud={col:null, live:false, ids:new Set(), pending:new Map(), busy:new Set(), error:'', viewerName:'', downloads:null};
+const monthBody=m=>{ const days={}; for(const k in data.days) if(k.startsWith(m) && hasContent(data.days[k])) days[k]=data.days[k]; return {days}; };
+const queueMonth=m=>queue('m-'+m, ()=>monthBody(m));
+
+function queue(id, build){
+  if(!cloud.col) return;
+  cloud.pending.set(id, build); flush(id); paintSync();
+}
+async function flush(id){
+  if(cloud.busy.has(id) || !cloud.pending.has(id)) return;
+  const build=cloud.pending.get(id); cloud.pending.delete(id); cloud.busy.add(id);
+  const ref=cloud.col.doc(id), write=()=>build ? ref.set(build()) : ref.delete();
+  try{
+    await write().catch(e=>{ if(e?.code!=='unavailable') throw e; return new Promise(r=>setTimeout(r,800+Math.random()*1200)).then(write); });
+    cloud.error='';
+  }catch(e){
+    cloud.error = e?.code==='quota_exceeded' ? 'Cloud space full' : 'Not synced';
+  }finally{
+    cloud.busy.delete(id); paintSync(); flush(id);
+  }
+}
+
+function paintSync(){
+  const el=document.getElementById('sync');
+  if(cloud.error){ el.textContent='⚠️ '+cloud.error; el.className='sync bad'; el.title='Your changes are still saved on this device.'; }
+  else if(cloud.live){ const saving=cloud.pending.size||cloud.busy.size; el.textContent=saving ? 'Saving…' : '☁️ Synced'; el.className='sync ok'; el.title='Your log syncs between your devices.'; }
+  else { el.textContent=''; el.title=''; }
+}
+
+async function connect(){
+  if(!window.claude?.use) return;   // opened as a plain file: this browser only
+  const [db, user, downloads]=await Promise.all([claude.use('db'), claude.use('user'), claude.use('downloads')]);
+  cloud.downloads=downloads;
+  if(user){ cloud.viewerName=((await user.name())||'').split(' ')[0]; if(!data.profile.name && cloud.viewerName) refresh(); }
+  const id=user && await user.id();
+  if(!db || !id) return;
+  const col=db.collection('data/users/'+id);
+  let merged=false;
+  col.limit(1000).onSnapshot(snap=>{
+    if(!merged && snap.metadata.fromCache) return;   // wait for the real answer before merging
+    const days={}, ids=new Set(); let profile=null;
+    snap.docs.forEach(d=>{
+      ids.add(d.id); const b=clone(d.data()||{});
+      if(d.id==='profile') profile=b;
+      else if(d.id.startsWith('m-')) Object.assign(days, normalize({days:b.days}).days);
+    });
+    cloud.ids=ids;
+    // documents with a write still on its way keep this device's version
+    const held=new Set([...cloud.pending.keys(), ...cloud.busy]);
+    for(const k in data.days) if(held.has('m-'+k.slice(0,7))) days[k]=data.days[k];
+    for(const k in days) if(held.has('m-'+k.slice(0,7)) && !data.days[k]) delete days[k];
+    const before=JSON.stringify(data), upload=new Set();
+    if(!merged){
+      // first connection: anything logged on this device but not in your account is added to it
+      for(const k in data.days) if(!days[k] && hasContent(data.days[k])){ days[k]=data.days[k]; upload.add(k.slice(0,7)); }
+      merged=true; cloud.col=col; cloud.live=true;
+      if(!profile && JSON.stringify(data.profile)!==JSON.stringify(normProfile(null))) cloud.pending.set('profile', ()=>clone(data.profile));
+    }
+    data.days=days;
+    if(profile && !held.has('profile')) data.profile=normProfile(profile);
+    saveLocal();
+    upload.forEach(queueMonth);
+    if(cloud.pending.has('profile')) flush('profile');
+    paintSync();
+    if(JSON.stringify(data)!==before) refresh();
+  }, ()=>{ cloud.col=null; cloud.live=false; cloud.error='Not synced'; paintSync(); });
+}
+
+/* ============================================================
    Rest timer (keeps running when you switch tabs)
    ============================================================ */
-const timer={left:0, end:0, id:null};
+const timer={left:0, end:0, id:null, ac:null};
 function startTimer(sec){
   clearInterval(timer.id);
+  // sound needs a tap to start, so the audio is set up here rather than when the timer ends
+  try{ timer.ac=timer.ac||new (window.AudioContext||window.webkitAudioContext)(); timer.ac.resume(); }catch(e){}
   timer.end=Date.now()+sec*1000; timer.left=sec;
   timer.id=setInterval(tick,250); paintTimer();
 }
-function stopTimer(){ clearInterval(timer.id); timer.id=null; timer.left=0; paintTimer(); }
+function stopTimer(){ clearInterval(timer.id); timer.id=null; timer.left=0; timer.end=0; paintTimer(); }
 function tick(){
   timer.left=Math.max(0, Math.ceil((timer.end-Date.now())/1000));
   if(timer.left===0){ clearInterval(timer.id); timer.id=null; beep(); }
@@ -180,8 +301,8 @@ function paintTimer(){
 }
 function beep(){
   try{ navigator.vibrate?.([200,100,200]); }catch(e){}
+  const ac=timer.ac; if(!ac) return;
   try{
-    const ac=new (window.AudioContext||window.webkitAudioContext)();
     [0,0.25,0.5].forEach(t=>{
       const o=ac.createOscillator(), g=ac.createGain();
       o.frequency.value=880; o.connect(g); g.connect(ac.destination);
@@ -191,17 +312,47 @@ function beep(){
   }catch(e){}
 }
 
+let toastId=null;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.hidden=false;
+  clearTimeout(toastId); toastId=setTimeout(()=>el.hidden=true, 2600);
+}
+
 /* ============================================================
    Pages
    ============================================================ */
-let kind='strength';
+let kind='strength', armed=null, restore=null;
+
+function greeting(){
+  const h=new Date().getHours();
+  const hi=h<5 ? 'Hi' : h<12 ? 'Good morning' : h<17 ? 'Good afternoon' : 'Good evening';
+  const name=data.profile.name.trim() || cloud.viewerName;
+  return hi+(name ? ', '+name : '');
+}
 
 function workoutPage(){
-  const t=day(today());
+  const t=day(today()), g=goals(), s=streak(), routines=data.profile.routines;
   const used=new Set(EXERCISES);
   Object.values(data.days).forEach(d=>d.workouts.forEach(w=>used.add(w.name)));
+  routines.forEach(r=>r.items.forEach(w=>used.add(w.name)));
   const vol=t.workouts.reduce((a,w)=>a+volume(w),0), mins=t.workouts.reduce((a,w)=>a+(w.min||0),0);
+  const status=[new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'}),
+    s ? `&#128293; ${s} day streak` : '', `${t.water} of ${g.water} glasses`].filter(Boolean).join(' · ');
   return `
+  <section class="hello">
+    <h1>${esc(greeting())}</h1>
+    <p>${status}</p>
+  </section>
+
+  ${routines.length ? `
+  <section class="card">
+    <h2>Your routines</h2>
+    <div class="routines">${routines.map((r,i)=>`
+      <button type="button" data-start="${i}"><span>${esc(r.name)}</span><small>${r.items.length} exercise${r.items.length===1?'':'s'} &middot; tap to log</small></button>`).join('')}
+    </div>
+  </section>` : ''}
+
   <section class="card">
     <h2>Log exercise</h2>
     <div class="seg">
@@ -210,30 +361,38 @@ function workoutPage(){
     </div>
     <form id="add" class="row">
       <label style="flex:2 1 180px">Exercise
-        <input name="name" list="ex" required placeholder="e.g. Squats" autocomplete="off">
+        <input id="ex-name" name="name" list="ex" required placeholder="e.g. Squats" autocomplete="off">
         <datalist id="ex">${[...used].sort().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
       </label>
       ${kind==='strength' ? `
-        <label style="flex:1 1 70px">Sets<input name="sets" type="number" min="1" value="3" inputmode="numeric"></label>
-        <label style="flex:1 1 70px">Reps<input name="reps" type="number" min="0" value="10" inputmode="numeric"></label>
-        <label style="flex:1 1 80px">Weight (kg)<input name="weight" type="number" min="0" step="0.5" placeholder="—" inputmode="decimal"></label>
+        <label style="flex:1 1 70px">Sets<input id="ex-sets" name="sets" type="number" min="1" value="3" inputmode="numeric"></label>
+        <label style="flex:1 1 70px">Reps<input id="ex-reps" name="reps" type="number" min="0" value="10" inputmode="numeric"></label>
+        <label style="flex:1 1 80px">Weight (kg)<input id="ex-weight" name="weight" type="number" min="0" step="0.5" placeholder="—" inputmode="decimal"></label>
       ` : `
-        <label style="flex:1 1 80px">Minutes<input name="min" type="number" min="0" value="30" inputmode="numeric"></label>
-        <label style="flex:1 1 80px">Distance (km)<input name="km" type="number" min="0" step="0.1" placeholder="—" inputmode="decimal"></label>
+        <label style="flex:1 1 80px">Minutes<input id="ex-min" name="min" type="number" min="0" value="30" inputmode="numeric"></label>
+        <label style="flex:1 1 80px">Distance (km)<input id="ex-km" name="km" type="number" min="0" step="0.1" placeholder="—" inputmode="decimal"></label>
       `}
       <button class="primary" type="submit">Add</button>
     </form>
   </section>
 
   <section class="card">
-    <h2>Today <span class="muted" style="font-weight:500;font-size:15px">${niceDate(today())}</span></h2>
+    <h2>Today</h2>
     ${t.workouts.length ? `
       <ul class="log">${t.workouts.map((w,i)=>`
         <li><div class="what"><b>${esc(w.name)}</b><span>${esc(describe(w))}</span></div>
         <button class="x" type="button" data-del="${i}" aria-label="Remove ${esc(w.name)}">&times;</button></li>`).join('')}
       </ul>
       <p class="muted" style="margin:12px 0 0">${t.workouts.length} exercise${t.workouts.length>1?'s':''}${vol?` · ${Math.round(vol).toLocaleString()} kg lifted`:''}${mins?` · ${mins} min cardio`:''}</p>
-    ` : `<p class="empty">Nothing logged yet today. Add your first exercise above.</p>`}
+      <form id="saveas" class="row saveas">
+        <label style="flex:1 1 200px">Save today's exercises as a routine
+          <input id="routine-name" name="name" required maxlength="60" placeholder="e.g. Leg day" list="rnames" autocomplete="off">
+          <datalist id="rnames">${routines.map(r=>`<option value="${esc(r.name)}">`).join('')}</datalist>
+        </label>
+        <button type="submit">Save routine</button>
+      </form>
+    ` : `<p class="empty">Nothing logged yet today. ${routines.length ? 'Tap a routine above or add' : 'Add'} your first exercise.</p>
+         ${routines.length ? '' : `<p class="note" style="text-align:center;margin:6px 0 0;font-size:14px">Tip: once you've logged a workout you like, save it as a routine to log it with one tap next time.</p>`}`}
   </section>
 
   <section class="card">
@@ -247,56 +406,60 @@ function workoutPage(){
 }
 
 function healthPage(){
-  const t=day(today());
+  const t=day(today()), g=goals();
   const weights=Object.keys(data.days).sort().filter(k=>data.days[k].weight!=null).slice(-30).map(k=>[k,data.days[k].weight]);
+  const bar=(v,goal)=>`<div class="bar"><i style="width:${Math.min(100,v/goal*100)}%"></i></div>`;
   return `
   <section class="card">
     <h2>Water</h2>
     <div class="water">
       <button type="button" data-water="-1" aria-label="One glass less">&minus;</button>
-      <div class="glasses">${Array.from({length:Math.max(WATER_GOAL,t.water)},(_,i)=>`<div class="glass ${i<t.water?'full':''}"></div>`).join('')}</div>
+      <div class="glasses">${Array.from({length:Math.max(g.water,t.water)},(_,i)=>`<div class="glass ${i<t.water?'full':''}"></div>`).join('')}</div>
       <button type="button" class="primary" data-water="1" aria-label="One glass more">+ Glass</button>
     </div>
-    <p class="muted" style="margin:10px 0 0">${t.water} of ${WATER_GOAL} glasses today${t.water>=WATER_GOAL?' — goal reached &#127881;':''}</p>
+    <p class="muted" style="margin:10px 0 0">${t.water} of ${g.water} glasses today${t.water>=g.water?' — goal reached &#127881;':''}</p>
   </section>
 
   <section class="card">
     <h2>Today's check-in</h2>
     <form id="checkin" class="row">
-      <label style="flex:1 1 120px">Body weight (kg)<input name="weight" type="number" min="0" step="0.1" inputmode="decimal" value="${t.weight??''}"></label>
-      <label style="flex:1 1 120px">Sleep (hours)<input name="sleep" type="number" min="0" max="24" step="0.5" inputmode="decimal" value="${t.sleep??''}"></label>
-      <label style="flex:1 1 120px">Steps<input name="steps" type="number" min="0" step="1" inputmode="numeric" value="${t.steps??''}"></label>
+      <label style="flex:1 1 120px">Body weight (kg)<input id="ci-weight" name="weight" type="number" min="0" step="0.1" inputmode="decimal" value="${t.weight??''}"></label>
+      <label style="flex:1 1 120px">Sleep (hours)<input id="ci-sleep" name="sleep" type="number" min="0" max="24" step="0.5" inputmode="decimal" value="${t.sleep??''}"></label>
+      <label style="flex:1 1 120px">Steps<input id="ci-steps" name="steps" type="number" min="0" step="1" inputmode="numeric" value="${t.steps??''}"></label>
       <button class="primary" type="submit">Save</button>
     </form>
-    ${t.steps!=null ? `<div class="bar" title="${t.steps} of ${STEP_GOAL} steps"><i style="width:${Math.min(100,t.steps/STEP_GOAL*100)}%"></i></div>
-      <p class="muted" style="margin:6px 0 0;font-size:14px">${t.steps.toLocaleString()} / ${STEP_GOAL.toLocaleString()} steps</p>` : ''}
+    ${t.sleep!=null ? `${bar(t.sleep,g.sleep)}<p class="muted" style="margin:6px 0 0;font-size:14px">${t.sleep} of ${g.sleep} h sleep${t.sleep>=g.sleep?' &#10003;':''}</p>` : ''}
+    ${t.steps!=null ? `${bar(t.steps,g.steps)}<p class="muted" style="margin:6px 0 0;font-size:14px">${t.steps.toLocaleString()} of ${g.steps.toLocaleString()} steps${t.steps>=g.steps?' &#10003;':''}</p>` : ''}
   </section>
 
   <section class="card">
     <h2>Body weight trend</h2>
-    ${weights.length>=2 ? spark(weights) : `<p class="empty">Save your weight on two or more days to see a trend.</p>`}
+    ${weights.length>=2 ? spark(weights, g.weight) : `<p class="empty">Save your weight on two or more days to see a trend.</p>`}
   </section>`;
 }
 
-/* Small line chart of [date, value] pairs. */
-function spark(pts){
-  const W=600, H=120, P=14, vals=pts.map(p=>p[1]);
-  let lo=Math.min(...vals), hi=Math.max(...vals);
+/* Small line chart of [date, value] pairs, with an optional dashed goal line. */
+function spark(pts, goal){
+  const W=600, H=130, P=14, vals=pts.map(p=>p[1]);
+  let lo=Math.min(...vals, goal??Infinity), hi=Math.max(...vals, goal??-Infinity);
   if(hi-lo<1){ lo-=0.5; hi+=0.5; }
   const x=i=>P+i*(W-2*P)/(pts.length-1), y=v=>H-P-(v-lo)/(hi-lo)*(H-2*P);
   const line=pts.map((p,i)=>x(i).toFixed(1)+','+y(p[1]).toFixed(1)).join(' ');
   const first=vals[0], last=vals[vals.length-1], diff=last-first;
+  const towardGoal = goal==null ? diff<=0 : Math.abs(last-goal)<=Math.abs(first-goal);
+  const left = goal==null ? '' : Math.abs(last-goal)<0.05 ? ' · goal reached &#127881;' : ` · ${Math.abs(last-goal).toFixed(1)} kg to your ${goal} kg goal`;
   return `
-    <p style="margin:0">Now <b>${last} kg</b> · <span style="color:${diff<=0?'var(--good)':'var(--warn)'}">${diff>0?'+':''}${diff.toFixed(1)} kg</span>
-      <span class="muted">since ${niceDate(pts[0][0])}</span></p>
+    <p style="margin:0">Now <b>${last} kg</b> · <span style="color:${towardGoal?'var(--good)':'var(--warn)'}">${diff>0?'+':''}${diff.toFixed(1)} kg</span>
+      <span class="muted">since ${niceDate(pts[0][0])}${left}</span></p>
     <svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Body weight from ${first} to ${last} kg">
-      <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="3" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      ${goal!=null ? `<line x1="${P}" x2="${W-P}" y1="${y(goal)}" y2="${y(goal)}" stroke="var(--good)" stroke-width="2" stroke-dasharray="8 6"/>` : ''}
+      <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
       ${pts.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p[1])}" r="7" fill="var(--accent)"><title>${niceDate(p[0])}: ${p[1]} kg</title></circle>`).join('')}
     </svg>`;
 }
 
 function historyPage(){
-  const keys=Object.keys(data.days).filter(k=>{ const d=data.days[k]; return d.workouts.length||d.water||d.weight!=null||d.sleep!=null||d.steps!=null; }).sort().reverse();
+  const keys=Object.keys(data.days).filter(k=>hasContent(data.days[k])).sort().reverse();
   const total=keys.reduce((a,k)=>a+data.days[k].workouts.length,0);
   return `
   <section class="card">
@@ -317,23 +480,60 @@ function historyPage(){
         ${extra.length?`<p class="muted">${extra.join(' · ')}</p>`:''}
       </div>`;
     }).join('') : `<p class="empty">Your history will show up here once you log something.</p>`}
+  </section>`;
+}
+
+function mePage(){
+  const p=data.profile, g=p.goals;
+  return `
+  <section class="card">
+    <h2>About you</h2>
+    <form id="profile" class="row">
+      <label style="flex:1 1 100%">Your name<input id="me-name" name="name" maxlength="40" placeholder="${esc(cloud.viewerName||'e.g. Alex')}" value="${esc(p.name)}" autocomplete="given-name"></label>
+      <label style="flex:1 1 120px">Water (glasses a day)<input id="goal-water" name="water" type="number" min="1" max="30" step="1" inputmode="numeric" value="${g.water}"></label>
+      <label style="flex:1 1 120px">Steps a day<input id="goal-steps" name="steps" type="number" min="100" step="1" inputmode="numeric" value="${g.steps}"></label>
+      <label style="flex:1 1 120px">Sleep (hours a night)<input id="goal-sleep" name="sleep" type="number" min="1" max="24" step="0.5" inputmode="decimal" value="${g.sleep}"></label>
+      <label style="flex:1 1 120px">Goal weight (kg)<input id="goal-weight" name="weight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="—" value="${g.weight??''}"></label>
+      <button class="primary" type="submit">Save</button>
+    </form>
   </section>
 
   <section class="card">
-    <h2>Backup</h2>
-    <p class="muted" style="margin:0 0 12px">Your log is saved only in this browser. Download a backup to keep it safe or move it to another device.</p>
-    <div class="row">
-      <button type="button" id="export">Download backup</button>
-      <button type="button" id="import">Restore from backup</button>
-      <input type="file" id="file" accept="application/json,.json" hidden>
-    </div>
+    <h2>Your routines</h2>
+    ${p.routines.length ? p.routines.map((r,i)=>`
+      <div class="routine">
+        <h3><span>${esc(r.name)}</span>
+          <button type="button" class="${armed==='r'+i?'danger':''}" data-delroutine="${i}">${armed==='r'+i?'Tap again to delete':'Delete'}</button></h3>
+        ${r.items.length ? `<ul class="log">${r.items.map((w,j)=>`
+          <li><div class="what"><b>${esc(w.name)}</b><span>${esc(describe(w))}</span></div>
+          <button class="x" type="button" data-delitem="${i}:${j}" aria-label="Remove ${esc(w.name)} from ${esc(r.name)}">&times;</button></li>`).join('')}</ul>`
+        : `<p class="empty">No exercises left in this routine.</p>`}
+      </div>`).join('')
+    : `<p class="empty">No routines yet. Log a workout on the Workout tab, then save it as a routine.</p>`}
+  </section>
+
+  <section class="card">
+    <h2>Your data</h2>
+    <p class="note">${cloud.live
+      ? 'Your log is saved to your Claude account, so it is the same on your phone and your computer. Only you can see it.'
+      : 'Your log is saved in this browser. Open your Fitness Log page in Claude to have it on your phone and computer.'}
+      A backup file lets you keep a copy or bring in a log from somewhere else.</p>
+    ${restore ? `
+      <p style="margin:0 0 10px"><b>Replace everything with the backup from ${esc(restore.name)}?</b> It has ${Object.keys(restore.data.days).length} days of entries.</p>
+      <div class="row"><button type="button" class="danger" id="restore-yes">Replace my log</button><button type="button" id="restore-no">Cancel</button></div>
+    ` : `
+      <div class="row">
+        <button type="button" id="export">Download backup</button>
+        <button type="button" id="import">Restore from backup</button>
+        <input type="file" id="file" accept="application/json,.json" hidden>
+      </div>`}
   </section>`;
 }
 
 /* ============================================================
    Router + event handling
    ============================================================ */
-const PAGES={workout:workoutPage, health:healthPage, history:historyPage};
+const PAGES={workout:workoutPage, health:healthPage, history:historyPage, me:mePage};
 const app=document.getElementById('app');
 
 function render(){
@@ -342,49 +542,101 @@ function render(){
   document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on', a.hash==='#'+page));
   paintTimer();
 }
-window.addEventListener('hashchange', render);
+window.addEventListener('hashchange', ()=>{ armed=null; restore=null; render(); });
+
+/* A change from your other device redraws the page, but not while you are typing in a box. */
+let waiting=false;
+const typing=()=>{ const a=document.activeElement; return a && app.contains(a) && a.matches('input,select'); };
+function refresh(){ if(typing()) waiting=true; else render(); }
+app.addEventListener('focusout', ()=>{ if(waiting) setTimeout(()=>{ if(!typing()){ waiting=false; render(); } }, 0); });
+
+function download(){
+  const name='fitness-backup-'+today()+'.json', json=JSON.stringify(data,null,2);
+  if(cloud.downloads){
+    cloud.downloads.save({filename:name, data:json}).then(()=>toast('Backup saved')).catch(e=>{ if(e?.code!=='declined') toast('The backup could not be saved here.'); });
+    return;
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+  a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
 
 app.addEventListener('click', e=>{
   const b=e.target.closest('button'); if(!b) return;
-  if(b.dataset.kind){ kind=b.dataset.kind; render(); document.querySelector('#add [name=name]').focus(); }
-  else if(b.dataset.del!=null){ day(today()).workouts.splice(+b.dataset.del,1); save(); render(); }
-  else if(b.dataset.rest!=null){ +b.dataset.rest ? startTimer(+b.dataset.rest) : stopTimer(); }
-  else if(b.dataset.water){ const t=day(today()); t.water=Math.max(0, t.water+ +b.dataset.water); save(); render(); }
-  else if(b.id==='export'){
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
-    a.download='fitness-backup-'+today()+'.json'; a.click(); URL.revokeObjectURL(a.href);
+  const t=day(today()), p=data.profile;
+  if(b.dataset.kind){ kind=b.dataset.kind; render(); document.getElementById('ex-name').focus(); }
+  else if(b.dataset.del!=null){ t.workouts.splice(+b.dataset.del,1); saveDay(today()); render(); }
+  else if(b.dataset.start!=null){
+    const r=p.routines[+b.dataset.start];
+    t.workouts.push(...r.items.map(copyExercise)); saveDay(today()); render();
+    toast(`Logged ${r.name}`);
   }
+  else if(b.dataset.rest!=null){ +b.dataset.rest ? startTimer(+b.dataset.rest) : stopTimer(); }
+  else if(b.dataset.water){ t.water=Math.max(0, t.water+ +b.dataset.water); saveDay(today()); render(); }
+  else if(b.dataset.delroutine!=null){
+    const i=+b.dataset.delroutine;
+    if(armed!=='r'+i){ armed='r'+i; render(); return; }
+    const [r]=p.routines.splice(i,1); armed=null; saveProfile(); render(); toast(`Deleted ${r.name}`);
+  }
+  else if(b.dataset.delitem){
+    const [i,j]=b.dataset.delitem.split(':').map(Number);
+    p.routines[i].items.splice(j,1); saveProfile(); render();
+  }
+  else if(b.id==='export') download();
   else if(b.id==='import') document.getElementById('file').click();
+  else if(b.id==='restore-no'){ restore=null; render(); }
+  else if(b.id==='restore-yes'){
+    const old=Object.keys(data.days);
+    data=restore.data; restore=null;
+    saveLocal();
+    if(cloud.col){
+      const months=new Set([...old, ...Object.keys(data.days)].map(k=>k.slice(0,7)));
+      months.forEach(queueMonth);
+      cloud.ids.forEach(id=>{ if(id.startsWith('m-') && !months.has(id.slice(2))) queue(id, null); });
+      queue('profile', ()=>clone(data.profile));
+    }
+    render(); toast('Backup restored');
+  }
 });
 
 app.addEventListener('change', e=>{
   if(e.target.id!=='file' || !e.target.files[0]) return;
-  e.target.files[0].text().then(txt=>{
+  const f=e.target.files[0];
+  f.text().then(txt=>{
     const d=JSON.parse(txt);
     if(!d || typeof d.days!=='object') throw new Error('not a backup');
-    if(!confirm('Replace everything in this browser with the backup?')) return;
-    data=d; save(); render();
-  }).catch(()=>alert('That file is not a Fitness Log backup.'));
+    restore={name:f.name, data:normalize(d)}; render();
+  }).catch(()=>toast('That file is not a Fitness Log backup.'));
 });
 
 app.addEventListener('submit', e=>{
   e.preventDefault();
-  const f=new FormData(e.target), t=day(today());
+  const f=new FormData(e.target), t=day(today()), p=data.profile;
   if(e.target.id==='add'){
     const name=String(f.get('name')).trim(); if(!name) return;
     const w = kind==='strength'
       ? {name, kind, sets:num(f.get('sets'))||1, reps:num(f.get('reps'))||0, weight:num(f.get('weight'))}
       : {name, kind, min:num(f.get('min')), km:num(f.get('km'))};
-    t.workouts.push(w); save(); render();
-    document.querySelector('#add [name=name]').focus();
+    t.workouts.push(w); saveDay(today()); render();
+    document.getElementById('ex-name').focus();
   } else if(e.target.id==='checkin'){
     t.weight=num(f.get('weight')); t.sleep=num(f.get('sleep')); t.steps=num(f.get('steps'));
-    save(); render();
+    saveDay(today()); render(); toast('Check-in saved');
+  } else if(e.target.id==='saveas'){
+    const name=String(f.get('name')).trim(); if(!name) return;
+    const items=t.workouts.map(copyExercise), old=p.routines.find(r=>r.name.toLowerCase()===name.toLowerCase());
+    if(old) old.items=items; else p.routines.push({name, items});
+    saveProfile(); render(); toast(old ? `Updated ${old.name}` : `Saved ${name}`);
+  } else if(e.target.id==='profile'){
+    p.name=String(f.get('name')).trim();
+    p.goals={water:num(f.get('water'))||DEFAULT_GOALS.water, steps:num(f.get('steps'))||DEFAULT_GOALS.steps,
+             sleep:num(f.get('sleep'))||DEFAULT_GOALS.sleep, weight:num(f.get('weight'))};
+    saveProfile(); render(); toast('Saved');
   }
 });
 
 render();
+connect();
 </script>
 </body>
 </html>
