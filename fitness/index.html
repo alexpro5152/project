@@ -83,7 +83,9 @@
   .goal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .pencil{border:0;background:none;padding:4px;line-height:0}
   .pencil svg{width:20px;height:20px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .goal-line{margin:0 0 14px;font-size:17px}
+  .goal-head{margin-bottom:14px}
+  .goal-count{display:flex;align-items:center;gap:6px;font-size:18px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+  .goal-count b{color:var(--ink)}
   .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
   .week div{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
   .week b{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -425,12 +427,13 @@ function workoutPage(){
 
   <section class="card">
     <h2 class="goal-head">Weekly goal
-      <button type="button" class="pencil" data-edit-goal aria-label="Change weekly goal"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button></h2>
+      <span class="goal-count"><span aria-label="${workoutDaysThisWeek()} of ${g.days} workout days this week"><b>${workoutDaysThisWeek()}</b>/${g.days}</span>
+      <button type="button" class="pencil" data-edit-goal aria-label="Change weekly goal"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button></span></h2>
     ${editGoal ? `
       <form id="weekgoal" class="row" style="margin-bottom:14px">
         <label style="flex:1 1 140px">Days a week<input id="goal-days" name="days" type="number" min="1" max="7" step="1" inputmode="numeric" value="${g.days}"></label>
         <button class="primary" type="submit">Save</button>
-      </form>` : `<p class="goal-line"><b>${g.days}</b> out of 7 days</p>`}
+      </form>` : ''}
     <div class="week">${weekDays().map(d=>`
       <div class="${dayKey(d)===today()?'today':''}"><span>${d.toLocaleDateString(undefined,{weekday:'short'})}</span><b>${d.getDate()}</b></div>`).join('')}
     </div>
