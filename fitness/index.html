@@ -69,6 +69,16 @@
   .x:hover{color:var(--danger)}
   .saveas{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 
+  /* --- search --- */
+  .search{position:relative}
+  .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;height:20px;fill:none;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;pointer-events:none}
+  .search input{background:var(--panel);padding:12px 14px 12px 44px;font-size:17px;border-radius:14px}
+  .results{display:flex;flex-direction:column;gap:14px}
+  .results h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 6px}
+  .results .hits{display:flex;flex-direction:column;gap:6px}
+  .results .hits button{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;width:100%;overflow-wrap:anywhere}
+  .results .hits small{font-weight:500;color:var(--muted);font-size:13px;flex:none}
+
   /* --- ready-made workouts --- */
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
   .chips button{padding:6px 14px;border-radius:999px}
@@ -342,7 +352,7 @@ function toast(msg){
 /* ============================================================
    Pages
    ============================================================ */
-let kind='strength', pick='abs', armed=null, restore=null;
+let kind='strength', pick='abs', query='', armed=null, restore=null;
 
 function greeting(){
   const h=new Date().getHours();
@@ -351,23 +361,53 @@ function greeting(){
   return hi+(name ? ', '+name : '');
 }
 
+/* Every exercise name the app knows: suggestions, ready-made workouts, your routines and everything you've logged. */
+function allExercises(){
+  const used=new Set(EXERCISES);
+  WORKOUTS.forEach(p=>p.items.forEach(i=>used.add(i[0])));
+  data.profile.routines.forEach(r=>r.items.forEach(w=>used.add(w.name)));
+  Object.values(data.days).forEach(d=>d.workouts.forEach(w=>used.add(w.name)));
+  return used;
+}
+
+/* Search box results: workouts, your plans (routines) and exercises whose name contains what you typed. */
+function paintResults(){
+  const box=document.getElementById('results'); if(!box) return;
+  const q=query.trim().toLowerCase();
+  if(!q){ box.hidden=true; box.innerHTML=''; return; }
+  const has=s=>s.toLowerCase().includes(q);
+  const workouts=WORKOUTS.filter(p=>has(p.name) || p.items.some(i=>has(i[0])));
+  const plans=data.profile.routines.map((r,i)=>[r,i]).filter(([r])=>has(r.name) || r.items.some(w=>has(w.name)));
+  const exercises=[...allExercises()].filter(has).sort().slice(0,8);
+  const group=(title, rows)=>rows.length ? `<div><h3>${title}</h3><div class="hits">${rows.join('')}</div></div>` : '';
+  box.innerHTML = workouts.length+plans.length+exercises.length ? [
+    group('Workouts', workouts.map(p=>`<button type="button" data-find-workout="${p.id}"><span>${p.name}</span><small>${p.items.length} exercises &rsaquo;</small></button>`)),
+    group('Your plans', plans.map(([r,i])=>`<button type="button" data-start="${i}"><span>${esc(r.name)}</span><small>tap to log</small></button>`)),
+    group('Exercises', exercises.map(n=>`<button type="button" data-find-ex="${esc(n)}"><span>${esc(n)}</span><small>add &rsaquo;</small></button>`)),
+  ].join('') : `<p class="empty">Nothing found for "${esc(query.trim())}". Try "abs", "legs" or "plank".</p>`;
+  box.hidden=false;
+}
+
 function workoutPage(){
   const t=day(today()), g=goals(), s=streak(), routines=data.profile.routines;
   const plan=WORKOUTS.find(p=>p.id===pick);
-  const used=new Set(EXERCISES);
-  WORKOUTS.forEach(p=>p.items.forEach(i=>used.add(i[0])));
-  Object.values(data.days).forEach(d=>d.workouts.forEach(w=>used.add(w.name)));
-  routines.forEach(r=>r.items.forEach(w=>used.add(w.name)));
+  const used=allExercises();
   const vol=t.workouts.reduce((a,w)=>a+volume(w),0), mins=t.workouts.reduce((a,w)=>a+(w.min||0),0);
   const status=[new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'}),
     s ? `&#128293; ${s} day streak` : '', `${t.water} of ${g.water} glasses`].filter(Boolean).join(' · ');
   return `
+  <div class="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+    <input id="search" type="search" placeholder="Search workouts, plans..." aria-label="Search workouts, plans and exercises" autocomplete="off" value="${esc(query)}">
+  </div>
+  <section class="card results" id="results" hidden></section>
+
   <section class="hello">
     <h1>${esc(greeting())}</h1>
     <p>${status}</p>
   </section>
 
-  <section class="card">
+  <section class="card" id="workouts">
     <h2>Workouts</h2>
     <div class="chips">${WORKOUTS.map(p=>`<button type="button" data-pick="${p.id}" class="${p.id===plan.id?'on':''}">${p.name}</button>`).join('')}</div>
     <ul class="log">${plan.items.map(toExercise).map(w=>`
@@ -571,7 +611,7 @@ function render(){
   const page=PAGES[location.hash.slice(1)] ? location.hash.slice(1) : 'workout';
   app.innerHTML=PAGES[page]();
   document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on', a.hash==='#'+page));
-  paintTimer();
+  paintTimer(); paintResults();
 }
 window.addEventListener('hashchange', ()=>{ armed=null; restore=null; render(); });
 
@@ -597,6 +637,15 @@ app.addEventListener('click', e=>{
   const t=day(today()), p=data.profile;
   if(b.dataset.kind){ kind=b.dataset.kind; render(); document.getElementById('ex-name').focus(); }
   else if(b.dataset.pick){ pick=b.dataset.pick; render(); }
+  else if(b.dataset.findWorkout){
+    pick=b.dataset.findWorkout; query=''; render();
+    document.getElementById('workouts').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  else if(b.dataset.findEx){
+    const name=b.dataset.findEx; query=''; render();
+    const box=document.getElementById('ex-name');
+    box.value=name; box.scrollIntoView({behavior:'smooth', block:'center'}); box.focus({preventScroll:true});
+  }
   else if(b.dataset.plan!=null){
     const plan=WORKOUTS.find(p=>p.id===pick);
     t.workouts.push(...plan.items.map(toExercise)); saveDay(today()); render();
@@ -635,6 +684,10 @@ app.addEventListener('click', e=>{
     render(); toast('Backup restored');
   }
 });
+
+/* Typing in the search box only redraws the results, so the box keeps its place and focus. */
+app.addEventListener('input', e=>{ if(e.target.id==='search'){ query=e.target.value; paintResults(); } });
+app.addEventListener('keydown', e=>{ if(e.target.id==='search' && e.key==='Escape'){ query=''; e.target.value=''; paintResults(); } });
 
 app.addEventListener('change', e=>{
   if(e.target.id!=='file' || !e.target.files[0]) return;
