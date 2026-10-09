@@ -107,6 +107,10 @@
 
   /* --- body focus --- */
   .focus-title{font-size:21px;font-weight:800;letter-spacing:.04em;color:var(--ink);margin:0 0 10px}
+  /* one row; swipe sideways for the buttons that don't fit */
+  .chips.focus-row{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .focus-row::-webkit-scrollbar{display:none}
+  .focus-row button{flex:none;white-space:nowrap}
 
   /* --- ready-made workouts --- */
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
@@ -483,7 +487,7 @@ function workoutPage(){
 
   <section>
     <h2 class="focus-title">Body focus</h2>
-    <div class="chips">${['Abs','Arm','Forearm','Chest','Leg','Butt','Shoulder & back'].map(n=>`<button type="button">${esc(n)}</button>`).join('')}</div>
+    <div class="chips focus-row">${['Abs','Arm','Forearm','Chest','Leg','Butt','Shoulder & back'].map(n=>`<button type="button">${esc(n)}</button>`).join('')}</div>
   </section>
 
   <section class="card" id="workouts">
