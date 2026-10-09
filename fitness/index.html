@@ -44,11 +44,13 @@
   .sync{font-size:13px;color:var(--muted)}
   .sync.ok{color:var(--good)} .sync.bad{color:var(--warn)}
   .theme{font-size:15px;padding:6px 12px}
-  nav.tabs{display:flex;gap:8px;justify-content:center;padding:14px 16px 0;flex-wrap:wrap}
-  nav.tabs a{font-weight:700;padding:8px 16px;border-radius:10px;border:2px solid var(--edge);background:var(--panel)}
-  nav.tabs a:hover{border-color:var(--accent)}
-  nav.tabs a.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-  main{max-width:760px;margin:0 auto;padding:18px 16px 72px;display:flex;flex-direction:column;gap:16px}
+  /* bottom bar with the four main buttons */
+  .bottombar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom, 0px))}
+  .bottombar a{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:12px;font-weight:600;color:var(--muted);border-radius:10px}
+  .bottombar a:hover{color:var(--ink)}
+  .bottombar a.on{color:var(--accent)}
+  .bottombar svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  main{max-width:760px;margin:0 auto;padding:18px 16px calc(100px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:16px}
   h1{font-size:26px;margin:0;text-wrap:balance}
   h2{font-size:20px;margin:0 0 12px}
   .hello p{margin:4px 0 0;color:var(--muted)}
@@ -153,25 +155,25 @@
   .empty{color:var(--muted);text-align:center;padding:10px 0;margin:0}
   .note{margin:0 0 12px;color:var(--muted);line-height:1.45}
 
-  .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
+  .toast{position:fixed;z-index:6;left:50%;bottom:calc(88px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
   @media (max-width:560px){ .timer{font-size:44px} header{padding:12px 16px} }
 </style>
 </head>
 <body>
 <header>
-  <a class="brand" href="#workout">&#128170; Fitness Log</a>
+  <a class="brand" href="#home">&#128170; Fitness Log</a>
   <div class="right">
     <span class="sync" id="sync"></span>
     <button class="theme" id="theme" type="button"></button>
   </div>
 </header>
-<nav class="tabs" id="tabs">
-  <a href="#workout">Workout</a>
-  <a href="#health">Health</a>
-  <a href="#history">History</a>
-  <a href="#me">Me</a>
-</nav>
 <main id="app"></main>
+<nav class="bottombar" id="tabs">
+  <a href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 9.5V20h5v-6h4v6h5V9.5"/></svg>Home</a>
+  <a href="#workout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 10v4M5.5 7v10M18.5 7v10M21.5 10v4M5.5 12h13"/></svg>Workout</a>
+  <a href="#coach"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Coach</a>
+  <a href="#profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Profile</a>
+</nav>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -687,11 +689,14 @@ function mePage(){
 /* ============================================================
    Router + event handling
    ============================================================ */
-const PAGES={workout:workoutPage, health:healthPage, history:historyPage, me:mePage};
+/* Home is the page we built; Workout, Coach and Profile are empty for now.
+   Health, History and Me still open with #health, #history and #me. */
+const blank=()=>'';
+const PAGES={home:workoutPage, workout:blank, coach:blank, profile:blank, health:healthPage, history:historyPage, me:mePage};
 const app=document.getElementById('app');
 
 function render(){
-  const page=PAGES[location.hash.slice(1)] ? location.hash.slice(1) : 'workout';
+  const page=PAGES[location.hash.slice(1)] ? location.hash.slice(1) : 'home';
   app.innerHTML=PAGES[page]();
   document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on', a.hash==='#'+page));
   paintTimer(); paintResults();
