@@ -69,6 +69,11 @@
   .x:hover{color:var(--danger)}
   .saveas{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 
+  /* --- ready-made workouts --- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .chips button{padding:6px 14px;border-radius:999px}
+  .chips button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
   /* --- routines --- */
   .routines{display:flex;flex-wrap:wrap;gap:8px}
   .routines button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-width:0;max-width:100%;overflow-wrap:anywhere}
@@ -148,6 +153,21 @@ const KEY='fitness-data';
 const DEFAULT_GOALS={water:8, steps:10000, sleep:8, weight:null};
 const EXERCISES=['Push-ups','Pull-ups','Squats','Lunges','Plank','Bench press','Deadlift','Overhead press','Barbell row','Bicep curls','Running','Cycling','Walking','Swimming','Rowing','Jump rope','Yoga'];
 
+/* Ready-made workouts on the Workout page. Each line is one exercise:
+   [name, sets, reps] or [name, sets, seconds, 's'] for holds, or [name, minutes, 'min'] for cardio. */
+const WORKOUTS=[
+  {id:'abs', name:'Abs', items:[['Crunches',3,15], ['Plank',3,30,'s'], ['Leg raises',3,12], ['Russian twists',3,20], ['Bicycle crunches',3,20], ['Mountain climbers',3,30,'s']]},
+  {id:'chest', name:'Chest', items:[['Push-ups',3,12], ['Wide push-ups',3,10], ['Incline push-ups',3,12], ['Bench press',3,10], ['Chest dips',3,8]]},
+  {id:'legs', name:'Legs', items:[['Squats',3,15], ['Lunges',3,12], ['Glute bridges',3,15], ['Calf raises',3,20], ['Wall sit',3,45,'s']]},
+  {id:'arms', name:'Arms', items:[['Bicep curls',3,12], ['Tricep dips',3,10], ['Diamond push-ups',3,8], ['Hammer curls',3,12], ['Overhead tricep extension',3,12]]},
+  {id:'back', name:'Back', items:[['Pull-ups',3,6], ['Bent-over row',3,10], ['Superman hold',3,20,'s'], ['Bird dog',3,12]]},
+  {id:'cardio', name:'Cardio', items:[['Jumping jacks',3,40,'s'], ['Jump rope',10,'min'], ['Running',20,'min']]},
+  {id:'full', name:'Full body', items:[['Burpees',3,10], ['Squats',3,15], ['Push-ups',3,12], ['Mountain climbers',3,30,'s'], ['Plank',3,45,'s']]},
+];
+const toExercise=([name,a,b,unit])=> b==='min' ? {name, kind:'cardio', min:a, km:null}
+  : unit==='s' ? {name, kind:'strength', sets:a, reps:0, sec:b, weight:null}
+  : {name, kind:'strength', sets:a, reps:b, weight:null};
+
 const clone=o=>JSON.parse(JSON.stringify(o));
 function normProfile(p){
   p=p && typeof p==='object' ? p : {};
@@ -181,12 +201,12 @@ const niceDate=k=>new Date(k+'T12:00').toLocaleDateString(undefined,{weekday:'sh
 
 function describe(w){
   if(w.kind==='cardio') return [w.min && w.min+' min', w.km && w.km+' km'].filter(Boolean).join(' · ') || 'Cardio';
-  let s=(w.sets||1)+' × '+(w.reps||0)+' reps';
+  let s=(w.sets||1)+' × '+(w.sec ? w.sec+' s' : (w.reps||0)+' reps');
   if(w.weight) s+=' @ '+w.weight+' kg';
   return s;
 }
 const volume=w=>w.kind==='strength' ? (w.sets||1)*(w.reps||0)*(w.weight||0) : 0;
-const copyExercise=w=>w.kind==='cardio' ? {name:w.name, kind:'cardio', min:w.min??null, km:w.km??null} : {name:w.name, kind:'strength', sets:w.sets||1, reps:w.reps||0, weight:w.weight??null};
+const copyExercise=w=>w.kind==='cardio' ? {name:w.name, kind:'cardio', min:w.min??null, km:w.km??null} : {name:w.name, kind:'strength', sets:w.sets||1, reps:w.reps||0, ...(w.sec ? {sec:w.sec} : {}), weight:w.weight??null};
 
 /* Consecutive days with a workout, ending today (or yesterday, so the streak survives until today is over). */
 function streak(){
@@ -322,7 +342,7 @@ function toast(msg){
 /* ============================================================
    Pages
    ============================================================ */
-let kind='strength', armed=null, restore=null;
+let kind='strength', pick='abs', armed=null, restore=null;
 
 function greeting(){
   const h=new Date().getHours();
@@ -333,7 +353,9 @@ function greeting(){
 
 function workoutPage(){
   const t=day(today()), g=goals(), s=streak(), routines=data.profile.routines;
+  const plan=WORKOUTS.find(p=>p.id===pick);
   const used=new Set(EXERCISES);
+  WORKOUTS.forEach(p=>p.items.forEach(i=>used.add(i[0])));
   Object.values(data.days).forEach(d=>d.workouts.forEach(w=>used.add(w.name)));
   routines.forEach(r=>r.items.forEach(w=>used.add(w.name)));
   const vol=t.workouts.reduce((a,w)=>a+volume(w),0), mins=t.workouts.reduce((a,w)=>a+(w.min||0),0);
@@ -343,6 +365,15 @@ function workoutPage(){
   <section class="hello">
     <h1>${esc(greeting())}</h1>
     <p>${status}</p>
+  </section>
+
+  <section class="card">
+    <h2>Workouts</h2>
+    <div class="chips">${WORKOUTS.map(p=>`<button type="button" data-pick="${p.id}" class="${p.id===plan.id?'on':''}">${p.name}</button>`).join('')}</div>
+    <ul class="log">${plan.items.map(toExercise).map(w=>`
+      <li><div class="what"><b>${esc(w.name)}</b><span>${esc(describe(w))}</span></div></li>`).join('')}
+    </ul>
+    <button type="button" class="primary" data-plan style="margin-top:12px">Log ${plan.name} workout</button>
   </section>
 
   ${routines.length ? `
@@ -565,6 +596,12 @@ app.addEventListener('click', e=>{
   const b=e.target.closest('button'); if(!b) return;
   const t=day(today()), p=data.profile;
   if(b.dataset.kind){ kind=b.dataset.kind; render(); document.getElementById('ex-name').focus(); }
+  else if(b.dataset.pick){ pick=b.dataset.pick; render(); }
+  else if(b.dataset.plan!=null){
+    const plan=WORKOUTS.find(p=>p.id===pick);
+    t.workouts.push(...plan.items.map(toExercise)); saveDay(today()); render();
+    toast(`Logged ${plan.name} workout`);
+  }
   else if(b.dataset.del!=null){ t.workouts.splice(+b.dataset.del,1); saveDay(today()); render(); }
   else if(b.dataset.start!=null){
     const r=p.routines[+b.dataset.start];
