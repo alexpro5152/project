@@ -164,6 +164,7 @@
   .tile.l2{background:linear-gradient(140deg,#4d7cff,#1d3fbf)}
   .tile.l3{background:linear-gradient(140deg,#2a3f8f,#0d1640)}
   .tile svg{width:46%;height:46%;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.95}
+  .tile.photo{background-size:cover;background-position:center}
   .tile.sm{width:54.5px;height:54.5px;border-radius:12px}
   .bolts{display:flex;gap:2px}
   .bolts svg{width:17px;height:17px;fill:var(--edge)}
@@ -465,7 +466,9 @@ const ICON={
   bigperson:'<svg class="deco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4" r="2.6"/><path d="M4 7.5l5 2.2V15l-2.6 7.2h2.6L12 16l3 6.2h2.6L15 15V9.7l5-2.2-.8-1.8L13.7 8h-3.4L4.8 5.7z"/></svg>',
 };
 const bolts=level=>`<span class="bolts" role="img" aria-label="Difficulty ${level} of 3">${[1,2,3].map(i=>`<i class="${i<=level?'lit':''}">${ICON.bolt}</i>`).join('')}</span>`;
-const tile=(level, cls='')=>`<span class="tile l${level} ${cls}">${ICON.dumbbell}</span>`;
+/* Workout pictures (workout id -> image). Only your private page has them; here they stay empty and the dumbbell shows. */
+const PHOTOS={};
+const tile=(level, cls='', id)=>PHOTOS[id] ? `<span class="tile photo ${cls}" style="background-image:url(${PHOTOS[id]})"></span>` : `<span class="tile l${level} ${cls}">${ICON.dumbbell}</span>`;
 
 /* Length of a workout: the minutes it was built for, or about 3 s a rep and holds as written, with rest after each set. */
 function planMinutes(p){
@@ -517,7 +520,7 @@ function workoutRow(w){
   const last=data.profile.lastDone[w.id];
   return `
     <button type="button" class="plain wrow" data-open-workout="${w.id}">
-      ${tile(w.level)}
+      ${tile(w.level,'',w.id)}
       <span class="winfo">
         <b>${esc(w.title)}</b>
         <span class="meta">${planMinutes(w)} mins &bull; ${w.items.length} Exercises</span>
@@ -646,7 +649,7 @@ function trainingPage(){
   <section>
     <div class="sec-head"><h2>Just For You</h2><button type="button" class="more" data-filter="foryou">More ${ICON.chevron}</button></div>
     <div class="hscroll">${justForYou().map(w=>`
-      <button type="button" class="plain jfy" data-open-workout="${w.id}">${tile(w.level)}<b>${esc(w.title)}</b><span>${planMinutes(w)} mins &bull; ${w.items.length} Exercises</span></button>`).join('')}
+      <button type="button" class="plain jfy" data-open-workout="${w.id}">${tile(w.level,'',w.id)}<b>${esc(w.title)}</b><span>${planMinutes(w)} mins &bull; ${w.items.length} Exercises</span></button>`).join('')}
     </div>
   </section>
   ${sheet ? sheetView() : ''}`;
@@ -664,7 +667,7 @@ function sheetView(){
     const c=sheet.type==='challenge' && CHALLENGES.find(x=>x.id===sheet.id);
     const n=c && Math.min(28, (data.profile.challenges[c.id]||0)+1);
     const w=c ? challengeDay(c,n) : workoutById(sheet.id);
-    body=`<div class="sheet-head">${tile(w.level,'sm')}<span class="info"><h2>${esc(w.title)}</h2>
+    body=`<div class="sheet-head">${tile(w.level,'sm',w.id)}<span class="info"><h2>${esc(w.title)}</h2>
         <span class="muted">${planMinutes(w)} mins &bull; ${w.items.length} Exercises</span>${bolts(w.level)}</span>
         <button type="button" class="x" data-close-sheet aria-label="Close">&times;</button></div>
       <ul class="steps">${w.items.map(i=>`<li>${esc(i[0])}<span>${amount(i)}</span></li>`).join('')}</ul>
