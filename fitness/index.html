@@ -130,15 +130,18 @@
   .bigbtn{width:100%;border:0;border-radius:849px;padding:13.5px;font-size:16px;font-weight:800;letter-spacing:.02em;background:var(--accent);color:var(--on-accent)}
 
   /* --- challenge cards --- */
-  .ch{position:relative;width:86%;max-width:357px;border-radius:18.5px;padding:22px 15.5px 15.5px;color:#fff;overflow:hidden;background:linear-gradient(135deg,#4d86ff,#2450e6);margin-top:10px}
-  .ch.slate{background:linear-gradient(135deg,#55657d,#2c3a50)}
+  .ch{position:relative;display:flex;flex-direction:column;flex:1;width:86%;max-width:357px;min-height:300px;border-radius:18.5px;padding:22px 15.5px 15.5px;color:#fff;overflow:hidden;background:linear-gradient(135deg,#4d86ff,#2450e6);margin-top:10px}
+  .ch-photo{position:absolute;right:0;top:0;width:52%;height:78%;background-size:cover;background-position:center top;-webkit-mask-image:linear-gradient(to right,transparent,#000 30%),linear-gradient(to top,transparent,#000 25%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 30%),linear-gradient(to top,transparent,#000 25%);mask-composite:intersect}
+  .ch h3 .dot{display:inline-block;width:.6em;height:.6em;vertical-align:.05em}
+  .ch .small,.ch h3,.ch p.sub{text-shadow:0 1px 6px rgb(0 0 0 / .35)}
   .ch .deco{position:absolute;right:-25.5px;top:8.5px;width:161.5px;height:161.5px;opacity:.16;fill:#fff;pointer-events:none}
   .ch-wrap .tag{position:absolute;left:13.5px;top:0;background:#fde3c3;color:#15171c;font-size:12px;font-weight:700;letter-spacing:.02em;padding:6px 12px;border-radius:10px 10px 10px 0}
-  .ch-wrap{position:relative;flex:none;width:86%;max-width:357px;scroll-snap-align:start}
+  .ch-wrap{position:relative;flex:none;display:flex;flex-direction:column;width:86%;max-width:357px;scroll-snap-align:start}
   .ch-wrap .ch{width:100%}
+  .ch.pic h3{max-width:62%}
   .ch h3{position:relative;font-size:27px;line-height:1.05;font-weight:800;margin:5px 0 15.5px;text-transform:uppercase;text-wrap:balance}
-  .ch .small{position:relative;font-size:14.5px;font-weight:600;opacity:.9;margin:0}
-  .ch p.sub{position:relative;font-size:13.5px;opacity:.85;margin:0 0 15.5px}
+  .ch .small{position:relative;font-size:14.5px;font-weight:500;margin:22px 0 0}
+  .ch p.sub{position:relative;font-size:14px;line-height:1.3;margin:auto 0 15.5px}
   .facts{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:12px 8.5px;margin-bottom:17px}
   .facts div{display:flex;align-items:center;gap:8.5px;min-width:0}
   .facts i{flex:none;display:grid;place-items:center;width:32.5px;height:32.5px;border-radius:8.5px;background:rgb(255 255 255 / .85)}
@@ -146,7 +149,7 @@
   .facts b{display:block;font-size:13.5px}
   .facts small{display:block;font-size:11px;opacity:.75}
   .ch .go{position:relative;width:100%;display:flex;align-items:center;justify-content:center;border:0;border-radius:849px;background:#fff;color:#2f5cf0;font-size:17px;font-weight:800;padding:12px 42.5px}
-  .ch.slate .go{color:#2c3a50}
+  .ch .facts + .go{margin-top:auto}
   .ch .go svg{position:absolute;right:12px;width:22px;height:22px}
 
   /* --- body focus --- */
@@ -291,15 +294,42 @@ for(const [part,list] of Object.entries(BODY)) LEVELS.forEach((L,i)=>{
 const workoutById=id=>WORKOUTS.find(w=>w.id===id);
 const needsEquipment=w=>w.items.some(i=>EQUIPMENT.has(i[0]));
 
-/* 28-day challenges. Each day goes through the list once, twice from day 15, with 2% more reps or seconds each day. */
+/* Challenges. Each day goes through the list once (twice in the second half), with 2% more reps or seconds each day.
+   color: the card's colour; photo: PHOTOS['ch-'+id] when there is one. */
 const CHALLENGES=[
-  {id:'shred', tag:'Customized for you', title:'Full body shred', level:'Advanced', target:'Full Body', sets:1,
+  {id:'shred', tag:'Customized for you', days:28, title:'Full body shred', level:'Advanced', target:'Full Body', equipment:'No Equipment',
    list:[['Jumping jacks',30,'s'],['Squats',15],['Push-ups',10],['Lunges',12],['Mountain climbers',30,'s'],['Burpees',8],['Plank',30,'s'],['High knees',30,'s']]},
-  {id:'change', small:'28 days', title:'Body change', sub:'Sculpt your body in 4 weeks', level:'Beginner', target:'Full Body', sets:1,
-   list:[['Arm circles',30,'s'],['Squats',15],['Glute bridges',15],['Knee push-ups',12],['Crunches',15],['Superman',12],['Side plank',20,'s'],['Cobra stretch',30,'s']]},
+  {id:'massive', days:28, title:'Massive body challenge', color:'#3a5477', level:'Intermediate',
+   sub:'Build your chest, arms, shoulders and abs in 4 weeks, no equipment needed.',
+   list:[['Push-ups',12],['Wide push-ups',10],['Diamond push-ups',8],['Pike push-ups',8],['Tricep dips',10],['Plank',30,'s'],['Crunches',15],['Leg raises',12],['Mountain climbers',30,'s']]},
+  {id:'calisthenics', days:28, title:'Calisthenics plan', color:'#833cc6', level:'Intermediate',
+   sub:'Bodyweight exercises to build muscle and get fitter.',
+   list:[['Squats',15],['Push-ups',12],['Lunges',12],['Pike push-ups',8],['Plank',30,'s'],['Burpees',8],['Glute bridges',15],['Superman',12]]},
+  {id:'sixpack', days:30, title:'Six pack challenge', color:'#3b2f77', level:'Intermediate',
+   sub:'30 days of core work to build strong, visible abs.',
+   list:[['Crunches',15],['Bicycle crunches',20],['Leg raises',12],['Russian twists',20],['Plank',30,'s'],['V-ups',10],['Mountain climbers',30,'s'],['Flutter kicks',30,'s']]},
+  {id:'kegel', days:14, title:'Kegel power boost', color:'#728ca7', level:'Beginner',
+   sub:'Strengthen your pelvic floor with daily Kegel exercises.',
+   list:[['Kegel squeezes',10],['Quick Kegel flicks',20],['Long Kegel hold',10,'s'],['Glute bridges',12],['Bridge with squeeze',10],['Bird dog',10],['Happy baby pose',30,'s']]},
+  {id:'standtall', days:28, title:'Stand tall challenge', color:'#589c8d', level:'Beginner',
+   sub:'Stretch and strengthen your back to stand straighter.',
+   list:[['Cat-cow',30,'s'],['Cobra stretch',30,'s'],['Child\'s pose',30,'s'],['Superman',12],['Wall angels',10],['Hamstring stretch',30,'s'],['Side stretch',30,'s'],['Bird dog',10]]},
+  {id:'ripped', days:30, title:'Get ripped with dumbbell', color:'#4dabb7', level:'Intermediate', equipment:'Dumbbells',
+   sub:'Use dumbbells to build bigger muscles and full-body strength in 30 days.',
+   list:[['Goblet squats',12],['Bent-over rows',10],['Shoulder press',10],['Bicep curls',12],['Overhead tricep extension',12],['Dumbbell lunges',10],['Dumbbell chest fly',12],['Farmer\'s hold',30,'s']]},
+  {id:'lower', days:28, title:'Lower body challenge', color:'#47a0f0', level:'Intermediate',
+   sub:'In 4 weeks, power up your legs and build lower body strength.',
+   list:[['Squats',15],['Lunges',12],['Glute bridges',15],['Calf raises',20],['Wall sit',45,'s'],['Sumo squats',15],['Jump squats',10],['Side-lying leg lifts',12]]},
+  {id:'fullbody', days:28, title:'Full body challenge', color:'#3172f4', level:'Beginner',
+   sub:'Work every muscle group and tone your whole body in 4 weeks.',
+   list:[['Jumping jacks',30,'s'],['Squats',15],['Knee push-ups',12],['Superman',12],['Lunges',12],['Plank',30,'s'],['Crunches',15],['Glute bridges',15]]},
+  {id:'belly', days:14, title:'Intense belly fat burn', color:'#78686b', level:'Intermediate',
+   sub:'Fast cardio and core moves to burn calories and work your abs.',
+   list:[['High knees',30,'s'],['Mountain climbers',30,'s'],['Crunches',15],['Bicycle crunches',20],['Plank',30,'s'],['Burpees',8],['Jumping jacks',30,'s'],['Leg raises',12]]},
 ];
-const challengeDay=(c,n)=>({title:`${c.title} · Day ${n}`, level:c.level==='Advanced'?3:1,
-  items:c.list.map(([name,amt,unit])=>[name, c.sets+Math.floor((n-1)/14), Math.round(amt*(1+(n-1)*0.02)), unit])});
+const challengeDay=(c,n)=>({title:`${c.title} · Day ${n}`, level:{Beginner:1, Intermediate:2, Advanced:3}[c.level],
+  items:c.list.map(([name,amt,unit])=>[name, 1+Math.floor((n-1)/Math.ceil(c.days/2)), Math.round(amt*(1+(n-1)*0.02)), unit])});
+const nextDay=c=>Math.min(c.days, (data.profile.challenges[c.id]||0)+1);
 
 const toExercise=([name,a,b,unit])=> b==='min' ? {name, kind:'cardio', min:a, km:null}
   : unit==='s' ? {name, kind:'strength', sets:a, reps:0, sec:b, weight:null}
@@ -462,6 +492,7 @@ const ICON={
   bars:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="12" rx="1"/><rect x="16" y="4" width="4" height="16" rx="1"/></svg>',
   target:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10h-2.5A7.5 7.5 0 1 1 12 4.5zm0 5a5 5 0 1 0 5 5h-2.5A2.5 2.5 0 1 1 12 9.5z"/><path d="M12 12 21 3M17 3h4v4" stroke="#2f5cf0" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
   check:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  dot:'<svg class="dot" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#fff" fill-opacity=".75"/><path d="M10 7.5l4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   bigflame:'<svg class="deco" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 1c1 4.5-1.3 6.6-3.3 8.8C6.5 12.2 4.5 14.8 4.5 18.6 4.5 23.2 7.9 27 12 27s7.5-3.6 7.5-8.4c0-3.4-1.4-5.8-3-7.8.2 2.1-.6 3.7-2 4.6.7-5.3-.8-10.7-2.5-15.4z"/></svg>',
   bigperson:'<svg class="deco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4" r="2.6"/><path d="M4 7.5l5 2.2V15l-2.6 7.2h2.6L12 16l3 6.2h2.6L15 15V9.7l5-2.2-.8-1.8L13.7 8h-3.4L4.8 5.7z"/></svg>',
 };
@@ -565,20 +596,30 @@ function paintResults(){
 }
 
 function challengeCard(c){
-  const done=data.profile.challenges[c.id]||0, n=Math.min(28, done+1), finished=done>=28;
-  const mins=[challengeDay(c,1), challengeDay(c,28)].map(planMinutes);
-  const facts=[[mins[0]+'-'+mins[1]+' Min','Daily Time',ICON.cal],[c.level,'Level',ICON.bars],[c.target,'Target area',ICON.target],['No Equipment','Equipment',ICON.check]];
+  const done=data.profile.challenges[c.id]||0, n=nextDay(c), finished=done>=c.days, photo=PHOTOS['ch-'+c.id];
+  const label=`${finished ? 'COMPLETED' : 'START DAY '+n}${ICON.arrow}`;
+  if(c.tag){   // the "customized for you" card with its four facts
+    const mins=[challengeDay(c,1), challengeDay(c,c.days)].map(planMinutes);
+    const facts=[[mins[0]+'-'+mins[1]+' Min','Daily Time',ICON.cal],[c.level,'Level',ICON.bars],[c.target,'Target area',ICON.target],[c.equipment,'Equipment',ICON.check]];
+    return `
+  <div class="ch-wrap">
+    <div class="ch">${ICON.bigflame}
+      <h3>${esc(c.title)}</h3>
+      <div class="facts">${facts.map(([b,s,i])=>`<div><i>${i}</i><span><b>${b}</b><small>${s}</small></span></div>`).join('')}</div>
+      <button type="button" class="go" data-open-challenge="${c.id}">${label}</button>
+    </div>
+    <span class="tag">${esc(c.tag.toUpperCase())}</span>
+  </div>`;
+  }
   return `
   <div class="ch-wrap">
-    <div class="ch${c.tag?'':' slate'}">
-      ${c.tag ? '' : ICON.bigperson}
-      ${c.tag ? ICON.bigflame : ''}
-      ${c.small ? `<p class="small">${esc(c.small.toUpperCase())}</p>` : ''}
-      <h3>${esc(c.title)}</h3>
-      ${c.sub ? `<p class="sub">${esc(c.sub)}</p>` : `<div class="facts">${facts.map(([b,s,i])=>`<div><i>${i}</i><span><b>${b}</b><small>${s}</small></span></div>`).join('')}</div>`}
-      <button type="button" class="go" data-open-challenge="${c.id}">${finished ? 'COMPLETED' : 'START DAY '+n}${ICON.arrow}</button>
+    <div class="ch pic" style="background:${c.color}">
+      ${photo ? `<span class="ch-photo" style="background-image:url(${photo})"></span>` : ICON.bigperson}
+      <p class="small">${c.days} DAYS</p>
+      <h3>${esc(c.title)} ${ICON.dot}</h3>
+      <p class="sub">${esc(c.sub)}</p>
+      <button type="button" class="go" style="color:${c.color}" data-open-challenge="${c.id}">${label}</button>
     </div>
-    ${c.tag ? `<span class="tag">${esc(c.tag.toUpperCase())}</span>` : ''}
   </div>`;
 }
 
@@ -665,7 +706,7 @@ function sheetView(){
       ${list.length ? list.map(workoutRow).join('') : `<p class="empty">${f.empty}</p>`}`;
   } else {
     const c=sheet.type==='challenge' && CHALLENGES.find(x=>x.id===sheet.id);
-    const n=c && Math.min(28, (data.profile.challenges[c.id]||0)+1);
+    const n=c && nextDay(c);
     const w=c ? challengeDay(c,n) : workoutById(sheet.id);
     body=`<div class="sheet-head">${tile(w.level,'sm',w.id)}<span class="info"><h2>${esc(w.title)}</h2>
         <span class="muted">${planMinutes(w)} mins &bull; ${w.items.length} Exercises</span>${bolts(w.level)}</span>
@@ -857,7 +898,7 @@ app.addEventListener('click', e=>{
   else if(b.dataset.openWorkout){ sheet={type:'workout', id:b.dataset.openWorkout}; renderKeepScroll(); }
   else if(b.dataset.openChallenge){
     const c=CHALLENGES.find(x=>x.id===b.dataset.openChallenge);
-    if((p.challenges[c.id]||0)>=28){ toast(`You finished ${c.title}!`); return; }
+    if((p.challenges[c.id]||0)>=c.days){ toast(`You finished ${c.title}!`); return; }
     sheet={type:'challenge', id:c.id}; renderKeepScroll();
   }
   else if(b.dataset.filter){ sheet={type:'filter', key:b.dataset.filter}; renderKeepScroll(); }
@@ -866,7 +907,7 @@ app.addEventListener('click', e=>{
   else if(b.dataset.log!=null){
     let title;
     if(sheet.type==='challenge'){
-      const c=CHALLENGES.find(x=>x.id===sheet.id), n=Math.min(28,(p.challenges[c.id]||0)+1), w=challengeDay(c,n);
+      const c=CHALLENGES.find(x=>x.id===sheet.id), n=nextDay(c), w=challengeDay(c,n);
       t.workouts.push(...w.items.map(toExercise)); p.challenges[c.id]=n; title=w.title;
     } else {
       const w=workoutById(sheet.id);
