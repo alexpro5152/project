@@ -85,12 +85,13 @@
   /* --- weekly goal --- */
   .goal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .pencil{border:0;background:none;padding:4px;line-height:0}
-  .pencil svg{width:20px;height:20px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .goal-head{margin-bottom:14px}
-  .goal-count{display:flex;align-items:center;gap:6px;font-size:18px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+  .pencil svg{width:17px;height:17px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .goal-card{padding:10px 14px}
+  .goal-card .goal-head{font-size:16px;margin-bottom:6px}
+  .goal-count{display:flex;align-items:center;gap:4px;font-size:15px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
   .goal-count b{color:var(--ink)}
   .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;width:100%;border:0;background:none;padding:0;font-weight:400}
-  .week > span{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+  .week > span{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted)}
 
   /* --- month calendar pop-up --- */
   .overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:rgb(0 0 0 / .45)}
@@ -104,7 +105,7 @@
   .month-grid .d.today{outline:2px solid var(--accent);outline-offset:2px}
   .legend{display:flex;align-items:center;gap:8px;margin:14px 0 0;font-size:14px;color:var(--muted)}
   .legend i{width:14px;height:14px;border-radius:50%;background:var(--accent)}
-  .week b{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .week b{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
   .week .today b{border:2px solid var(--accent);color:var(--accent)}
 
   /* --- body focus --- */
@@ -472,7 +473,7 @@ function workoutPage(){
     <p>${status}</p>
   </section>
 
-  <section class="card">
+  <section class="card goal-card">
     <h2 class="goal-head">Weekly goal
       <span class="goal-count"><span aria-label="${workoutDaysThisWeek()} of ${g.days} workout days this week"><b>${workoutDaysThisWeek()}</b>/${g.days}</span>
       <button type="button" class="pencil" data-edit-goal aria-label="Change weekly goal"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button></span></h2>
