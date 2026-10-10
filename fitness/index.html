@@ -124,10 +124,33 @@
   .sheet-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:13.5px}
   .sheet-head .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3.5px}
   .sheet-head h2{font-size:18.5px;margin:0}
-  .steps{list-style:none;margin:0 0 15.5px;padding:0;display:flex;flex-direction:column}
-  .steps li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:14.5px}
-  .steps li span{color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
-  .bigbtn{width:100%;border:0;border-radius:849px;padding:13.5px;font-size:16px;font-weight:800;letter-spacing:.02em;background:var(--accent);color:var(--on-accent)}
+
+  /* --- workout page --- */
+  .detail{position:fixed;inset:0;z-index:12;overflow-y:auto;background:var(--panel);padding-bottom:calc(90px + env(safe-area-inset-bottom, 0px))}
+  .hero{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:923/470;max-height:320px;background-size:cover;background-position:center;background-repeat:no-repeat;background-image:linear-gradient(140deg,#7fb0ff,#2f5cf0)}
+  .hero.l2{background-image:linear-gradient(140deg,#4d7cff,#1d3fbf)} .hero.l3{background-image:linear-gradient(140deg,#2a3f8f,#0d1640)}
+  .hero.fit{background-size:contain;background-position:right bottom}
+  .hero > svg{width:24%;height:auto;fill:none;stroke:#fff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+  .back{position:absolute;left:14px;top:calc(12px + env(safe-area-inset-top, 0px));display:grid;place-items:center;width:42px;height:42px;padding:0;border:0;border-radius:50%;background:rgb(0 0 0 / .4);color:#fff}
+  .back svg{width:24px;height:24px}
+  .dpanel{position:relative;margin-top:-20px;background:var(--panel);border-radius:20px 20px 0 0;padding:22px 16px 0;max-width:760px;margin-inline:auto}
+  .dpanel > h2{font-size:26px;font-weight:700;margin:0 0 8px}
+  .dmeta{display:flex;gap:26px;margin:0 0 18px;font-size:18px;font-weight:600;color:var(--muted)}
+  .dmeta span{display:flex;align-items:center;gap:6px}
+  .dmeta svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .start{width:100%;border:0;border-radius:999px;padding:15px;font-size:21px;font-weight:700;color:#fff;background:linear-gradient(90deg,#5fdcfb,#2f6cf3 45%,#2450e6)}
+  .dpanel .sec-head{margin:26px 0 6px}
+  .exlist{list-style:none;margin:0;padding:0}
+  .exlist li{position:relative;display:flex;align-items:center;gap:12px;padding:10px 0}
+  .exlist li::after{content:"";position:absolute;left:132px;right:0;bottom:0;border-bottom:1px solid var(--line)}
+  .exlist .handle,.exlist .swap{flex:none;width:24px;height:24px;fill:none;stroke:var(--faint);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .expic{flex:none;display:grid;place-items:center;width:88px;height:76px;border-radius:10px;overflow:hidden;background:#fff}
+  .expic img{width:100%;height:100%;object-fit:cover;display:block}
+  .expic svg{width:44%;height:auto;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .exinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .exinfo b{font-size:17px;font-weight:600}
+  .exinfo span{font-size:16px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .startbar{position:fixed;left:0;right:0;bottom:0;z-index:13;padding:10px 16px calc(12px + env(safe-area-inset-bottom, 0px));background:var(--panel);border-top:1px solid var(--line)}
 
   /* --- challenge cards --- */
   .ch{position:relative;display:flex;flex-direction:column;flex:1;width:74%;max-width:285.5px;min-height:240px;border-radius:15px;padding:17.5px 12.5px 12.5px;color:#fff;overflow:hidden;background:linear-gradient(135deg,#4d86ff,#2450e6);margin-top:8px}
@@ -169,7 +192,6 @@
   .tile.l3{background:linear-gradient(140deg,#2a3f8f,#0d1640)}
   .tile svg{width:46%;height:46%;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.95}
   .tile.photo{background-size:cover;background-position:center}
-  .tile.sm{width:54.5px;height:54.5px;border-radius:12px}
   .bolts{display:flex;gap:2px}
   .bolts svg{width:17px;height:17px;fill:var(--edge)}
   .bolts .lit svg{fill:var(--accent)}
@@ -293,6 +315,11 @@ for(const [part,list] of Object.entries(BODY)) LEVELS.forEach((L,i)=>{
       return unit==='s' ? [name, 1, Math.max(10, Math.round(work/5)*5), 's'] : [name, 1, Math.max(4, Math.round(work/3))]; })});
 });
 const workoutById=id=>WORKOUTS.find(w=>w.id===id);
+/* Abs Beginner exercise by exercise, as in the screenshots. */
+workoutById('abs-1').items=[['Jumping jacks',1,20,'s'],['Abdominal crunches',1,16],['Russian twist',1,20],['Mountain climber',1,16],
+  ['Heel touch',1,20],['Leg raises',1,16],['Plank',1,20,'s'],['Abdominal crunches',1,12],['Russian twist',1,32],['Mountain climber',1,12],
+  ['Heel touch',1,20],['Leg raises',1,14],['Plank',1,30,'s'],['Cobra stretch',1,30,'s'],['Spine lumbar twist stretch left',1,30,'s'],
+  ['Spine lumbar twist stretch right',1,30,'s']];
 const needsEquipment=w=>w.items.some(i=>EQUIPMENT.has(i[0]));
 
 /* Challenges. Each day goes through the list once (twice in the second half), with 2% more reps or seconds each day.
@@ -494,6 +521,11 @@ const ICON={
   target:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10h-2.5A7.5 7.5 0 1 1 12 4.5zm0 5a5 5 0 1 0 5 5h-2.5A2.5 2.5 0 1 1 12 9.5z"/><path d="M12 12 21 3M17 3h4v4" stroke="#2f5cf0" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
   check:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   dot:'<svg class="dot" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#fff" fill-opacity=".75"/><path d="M10 7.5l4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  back:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  watch:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V10M10 2.5h4M18.5 6.5l1.5-1.5"/></svg>',
+  burn:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.8 3.6-1.2 5.3-2.8 7C7.5 11.4 6 13.4 6 16.2 6 19.6 8.7 22 12 22s6-2.4 6-5.8c0-2.6-1.1-4.5-2.4-6 .1 1.6-.5 2.9-1.6 3.6.5-4.2-.6-8.4-2-11.3z"/><path d="M12 22c-1.6 0-2.8-1.2-2.8-2.8 0-1.8 1.4-2.7 2.3-4 .6 1.3 2.6 2.2 2.6 4.1 0 1.5-.9 2.7-2.1 2.7z"/></svg>',
+  handle:'<svg class="handle" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  swap:'<svg class="swap" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h15l-4-4M20 15H5l4 4"/></svg>',
   bigflame:'<svg class="deco" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 1c1 4.5-1.3 6.6-3.3 8.8C6.5 12.2 4.5 14.8 4.5 18.6 4.5 23.2 7.9 27 12 27s7.5-3.6 7.5-8.4c0-3.4-1.4-5.8-3-7.8.2 2.1-.6 3.7-2 4.6.7-5.3-.8-10.7-2.5-15.4z"/></svg>',
   bigperson:'<svg class="deco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4" r="2.6"/><path d="M4 7.5l5 2.2V15l-2.6 7.2h2.6L12 16l3 6.2h2.6L15 15V9.7l5-2.2-.8-1.8L13.7 8h-3.4L4.8 5.7z"/></svg>',
 };
@@ -509,8 +541,12 @@ function planMinutes(p){
   p.items.map(toExercise).forEach(w=>{ s += w.kind==='cardio' ? (w.min||0)*60 : w.sets*((w.sec || w.reps*3) + REST); });
   return Math.round(s/60);
 }
-/* How much of one exercise: x15 or 0:30, with the rounds in front when there is more than one. */
-const amount=([,sets,amt,unit])=>(sets>1 ? sets+' × ' : '')+(unit==='s' ? Math.floor(amt/60)+':'+pad(amt%60) : '×'+amt);
+/* How much of one exercise: x16 or 00:30, plus the rounds when there is more than one. */
+const amount=([,sets,amt,unit])=>(unit==='s' ? pad(Math.floor(amt/60))+':'+pad(amt%60) : 'x'+amt)+(sets>1 ? ` · ${sets} rounds` : '');
+const titleCase=s=>s.split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+/* Drawing for an exercise, when the private page has one (same exercise under a slightly different name counts too). */
+const EX_ALIAS={'crunches':'abdominal-crunches','russian-twists':'russian-twist','mountain-climbers':'mountain-climber','heel-touches':'heel-touch'};
+const exPic=name=>{ const k=slug(name); return PHOTOS['ex-'+(EX_ALIAS[k]||k)]; };
 
 /* ============================================================
    Pages
@@ -705,17 +741,32 @@ function sheetView(){
     body=`<div class="sheet-head"><span class="info"><h2>${esc(f.title)}</h2><span class="muted">${list.length} workout${list.length===1?'':'s'}</span></span>
       <button type="button" class="x" data-close-sheet aria-label="Close">&times;</button></div>
       ${list.length ? list.map(workoutRow).join('') : `<p class="empty">${f.empty}</p>`}`;
-  } else {
-    const c=sheet.type==='challenge' && CHALLENGES.find(x=>x.id===sheet.id);
-    const n=c && nextDay(c);
-    const w=c ? challengeDay(c,n) : workoutById(sheet.id);
-    body=`<div class="sheet-head">${tile(w.level,'sm',w.id)}<span class="info"><h2>${esc(w.title)}</h2>
-        <span class="muted">${planMinutes(w)} mins &bull; ${w.items.length} Exercises</span>${bolts(w.level)}</span>
-        <button type="button" class="x" data-close-sheet aria-label="Close">&times;</button></div>
-      <ul class="steps">${w.items.map(i=>`<li>${esc(i[0])}<span>${amount(i)}</span></li>`).join('')}</ul>
-      <button type="button" class="bigbtn" data-log>${c ? 'LOG DAY '+n : 'LOG WORKOUT'}</button>`;
-  }
+  } else return detailView();
   return `<div class="overlay bottom" id="sheet-overlay"><div class="sheet" role="dialog" aria-modal="true">${body}</div></div>`;
+}
+
+/* A workout (or a challenge day) on its own page: big picture, name, minutes and exercises, Start, then every exercise. */
+function detailView(){
+  const c=sheet.type==='challenge' && CHALLENGES.find(x=>x.id===sheet.id);
+  const w=c ? challengeDay(c, nextDay(c)) : workoutById(sheet.id);
+  const pic=c ? PHOTOS['ch-'+c.id] : (PHOTOS['hero-'+w.id] || PHOTOS[w.id]);
+  const hero=pic ? `<div class="hero${c?' fit':''}" style="background-color:${c?.color||'#2f5cf0'};background-image:url(${pic})">`
+                 : `<div class="hero l${w.level}" style="${c?.color ? 'background:'+c.color : ''}">${ICON.dumbbell}`;
+  return `
+  <div class="detail" id="detail" role="dialog" aria-modal="true" aria-label="${esc(w.title)}">
+    ${hero}<button type="button" class="back" data-close-sheet aria-label="Back">${ICON.back}</button></div>
+    <div class="dpanel">
+      <h2>${esc(c ? titleCase(c.title)+' · Day '+nextDay(c) : w.title)}</h2>
+      <p class="dmeta"><span>${ICON.watch}${planMinutes(w)} mins</span><span>${ICON.burn}${w.items.length} Exercises</span></p>
+      <button type="button" class="start" id="start-top" data-log>Start</button>
+      <div class="sec-head"><h2>Exercises</h2><button type="button" class="more" data-soon>Edit ${ICON.chevron}</button></div>
+      <ul class="exlist">${w.items.map(i=>{ const p=exPic(i[0]); return `
+        <li>${ICON.handle}<span class="expic">${p ? `<img src="${p}" alt="">` : ICON.dumbbell}</span>
+          <span class="exinfo"><b>${esc(titleCase(i[0]))}</b><span>${amount(i)}</span></span>${ICON.swap}</li>`; }).join('')}
+      </ul>
+    </div>
+    <div class="startbar" id="startbar" hidden><button type="button" class="start" data-log>Start</button></div>
+  </div>`;
 }
 
 function healthPage(){
@@ -860,6 +911,11 @@ function render(){
   paintResults();
 }
 window.addEventListener('hashchange', ()=>{ armed=null; restore=null; monthOpen=false; sheet=null; render(); });
+document.addEventListener('scroll', e=>{
+  if(e.target.id!=='detail') return;
+  const top=document.getElementById('start-top'), bar=document.getElementById('startbar');
+  bar.hidden = top.getBoundingClientRect().bottom > 0;
+}, true);
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && (monthOpen||sheet)){ monthOpen=false; sheet=null; render(); } });
 
 /* A change from your other device redraws the page, but not while you are typing in a box. */
