@@ -115,6 +115,14 @@
   .focus-row::-webkit-scrollbar{display:none}
   .focus-row button{flex:none;white-space:nowrap}
 
+  .plan-card{display:flex;flex-direction:column;gap:4px;margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .plan-card b{font-size:17px}
+  .plan-card .muted{font-size:14px}
+  .plan-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}
+  .bolts{display:flex;gap:2px}
+  .bolts svg{width:18px;height:18px;fill:var(--edge);stroke:none}
+  .bolts .lit svg{fill:var(--accent)}
+
   /* --- ready-made workouts --- */
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
   .chips button{padding:6px 14px;border-radius:999px}
@@ -217,7 +225,8 @@ const toExercise=([name,a,b,unit])=> b==='min' ? {name, kind:'cardio', min:a, km
 const clone=o=>JSON.parse(JSON.stringify(o));
 function normProfile(p){
   p=p && typeof p==='object' ? p : {};
-  return {name:typeof p.name==='string' ? p.name : '', goals:{...DEFAULT_GOALS, ...(p.goals||{})}, routines:Array.isArray(p.routines) ? p.routines : []};
+  return {name:typeof p.name==='string' ? p.name : '', goals:{...DEFAULT_GOALS, ...(p.goals||{})}, routines:Array.isArray(p.routines) ? p.routines : [],
+          lastDone:p.lastDone && typeof p.lastDone==='object' ? p.lastDone : {}};   // ready-made workout id -> day you last logged it
 }
 function normalize(d){
   d=d && typeof d==='object' ? d : {};
@@ -414,6 +423,30 @@ function monthCalendar(){
   </div>`;
 }
 
+/* Rough length of a ready-made workout: about 3 s a rep, holds as written, 30 s rest between sets and exercises. */
+function planMinutes(p){
+  let s=0;
+  p.items.map(toExercise).forEach(w=>{
+    s += w.kind==='cardio' ? (w.min||0)*60 : w.sets*((w.sec || w.reps*3) + 30);
+  });
+  return Math.round(s/60);
+}
+/* A workout card: name, minutes • exercises, difficulty (lit bolts out of 3) and when you last logged it. */
+function planCard(id, title, level){
+  const p=WORKOUTS.find(x=>x.id===id), last=data.profile.lastDone[id];
+  const bolt='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
+  const when=last ? (d=>`${d.getDate()} ${d.toLocaleDateString(undefined,{month:'short'})}`)(new Date(last+'T12:00')) : 'Not done yet';
+  return `
+    <div class="plan-card">
+      <b>${esc(title)}</b>
+      <span class="muted">${planMinutes(p)} min &bull; ${p.items.length} exercises</span>
+      <span class="plan-foot">
+        <span class="bolts" aria-label="Difficulty ${level} of 3">${[1,2,3].map(i=>`<i class="${i<=level?'lit':''}">${bolt}</i>`).join('')}</span>
+        <span class="muted">Last time: ${when}</span>
+      </span>
+    </div>`;
+}
+
 /* This week, Monday to Sunday. */
 function weekDays(){
   const d=new Date(); d.setDate(d.getDate()-(d.getDay()+6)%7);
@@ -491,6 +524,7 @@ function workoutPage(){
   <section>
     <h2 class="focus-title">Body focus</h2>
     <div class="chips focus-row">${['Abs','Arm','Forearm','Chest','Leg','Butt','Shoulder & back'].map(n=>`<button type="button">${esc(n)}</button>`).join('')}</div>
+    ${planCard('abs', 'Abs Beginner', 1)}
   </section>
 
   <section class="card" id="workouts">
@@ -742,7 +776,8 @@ app.addEventListener('click', e=>{
   }
   else if(b.dataset.plan!=null){
     const plan=WORKOUTS.find(p=>p.id===pick);
-    t.workouts.push(...plan.items.map(toExercise)); saveDay(today()); render();
+    t.workouts.push(...plan.items.map(toExercise)); p.lastDone[plan.id]=today();
+    saveDay(today()); saveProfile(); render();
     toast(`Logged ${plan.name} workout`);
   }
   else if(b.dataset.del!=null){ t.workouts.splice(+b.dataset.del,1); saveDay(today()); render(); }
