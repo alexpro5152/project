@@ -153,6 +153,9 @@
   .move-twist{transform-origin:50% 70%;animation:ex-twist 1.2s ease-in-out infinite}
   .move-breathe{animation:ex-breathe 2.4s ease-in-out infinite}
   .expic .layer{position:absolute;inset:0}
+  .sprite{position:absolute;inset:0;overflow:hidden}
+  .sprite img{max-width:none;height:100%;object-fit:fill;animation-name:ex-sprite;animation-iteration-count:infinite}
+  @keyframes ex-sprite{to{transform:translateX(-100%)}}
   .expic .frames{animation:ex-frames 1.2s steps(1) infinite}
   @keyframes ex-bounce{0%,100%{transform:translateY(3px)} 50%{transform:translateY(-5px)}}
   @keyframes ex-rock{0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)}}
@@ -546,6 +549,8 @@ const ICON={
 const bolts=level=>`<span class="bolts" role="img" aria-label="Difficulty ${level} of 3">${[1,2,3].map(i=>`<i class="${i<=level?'lit':''}">${ICON.bolt}</i>`).join('')}</span>`;
 /* Workout pictures (workout id -> image). Only your private page has them; here they stay empty and the dumbbell shows. */
 const PHOTOS={};
+/* Moving drawings (exercise -> {n: frames, ms: one loop}); the frames are PHOTOS['ex-<name>-anim'], side by side. */
+const ANIMS={};
 const tile=(level, cls='', id)=>PHOTOS[id] ? `<span class="tile photo ${cls}" style="background-image:url(${PHOTOS[id]})"></span>` : `<span class="tile l${level} ${cls}">${ICON.dumbbell}</span>`;
 
 /* Length of a workout: the minutes it was built for, or about 3 s a rep and holds as written, with rest after each set. */
@@ -566,7 +571,9 @@ const EX_MOVE={'jumping-jacks':'bounce','mountain-climber':'bounce','abdominal-c
 /* The drawing: the mat and background stay still (ex-<name>-bg) and only the person moves (ex-<name>-fg).
    With a second picture of the person (ex-<name>-fg2) the two are shown in turn, like a short film. */
 function exDrawing(name){
-  const k=exKey(name), still=PHOTOS['ex-'+k+'-bg'], fg=PHOTOS['ex-'+k+'-fg'], fg2=PHOTOS['ex-'+k+'-fg2'];
+  const k=exKey(name), anim=ANIMS[k];
+  if(anim && PHOTOS['ex-'+k+'-anim']) return `<span class="sprite"><img src="${PHOTOS['ex-'+k+'-anim']}" alt="" style="width:${anim.n*100}%;animation-duration:${anim.ms}ms;animation-timing-function:steps(${anim.n})"></span>`;
+  const still=PHOTOS['ex-'+k+'-bg'], fg=PHOTOS['ex-'+k+'-fg'], fg2=PHOTOS['ex-'+k+'-fg2'];
   if(still && fg) return `<img src="${still}" alt="">` + (fg2
     ? `<img class="layer" src="${fg}" alt=""><img class="layer frames" src="${fg2}" alt="">`
     : `<img class="layer move-${EX_MOVE[k]||'breathe'}" src="${fg}" alt="">`);
