@@ -152,8 +152,8 @@
   .move-rock{transform-origin:50% 75%;animation:ex-rock 1.6s ease-in-out infinite}
   .move-twist{transform-origin:50% 70%;animation:ex-twist 1.2s ease-in-out infinite}
   .move-breathe{animation:ex-breathe 2.4s ease-in-out infinite}
-  .expic .frames{position:absolute;inset:0}
-  .expic .frames.two{animation:ex-frames 1.2s steps(1) infinite}
+  .expic .layer{position:absolute;inset:0}
+  .expic .frames{animation:ex-frames 1.2s steps(1) infinite}
   @keyframes ex-bounce{0%,100%{transform:translateY(3px)} 50%{transform:translateY(-5px)}}
   @keyframes ex-rock{0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)}}
   @keyframes ex-twist{0%,100%{transform:rotate(-6deg) scaleX(1)} 50%{transform:rotate(6deg) scaleX(.96)}}
@@ -563,12 +563,14 @@ const EX_ALIAS={'crunches':'abdominal-crunches','russian-twists':'russian-twist'
 const exKey=name=>{ const k=slug(name); return EX_ALIAS[k]||k; };
 /* How each drawing moves: up and down, rocking, or a slow "breathing" for holds and stretches. */
 const EX_MOVE={'jumping-jacks':'bounce','mountain-climber':'bounce','abdominal-crunches':'rock','heel-touch':'rock','leg-raises':'rock','russian-twist':'twist'};
-/* The drawing, moving. With a second picture (ex-<name>-2) the two are shown in turn, like a short film. */
+/* The drawing: the mat and background stay still (ex-<name>-bg) and only the person moves (ex-<name>-fg).
+   With a second picture of the person (ex-<name>-fg2) the two are shown in turn, like a short film. */
 function exDrawing(name){
-  const k=exKey(name), a=PHOTOS['ex-'+k], b=PHOTOS['ex-'+k+'-2'];
-  if(!a) return ICON.dumbbell;
-  if(b) return `<img class="frames" src="${a}" alt=""><img class="frames two" src="${b}" alt="">`;
-  return `<img class="move-${EX_MOVE[k]||'breathe'}" src="${a}" alt="">`;
+  const k=exKey(name), still=PHOTOS['ex-'+k+'-bg'], fg=PHOTOS['ex-'+k+'-fg'], fg2=PHOTOS['ex-'+k+'-fg2'];
+  if(still && fg) return `<img src="${still}" alt="">` + (fg2
+    ? `<img class="layer" src="${fg}" alt=""><img class="layer frames" src="${fg2}" alt="">`
+    : `<img class="layer move-${EX_MOVE[k]||'breathe'}" src="${fg}" alt="">`);
+  return PHOTOS['ex-'+k] ? `<img src="${PHOTOS['ex-'+k]}" alt="">` : ICON.dumbbell;
 }
 
 /* ============================================================
