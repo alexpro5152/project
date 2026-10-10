@@ -397,7 +397,7 @@ function toast(msg){
 /* ============================================================
    Pages
    ============================================================ */
-let kind='strength', pick='abs', query='', editGoal=false, monthOpen=false, armed=null, restore=null;
+let kind='strength', pick='abs', query='', focus=null, editGoal=false, monthOpen=false, armed=null, restore=null;
 
 /* The big calendar for this month; days with a workout are filled in. */
 function monthCalendar(){
@@ -523,8 +523,8 @@ function workoutPage(){
 
   <section>
     <h2 class="focus-title">Body focus</h2>
-    <div class="chips focus-row">${['Abs','Arm','Forearm','Chest','Leg','Butt','Shoulder & back'].map(n=>`<button type="button">${esc(n)}</button>`).join('')}</div>
-    ${planCard('abs', 'Abs Beginner', 1)}
+    <div class="chips focus-row">${['Abs','Arm','Forearm','Chest','Leg','Butt','Shoulder & back'].map(n=>`<button type="button" data-focus="${esc(n)}" class="${focus===n?'on':''}">${esc(n)}</button>`).join('')}</div>
+    ${focus==='Abs' ? planCard('abs', 'Abs Beginner', 1) : ''}
   </section>
 
   <section class="card" id="workouts">
@@ -764,6 +764,11 @@ app.addEventListener('click', e=>{
   else if(b.dataset.openMonth!=null){ monthOpen=true; render(); document.querySelector('[data-close-month]').focus(); }
   else if(b.dataset.closeMonth!=null){ monthOpen=false; render(); }
   else if(b.dataset.editGoal!=null){ editGoal=!editGoal; render(); if(editGoal) document.getElementById('goal-days').focus(); }
+  else if(b.dataset.focus){
+    const row=document.querySelector('.focus-row'), x=row.scrollLeft;
+    focus = focus===b.dataset.focus ? null : b.dataset.focus;   // tap again to hide
+    render(); document.querySelector('.focus-row').scrollLeft=x;
+  }
   else if(b.dataset.pick){ pick=b.dataset.pick; render(); }
   else if(b.dataset.findWorkout){
     pick=b.dataset.findWorkout; query=''; render();
