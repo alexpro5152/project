@@ -132,6 +132,7 @@
   /* --- challenge cards --- */
   .ch{position:relative;display:flex;flex-direction:column;flex:1;width:74%;max-width:285.5px;min-height:240px;border-radius:15px;padding:17.5px 12.5px 12.5px;color:#fff;overflow:hidden;background:linear-gradient(135deg,#4d86ff,#2450e6);margin-top:8px}
   .ch-photo{position:absolute;right:0;top:0;width:52%;height:78%;background-size:cover;background-position:center top;-webkit-mask-image:linear-gradient(to right,transparent,#000 30%),linear-gradient(to top,transparent,#000 25%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 30%),linear-gradient(to top,transparent,#000 25%);mask-composite:intersect}
+  .ch-photo.top{height:62%}   /* the facts card: picture stays above the facts */
   .ch h3 .dot{display:inline-block;width:.6em;height:.6em;vertical-align:.05em}
   .ch .small,.ch h3,.ch p.sub{text-shadow:0 1px 5px rgb(0 0 0 / .35)}
   .ch .deco{position:absolute;right:-20.5px;top:7px;width:129px;height:129px;opacity:.16;fill:#fff;pointer-events:none}
@@ -603,7 +604,7 @@ function challengeCard(c){
     const facts=[[mins[0]+'-'+mins[1]+' Min','Daily Time',ICON.cal],[c.level,'Level',ICON.bars],[c.target,'Target area',ICON.target],[c.equipment,'Equipment',ICON.check]];
     return `
   <div class="ch-wrap">
-    <div class="ch">${ICON.bigflame}
+    <div class="ch${photo?' pic':''}">${photo ? `<span class="ch-photo top" style="background-image:url(${photo})"></span>` : ICON.bigflame}
       <h3>${esc(c.title)}</h3>
       <div class="facts">${facts.map(([b,s,i])=>`<div><i>${i}</i><span><b>${b}</b><small>${s}</small></span></div>`).join('')}</div>
       <button type="button" class="go" data-open-challenge="${c.id}">${label}</button>
