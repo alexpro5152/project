@@ -125,6 +125,40 @@
   .sheet-head .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3.5px}
   .sheet-head h2{font-size:18.5px;margin:0}
 
+  /* --- custom workout --- */
+  .cw{background:var(--bg)}
+  .cw-head{display:flex;align-items:center;gap:16px;padding:calc(18px + env(safe-area-inset-top, 0px)) 16px 18px}
+  .cw-head h2{font-size:26px;font-weight:800;margin:0}
+  .cw-back{display:grid;place-items:center;width:34px;height:34px}
+  .cw-back svg{width:28px;height:28px}
+  .cw-list{background:var(--panel);border-radius:20px 20px 0 0}
+  .cw-row{display:flex;align-items:center;gap:16px;width:100%;padding:16px}
+  .cw-row + .cw-row{border-top:1px solid var(--line)}
+  .cw-row > svg{flex:none;color:var(--ink)}
+  .cw-ico{position:relative;flex:none;display:grid;place-items:center;width:72px;height:72px;border-radius:14px;overflow:hidden;background:linear-gradient(120deg,#4e9bff,#2450e6)}
+  .cw-ico i{position:absolute;left:24px;top:12px;width:34px;height:34px;border-radius:9px;background:rgb(255 255 255 / .25);transform:rotate(14deg)}
+  .cw-ico span{position:relative;display:grid;place-items:center;width:42px;height:42px;border-radius:10px;background:rgb(255 255 255 / .35);border:1px solid rgb(255 255 255 / .5)}
+  .cw-ico svg{width:22px;height:22px;fill:#fff}
+  .cw-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .cw-info b{font-size:19px;font-weight:700;overflow-wrap:anywhere}
+  .cw-info span{font-size:16px;color:var(--muted)}
+  .cw-empty{padding:28px 16px}
+  .fab{position:fixed;right:22px;bottom:calc(26px + env(safe-area-inset-bottom, 0px));width:62px;height:62px;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#2450e6);color:#fff;font-size:38px;font-weight:300;line-height:1;box-shadow:0 6px 16px rgb(36 80 230 / .35)}
+  .cw-form{background:var(--panel);border-radius:20px 20px 0 0;padding:18px 16px 24px;display:flex;flex-direction:column;gap:14px;min-height:60vh}
+  .cw-form input{font-size:16px;font-weight:400;color:var(--ink)}
+  .cw-form #cw-name{padding:11px 12px;font-size:17px}
+  .cw-form h3{margin:6px 0 0;font-size:19px}
+  .cw-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+  .cw-items li{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .cw-items li b{flex:1;min-width:0;font-size:16px;font-weight:600}
+  .expic.sm{width:58px;height:50px}
+  .cw-amt{flex:none;display:flex;flex-direction:row;align-items:center;gap:3px;font-size:15px;color:var(--muted)}
+  .cw-amt input{width:62px;padding:6px 8px;text-align:center}
+  .cw-add{display:flex;gap:8px}
+  .cw-add button{flex:none}
+  .cw-bar{display:flex;gap:10px}
+  .cw-bar .danger{flex:none;border-radius:999px;padding:0 18px;background:var(--panel)}
+
   /* --- workout page --- */
   .detail{position:fixed;inset:0;z-index:12;overflow-y:auto;background:var(--panel);padding-bottom:calc(90px + env(safe-area-inset-bottom, 0px))}
   .hero{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:923/470;max-height:320px;background-size:cover;background-position:center;background-repeat:no-repeat;background-image:linear-gradient(140deg,#7fb0ff,#2f5cf0)}
@@ -385,7 +419,8 @@ function normProfile(p){
   p=p && typeof p==='object' ? p : {};
   return {name:typeof p.name==='string' ? p.name : '', goals:{...DEFAULT_GOALS, ...(p.goals||{})}, routines:Array.isArray(p.routines) ? p.routines : [],
           lastDone:p.lastDone && typeof p.lastDone==='object' ? p.lastDone : {},       // workout id -> day you last logged it
-          challenges:p.challenges && typeof p.challenges==='object' ? p.challenges : {}}; // challenge id -> days done
+          challenges:p.challenges && typeof p.challenges==='object' ? p.challenges : {},  // challenge id -> days done
+          custom:Array.isArray(p.custom) ? p.custom : []};   // your own workouts: {id, name, items:[[name, 1, amount, unit]]}
 }
 function normalize(d){
   d=d && typeof d==='object' ? d : {};
@@ -584,6 +619,16 @@ function exDrawing(name){
    Pages
    ============================================================ */
 let query='', focus='Abs', editGoal=false, monthOpen=false, sheet=null, armed=null, restore=null;
+let customOpen=false, draft=null;   // Custom Workout list, and the workout being made or changed
+
+/* Every exercise the app knows, with a usual amount: name -> [amount, unit]. */
+const EX_LIB=(()=>{ const lib={};
+  const add=([name,amt,unit])=>{ if(!lib[name]) lib[name]=[amt,unit]; };
+  Object.values(BODY).forEach(l=>l.forEach(add)); CHALLENGES.forEach(c=>c.list.forEach(add));
+  workoutById('abs-1').items.forEach(([n,,a,u])=>add([n,a,u]));
+  return lib; })();
+const customById=id=>data.profile.custom.find(c=>c.id===id);
+const asWorkout=c=>({id:'c-'+c.id, title:c.name, level:1, items:c.items});
 
 /* This week, Monday to Sunday. */
 function weekDays(){
@@ -742,7 +787,7 @@ function trainingPage(){
 
   <section>
     <div class="sec-head"><h2>Custom Workout</h2></div>
-    <button type="button" class="banner" data-soon>
+    <button type="button" class="banner" data-custom-list>
       <span><span class="h">Create<br>your own</span><span class="pill">GO</span></span>
       <span class="pen"><i></i><span>${ICON.pencil}</span></span>
     </button>
@@ -762,6 +807,8 @@ function trainingPage(){
       <button type="button" class="plain jfy" data-open-workout="${w.id}">${tile(w.level,'',w.id)}<b>${esc(w.title)}</b><span>${planMinutes(w)} mins &bull; ${w.items.length} Exercises</span></button>`).join('')}
     </div>
   </section>
+  ${customOpen ? customListView() : ''}
+  ${draft ? customEditView() : ''}
   ${sheet ? sheetView() : ''}`;
 }
 
@@ -780,9 +827,11 @@ function sheetView(){
 /* A workout (or a challenge day) on its own page: big picture, name, minutes and exercises, Start, then every exercise. */
 function detailView(){
   const c=sheet.type==='challenge' && CHALLENGES.find(x=>x.id===sheet.id);
-  const w=c ? challengeDay(c, nextDay(c)) : workoutById(sheet.id);
-  const pic=c ? PHOTOS['ch-'+c.id] : (PHOTOS['hero-'+w.id] || PHOTOS[w.id]);
+  const own=sheet.type==='custom' && customById(sheet.id);
+  const w=c ? challengeDay(c, nextDay(c)) : own ? asWorkout(own) : workoutById(sheet.id);
+  const pic=c ? PHOTOS['ch-'+c.id] : own ? null : (PHOTOS['hero-'+w.id] || PHOTOS[w.id]);
   const hero=pic ? `<div class="hero${c?' fit':''}" style="background-color:${c?.color||'#2f5cf0'};background-image:url(${pic})">`
+                 : own ? `<div class="hero">${ICON.dumbbell}`
                  : `<div class="hero l${w.level}" style="${c?.color ? 'background:'+c.color : ''}">${ICON.dumbbell}`;
   return `
   <div class="detail" id="detail" role="dialog" aria-modal="true" aria-label="${esc(w.title)}">
@@ -791,13 +840,56 @@ function detailView(){
       <h2>${esc(c ? titleCase(c.title)+' · Day '+nextDay(c) : w.title)}</h2>
       <p class="dmeta"><span>${ICON.watch}${planMinutes(w)} mins</span><span>${ICON.burn}${w.items.length} Exercises</span></p>
       <button type="button" class="start" id="start-top" data-log>Start</button>
-      <div class="sec-head"><h2>Exercises</h2><button type="button" class="more" data-soon>Edit ${ICON.chevron}</button></div>
+      <div class="sec-head"><h2>Exercises</h2><button type="button" class="more" ${own ? `data-edit-custom="${own.id}"` : 'data-soon'}>Edit ${ICON.chevron}</button></div>
       <ul class="exlist">${w.items.map(i=>`
         <li>${ICON.handle}<span class="expic">${exDrawing(i[0])}</span>
           <span class="exinfo"><b>${esc(titleCase(i[0]))}</b><span>${amount(i)}</span></span>${ICON.swap}</li>`).join('')}
       </ul>
     </div>
     <div class="startbar" id="startbar" hidden><button type="button" class="start" data-log>Start</button></div>
+  </div>`;
+}
+
+/* CUSTOM WORKOUT: your own workouts, and a + button to make a new one. */
+function customListView(){
+  const list=data.profile.custom;
+  return `
+  <div class="detail cw" id="custom-page" role="dialog" aria-modal="true" aria-label="Custom workout">
+    <div class="cw-head"><button type="button" class="plain cw-back" data-close-custom aria-label="Back">${ICON.back}</button><h2>CUSTOM WORKOUT</h2></div>
+    <div class="cw-list">${list.length ? list.map(c=>{ const w=asWorkout(c); return `
+      <button type="button" class="plain cw-row" data-open-custom="${c.id}">
+        <span class="cw-ico"><i></i><span>${ICON.pencil}</span></span>
+        <span class="cw-info"><b>${esc(c.name)}</b><span>${planMinutes(w)} mins &middot; ${c.items.length} exercises</span></span>${ICON.chevron}
+      </button>`; }).join('') : `<p class="empty cw-empty">No workouts yet. Tap + to make your own.</p>`}</div>
+    <button type="button" class="fab" data-new-custom aria-label="Make a new workout">+</button>
+  </div>`;
+}
+
+/* Making or changing one of your workouts: a name, then exercises with their reps or seconds. */
+function customEditView(){
+  const names=Object.keys(EX_LIB).sort();
+  return `
+  <div class="detail cw" id="custom-edit" role="dialog" aria-modal="true" aria-label="${draft.id ? 'Edit workout' : 'New workout'}">
+    <div class="cw-head"><button type="button" class="plain cw-back" data-cancel-custom aria-label="Back">${ICON.back}</button><h2>${draft.id ? 'EDIT WORKOUT' : 'NEW WORKOUT'}</h2></div>
+    <div class="cw-form">
+      <label>Name<input id="cw-name" maxlength="40" placeholder="e.g. My morning workout" value="${esc(draft.name)}" autocomplete="off"></label>
+      <h3>Exercises <span class="muted">${draft.items.length}</span></h3>
+      <ul class="cw-items">${draft.items.map((i,j)=>`
+        <li><span class="expic sm">${exDrawing(i[0])}</span><b>${esc(titleCase(i[0]))}</b>
+          <label class="cw-amt">${i[3]==='s' ? '' : 'x'}<input type="number" min="1" max="600" inputmode="numeric" data-amt="${j}" value="${i[2]}" aria-label="${i[3]==='s'?'Seconds':'Reps'} for ${esc(i[0])}">${i[3]==='s' ? 's' : ''}</label>
+          <button type="button" class="x" data-del-ex="${j}" aria-label="Remove ${esc(i[0])}">&times;</button></li>`).join('')
+        || `<li class="muted">Add your first exercise below.</li>`}
+      </ul>
+      <div class="cw-add">
+        <input id="cw-add" list="cw-lib" placeholder="Add an exercise, e.g. Squats" autocomplete="off">
+        <datalist id="cw-lib">${names.map(n=>`<option value="${esc(titleCase(n))}">`).join('')}</datalist>
+        <button type="button" class="primary" data-add-ex>Add</button>
+      </div>
+    </div>
+    <div class="startbar cw-bar">
+      ${draft.id ? `<button type="button" class="danger" data-delete-custom>${armed==='custom' ? 'Tap again to delete' : 'Delete'}</button>` : ''}
+      <button type="button" class="start" data-save-custom>Save</button>
+    </div>
   </div>`;
 }
 
@@ -937,18 +1029,35 @@ const app=document.getElementById('app');
 
 function render(){
   const page=PAGES[location.hash.slice(1)] ? location.hash.slice(1) : 'training';
+  const keep=['detail','custom-page','custom-edit'].map(id=>[id, document.getElementById(id)?.scrollTop||0]);
   app.innerHTML=PAGES[page]();
+  keep.forEach(([id,y])=>{ const el=document.getElementById(id); if(el) el.scrollTop=y; });   // pages on top keep their place
   document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on', a.hash==='#'+page));
   const s=streak(); document.querySelector('#flame title').textContent=s ? `${s} day streak` : 'No streak yet';
   paintResults();
 }
-window.addEventListener('hashchange', ()=>{ armed=null; restore=null; monthOpen=false; sheet=null; render(); });
+window.addEventListener('hashchange', ()=>{ armed=null; restore=null; monthOpen=false; sheet=null; customOpen=false; draft=null; render(); });
 document.addEventListener('scroll', e=>{
   if(e.target.id!=='detail') return;
   const top=document.getElementById('start-top'), bar=document.getElementById('startbar');
   bar.hidden = top.getBoundingClientRect().bottom > 0;
 }, true);
-document.addEventListener('keydown', e=>{ if(e.key==='Escape' && (monthOpen||sheet)){ monthOpen=false; sheet=null; render(); } });
+/* Escape closes the top page first: a workout, then the editor, then the Custom Workout list. */
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  if(monthOpen||sheet){ monthOpen=false; sheet=null; render(); }
+  else if(draft){ draft=null; render(); }
+  else if(customOpen){ customOpen=false; render(); }
+});
+
+/* Adds the exercise typed in the editor, with its usual amount. */
+function addExercise(){
+  const box=document.getElementById('cw-add'), typed=box.value.trim(); if(!typed) return;
+  const key=Object.keys(EX_LIB).find(n=>n.toLowerCase()===typed.toLowerCase());
+  const [amt,unit]=key ? EX_LIB[key] : [12];
+  draft.items.push([key||typed, 1, amt, unit]); render();
+  document.getElementById('cw-add').focus();
+}
 
 /* A change from your other device redraws the page, but not while you are typing in a box. */
 let waiting=false;
@@ -993,13 +1102,33 @@ app.addEventListener('click', e=>{
   else if(b.dataset.filter){ sheet={type:'filter', key:b.dataset.filter}; renderKeepScroll(); }
   else if(b.dataset.closeSheet!=null){ sheet=null; renderKeepScroll(); }
   else if(b.dataset.soon!=null) toast('Coming soon');
+  else if(b.dataset.customList!=null){ customOpen=true; renderKeepScroll(); }
+  else if(b.dataset.closeCustom!=null){ customOpen=false; renderKeepScroll(); }
+  else if(b.dataset.newCustom!=null){ draft={id:null, name:'', items:[]}; armed=null; render(); document.getElementById('cw-name').focus(); }
+  else if(b.dataset.openCustom){ sheet={type:'custom', id:b.dataset.openCustom}; renderKeepScroll(); }
+  else if(b.dataset.editCustom){ const c=customById(b.dataset.editCustom); draft=clone(c); sheet=null; armed=null; render(); }
+  else if(b.dataset.cancelCustom!=null){ draft=null; armed=null; renderKeepScroll(); }
+  else if(b.dataset.addEx!=null) addExercise();
+  else if(b.dataset.delEx!=null){ draft.items.splice(+b.dataset.delEx,1); render(); }
+  else if(b.dataset.saveCustom!=null){
+    draft.name=draft.name.trim();
+    if(!draft.name){ toast('Give your workout a name'); document.getElementById('cw-name').focus(); return; }
+    if(!draft.items.length){ toast('Add at least one exercise'); document.getElementById('cw-add').focus(); return; }
+    if(draft.id){ const i=p.custom.findIndex(c=>c.id===draft.id); p.custom[i]=draft; }
+    else p.custom.push({...draft, id:Date.now().toString(36)});
+    toast(`Saved ${draft.name}`); draft=null; customOpen=true; saveProfile(); render();
+  }
+  else if(b.dataset.deleteCustom!=null){
+    if(armed!=='custom'){ armed='custom'; render(); return; }
+    p.custom=p.custom.filter(c=>c.id!==draft.id); toast(`Deleted ${draft.name}`); draft=null; armed=null; saveProfile(); render();
+  }
   else if(b.dataset.log!=null){
     let title;
     if(sheet.type==='challenge'){
       const c=CHALLENGES.find(x=>x.id===sheet.id), n=nextDay(c), w=challengeDay(c,n);
       t.workouts.push(...w.items.map(toExercise)); p.challenges[c.id]=n; title=w.title;
     } else {
-      const w=workoutById(sheet.id);
+      const w=sheet.type==='custom' ? asWorkout(customById(sheet.id)) : workoutById(sheet.id);
       t.workouts.push(...w.items.map(toExercise)); p.lastDone[w.id]=today(); title=w.title;
     }
     sheet=null; saveDay(today()); saveProfile(); renderKeepScroll(); toast(`Logged ${title}`);
@@ -1037,7 +1166,12 @@ app.addEventListener('click', e=>{
 });
 
 /* Typing in the search box only redraws the results, so the box keeps its place and focus. */
-app.addEventListener('input', e=>{ if(e.target.id==='search'){ query=e.target.value; paintResults(); } });
+app.addEventListener('input', e=>{
+  if(e.target.id==='search'){ query=e.target.value; paintResults(); }
+  else if(e.target.id==='cw-name') draft.name=e.target.value;
+  else if(e.target.dataset.amt!=null){ const v=Math.round(num(e.target.value)); if(v>0) draft.items[+e.target.dataset.amt][2]=v; }
+});
+app.addEventListener('keydown', e=>{ if(e.target.id==='cw-add' && e.key==='Enter'){ e.preventDefault(); addExercise(); } });
 app.addEventListener('keydown', e=>{ if(e.target.id==='search' && e.key==='Escape'){ query=''; e.target.value=''; paintResults(); } });
 
 app.addEventListener('change', e=>{
