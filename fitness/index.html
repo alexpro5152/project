@@ -212,6 +212,9 @@
   .move-rock{transform-origin:50% 75%;animation:ex-rock 1.6s ease-in-out infinite}
   .move-twist{transform-origin:50% 70%;animation:ex-twist 1.2s ease-in-out infinite}
   .move-breathe{animation:ex-breathe 2.4s ease-in-out infinite}
+  .move-squat{transform-origin:50% 92%;animation:ex-squat 1.4s ease-in-out infinite}
+  .move-push{transform-origin:50% 80%;animation:ex-push 1.3s ease-in-out infinite}
+  .move-sway{transform-origin:50% 90%;animation:ex-sway 1.6s ease-in-out infinite}
   .expic .layer{position:absolute;inset:0}
   .sprite{position:absolute;inset:0;overflow:hidden}
   .sprite img{max-width:none;height:100%;object-fit:fill;animation-name:ex-sprite;animation-iteration-count:infinite}
@@ -220,6 +223,9 @@
   @keyframes ex-bounce{0%,100%{transform:translateY(3px)} 50%{transform:translateY(-5px)}}
   @keyframes ex-rock{0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)}}
   @keyframes ex-twist{0%,100%{transform:rotate(-6deg) scaleX(1)} 50%{transform:rotate(6deg) scaleX(.96)}}
+  @keyframes ex-squat{0%,100%{transform:scaleY(1)} 50%{transform:scaleY(.88)}}
+  @keyframes ex-push{0%,100%{transform:translateY(0)} 50%{transform:translateY(5px) scaleY(.94)}}
+  @keyframes ex-sway{0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)}}
   @keyframes ex-breathe{0%,100%{transform:scale(1)} 50%{transform:scale(1.05)}}
   @keyframes ex-frames{0%{opacity:0} 50%{opacity:1}}
   @media (prefers-reduced-motion:reduce){ .expic img{animation:none!important} }
@@ -630,6 +636,15 @@ const EX_ALIAS={'crunches':'abdominal-crunches','russian-twists':'russian-twist'
 const exKey=name=>{ const k=slug(name); return EX_ALIAS[k]||k; };
 /* How each drawing moves: up and down, rocking, or a slow "breathing" for holds and stretches. */
 const EX_MOVE={'jumping-jacks':'bounce','mountain-climber':'bounce','abdominal-crunches':'rock','heel-touch':'rock','leg-raises':'rock','russian-twist':'twist'};
+/* Every other drawing moves the way its exercise does, worked out from the name. */
+const MOVES=[['breathe',/stretch|pose|hold|wall sit|hang/],
+  ['bounce',/jump|jack|hop|skip|burpee|high knee|butt kick|quick feet|skater|bound|punch|hook|stepping|climber|spider|crawl|walk|kicks? squat|thrust/],
+  ['squat',/squat|lunge|plie|curtsy|step-up|calf raise/],
+  ['push',/push|dip|press|hover|pike/],
+  ['twist',/twist|rotat|wiper|woodchop|circle|roll|cat cow|thread|piston|x man/],
+  ['rock',/crunch|sit-up|v-up|leg raise|flutter|scissor|kick|bridge|dead bug|bicycle|heel|hip|glute|hydrant|clamshell|lift|superman|swimmer|angel|pulse|drop|in & out|hug|bug|reach|tap|cobras|arches|pump|press/],
+  ['sway',/side|lateral|bend|arm|shrug|raise|row|curl|fly|gator|pull|squeeze|elbow|clasp|soldier|chest|bird dog|plank/]];
+const exMove=name=>{ const n=name.toLowerCase(); return (MOVES.find(([,re])=>re.test(n))||['breathe'])[0]; };
 /* The drawing: the mat and background stay still (ex-<name>-bg) and only the person moves (ex-<name>-fg).
    With a second picture of the person (ex-<name>-fg2) the two are shown in turn, like a short film. */
 function exDrawing(name){
@@ -638,7 +653,7 @@ function exDrawing(name){
   const still=PHOTOS['ex-'+k+'-bg'], fg=PHOTOS['ex-'+k+'-fg'], fg2=PHOTOS['ex-'+k+'-fg2'];
   if(still && fg) return `<img src="${still}" alt="">` + (fg2
     ? `<img class="layer" src="${fg}" alt=""><img class="layer frames" src="${fg2}" alt="">`
-    : `<img class="layer move-${EX_MOVE[k]||'breathe'}" src="${fg}" alt="">`);
+    : `<img class="layer move-${EX_MOVE[k]||exMove(name)}" src="${fg}" alt="">`);
   return PHOTOS['ex-'+k] ? `<img src="${PHOTOS['ex-'+k]}" alt="">` : ICON.dumbbell;
 }
 
