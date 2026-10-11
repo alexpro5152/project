@@ -227,7 +227,7 @@ function parseMove(tok){
   const angle = base * (suf==='2' ? 2 : suf==='3' ? 3 : 1) * (suf==="'" ? -1 : 1);
   return {tok, axis, layer, angle};
 }
-const inverseTok = t => t.endsWith('2') ? t : t.endsWith('3') ? t[0] : (t.endsWith("'") ? t[0] : t+"'");
+const inverseTok = t => t.endsWith('2') ? t : t.endsWith('3') ? t[0] : (t.endsWith("'") ? t.slice(0,-1) : t+"'");
 const inverseSeq = seq => seq.slice().reverse().map(inverseTok);
 function describe(tok){
   const f = tok[0], suf = tok.slice(1);
@@ -317,7 +317,7 @@ class Cube {
 // extra drawing options for puzzles that are not a normal 3x3
 // default viewing angle for a card's puzzle
 const viewOf = alg => alg.view || (alg.level==='pyraminx' ? 'pyra' : 'above');
-const puzzleOpts = alg => ({ mirror: alg.level==='mirror', two: !!TWO_LEVELS[alg.level], pyra: alg.level==='pyraminx' });
+const puzzleOpts = alg => ({ mirror: alg.level==='mirror', two: !!TWO_LEVELS[alg.level], pyra: alg.level==='pyraminx', four: alg.level==='4x4' });
 /* ============================================================
    Pyraminx: 4 faces x 9 triangle stickers. Corners U (top), L (front-left), R (front-right),
    B (back). Faces: front green, left red, right blue, bottom yellow. U L R B turn a corner with
@@ -398,10 +398,64 @@ function describePyra(tok){
   return `${what}: turn it ${tok.endsWith("'")?'anticlockwise':'clockwise'}, as you look at that corner`;
 }
 
+/* ============================================================
+   4x4: 56 outer pieces at half-steps -3 -1 1 3. R = outer layer, r = second layer (inner slice),
+   Rw = both right layers, x y z = whole cube.
+   ============================================================ */
+function parse4(t){
+  const m=t.match(/^([RLUDFBrludfbxyz])(w?)(['2]?)$/), [,f,w,suf]=m, k=(suf==='2'?2:1)*(suf==="'"?-1:1);
+  if('xyz'.includes(f)) return { axis:f, layers:[-3,-1,1,3], angle:90*k*(f==='y'?-1:1) };
+  const F=f.toUpperCase(), [axis,outer,base]={R:['x',3,90],L:['x',-3,-90],U:['y',-3,-90],D:['y',3,90],F:['z',3,90],B:['z',-3,-90]}[F], inner=Math.sign(outer);
+  return { axis, layers: f===F ? (w?[outer,inner]:[outer]) : [inner], angle:base*k };
+}
+class Cube4 {
+  constructor(el, S, {view='above'}={}){
+    this.el=el; this.S=S; this.cubies=[]; this.dead=false; el.style.transform=VIEWS[view];
+    const h=Math.round(S*0.375); this.h=h; const side=2*h-S*0.05;
+    for(const x of [-3,-1,1,3])for(const y of [-3,-1,1,3])for(const z of [-3,-1,1,3]){
+      if(Math.max(Math.abs(x),Math.abs(y),Math.abs(z))<3) continue;              // inner pieces are never seen
+      const d=document.createElement('div'); d.className='cubie';
+      d.style.width=d.style.height=side+'px'; d.style.marginLeft=d.style.marginTop=(-side/2)+'px';
+      for(const [t,f] of [['rotateY(0deg)',z===3&&'F'],['rotateY(180deg)',z===-3&&'B'],['rotateY(90deg)',x===3&&'R'],['rotateY(-90deg)',x===-3&&'L'],['rotateX(90deg)',y===-3&&'U'],['rotateX(-90deg)',y===3&&'D']]){
+        const e=document.createElement('div'); e.className='face'+(f?'':' inner');
+        e.style.width=e.style.height=side+'px'; e.style.left=e.style.top='0px'; e.style.transform=`${t} translateZ(${side/2}px)`;
+        if(f) e.style.setProperty('--c',COLORS[f]); d.appendChild(e);
+      }
+      const M0=[[1,0,0,x*h],[0,1,0,y*h],[0,0,1,z*h],[0,0,0,1]];
+      this.cubies.push({el:d,M:M0,M0}); el.appendChild(d);
+    }
+    this.render();
+  }
+  render(){ for(const c of this.cubies) c.el.style.transform=css(c.M); }
+  reset(){ for(const c of this.cubies) c.M=c.M0; this.render(); }
+  layer(m){ const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>m.layers.includes(Math.round(c.M[i][3]/this.h))); }
+  apply(tok){ const m=parse4(tok), R=rot(m.axis,m.angle); for(const c of this.layer(m)) c.M=snapInt(mul(R,c.M)); this.render(); }
+  applyAll(seq){ for(const t of seq) this.apply(t); }
+  isSolved(){ return this.cubies.every(c=>JSON.stringify(c.M)===JSON.stringify(c.M0)); }
+  animate(tok, dur){
+    return new Promise(res=>{
+      const m=parse4(tok), L=this.layer(m), t0=performance.now();
+      const frame=now=>{
+        if(this.dead) return res();
+        const t=Math.min(1,(now-t0)/dur), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2, R=rot(m.axis,m.angle*e);
+        for(const c of L) c.el.style.transform=css(mul(R,c.M));
+        if(t<1) requestAnimationFrame(frame); else { this.apply(tok); res(); }
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+}
+function describe4(tok){
+  const f=tok[0], w=tok.includes('w'), suf=tok.replace(/^[A-Za-z]w?/,''), F=f.toUpperCase();
+  if('xyz'.includes(f)) return describe(tok);
+  const what = f!==F ? `Second layer from the ${FACE_NAME[F].toLowerCase()} (inner slice)` : w ? `${FACE_NAME[F]} two layers` : `${FACE_NAME[F]} face`;
+  return suf==='2' ? `${what}: half a turn (turn it twice)` : `${what}: ${HINT[F+suf]}`;
+}
+
 function makeCube(scene, opts){
   const cube=document.createElement('div'); cube.className='cube'; scene.appendChild(cube);
   const S=Math.max(8, Math.floor(Math.min(scene.clientWidth, scene.clientHeight)/6.2));
-  return opts.pyra ? new Pyra(cube, S, opts) : new Cube(cube, S, opts);
+  return opts.pyra ? new Pyra(cube, S, opts) : opts.four ? new Cube4(cube, S, opts) : new Cube(cube, S, opts);
 }
 
 /* ============================================================
@@ -993,6 +1047,27 @@ const ALGS = [
     hold:'All top edges in their place, two of them flipped. Hold the puzzle so the <b>good edge is at the back</b>.',
     tips:['Solved!'] },
 
+
+  /* ---------------- 4x4: the three algorithms of the reduction method ---------------- */
+  { id:'4x4-pair', level:'4x4', step:'4x4 · 1 · edge pairing', title:'Pair up the edges', moves:"Uw' R U R' F R' F' R Uw", focus:'all',
+    groups:[["Uw'",1],["R U R' F R' F' R",7,'Pieces swapped'],["Uw",1,'Edges paired']],
+    purpose:'A 4x4 edge has two halves. This joins the halves of two edges at once.',
+    hold:'Centres done. Look at the <b>front-left</b> and <b>front-right</b> edges: each has one wrong half. The <b>top half on the left</b> belongs on the right, the <b>bottom half on the right</b> belongs on the left.',
+    tips:['Uw = the top two layers together. Uw\' at the start lines the two wrong halves up, Uw at the end puts the centres back.',
+          'The middle part "R U R\' F R\' F\' R" swaps a paired edge in, so the wrong halves can meet. The rest of the cube gets mixed: that is fine, you solve it like a 3x3 afterwards.',
+          'Pair all 12 edges, then solve the 4x4 like a 3x3.'] },
+  { id:'4x4-oll', level:'4x4', step:'4x4 · 2 · OLL parity', title:'One edge flipped', moves:"r U2 r U2 r' U2 r U2 l' U2 r U2 r' U2 l r2 U2 r'", focus:'all',
+    purpose:'Happens only on a 4x4: solving it like a 3x3, one top edge is upside down. This flips just that edge.',
+    hold:'Yellow on top. One top edge is <b>flipped</b> (its yellow faces you). Hold it at the <b>front</b>.',
+    tips:['r = only the second layer from the right, l = only the second layer from the left. The outer layers do not move.',
+          'Only this one edge changes. Everything else stays where it is.'] },
+  { id:'4x4-pll', level:'4x4', step:'4x4 · 3 · PLL parity', title:'Two edges swapped', moves:"r2 U2 r2 Uw2 r2 Uw2 U2", focus:'all',
+    groups:[["r2 U2 r2 Uw2 r2 Uw2",6],["U2",1,'Lined up']],
+    purpose:'Also only on a 4x4: at the very end, two opposite top edges are swapped. This swaps them back.',
+    hold:'Everything is solved except the <b>front</b> and <b>back</b> top edges, which are <b>swapped</b>.',
+    tips:['r2 = turn only the second layer from the right twice. Uw2 = turn the top two layers twice.',
+          'The last U2 lines the top up again.'] },
+
   /* ---------------- Mirror cube ---------------- */
   { id:'mirror-a', level:'mirror', step:'Mirror cube · last layer', title:'Three corners (A-perm)', moves:"R' F R' B2 R F' R' B2 R2", focus:'all',
     groups:[["R' F R'",3],["B2",1],["R F' R'",3],["B2",1],["R2",1]],
@@ -1031,7 +1106,7 @@ function flatten(seq){
   }
   return out;
 }
-const startSeq = alg => alg.setup ? alg.setup.split(/\s+/) : alg.start==='solved' ? [] : alg.level==='pyraminx' ? inverseSeq(alg.moves.split(/\s+/)) : inverseSeq(flatten(alg.moves.split(/\s+/)));
+const startSeq = alg => alg.setup ? alg.setup.split(/\s+/) : alg.start==='solved' ? [] : (alg.level==='pyraminx'||alg.level==='4x4') ? inverseSeq(alg.moves.split(/\s+/)) : inverseSeq(flatten(alg.moves.split(/\s+/)));
 const formulaText = alg => alg.short ? alg.short : alg.groups ? alg.groups.map(([l,n])=> n>1 && l.includes(' ') ? `(${l})` : l).join('  ') : alg.moves;
 
 const LEVELS = {
@@ -1089,6 +1164,7 @@ function renderOverview(level, puzzle='3x3'){
   else if(group==='twisty' || !level){ app.innerHTML = `<h1>Algorithms</h1>${puzzles}${sub}`; return; }
   const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>`
               : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>`
+              : level==='4x4' ? `<span><b>Rw</b> right two layers together</span><span><b>Uw</b> top two layers together</span><span><b>r l</b> only the second layer from the right / left (inner slice)</span>`
               : level==='advanced-pll' ? `<span><b>M</b> middle slice, like L</span><span><b>x z</b> tip / roll the whole cube</span><span><b>y</b> turn the whole cube</span><span><b>d u</b> bottom / top two layers</span>`
               : level==='advanced-oll' ? `<span><b>r l f</b> two layers at once</span><span><b>M</b> middle slice, like L</span><span><b>S</b> front-back middle slice, like F</span><span><b>x</b> tip the whole cube, like R</span><span><b>d</b> bottom two layers</span><span><b>(…)2</b> = do the bracket twice</span>` : '';
   app.innerHTML = `
@@ -1222,7 +1298,7 @@ class Player {
     this.B('back').disabled=this.busy||this.step===0; this.B('step').disabled=this.busy||this.step===n;
     this.B('play').disabled=this.busy; this.B('reset').disabled=this.busy; if(this.alg.repeat) this.B('rep').disabled=this.busy;
   }
-  hint(t){ return this.alg.level==='pyraminx' ? describePyra(t) : describe(t); }
+  hint(t){ return this.alg.level==='pyraminx' ? describePyra(t) : this.alg.level==='4x4' ? describe4(t) : describe(t); }
   async forward(){ const mv=this.moves[this.step]; this.ui(this.step,`${mv}:  ${this.hint(mv)}`); await this.big.animate(mv,dur); if(this.dead)return; this.step++; this.ui(); }
   async backward(){ const mv=this.moves[this.step-1]; this.ui(this.step-1,`Undo ${mv}:  ${this.hint(inverseTok(mv))}`); await this.big.animate(inverseTok(mv),dur); if(this.dead)return; this.step--; this.ui(); }
   async run(fn){ if(this.busy)return; this.busy=true; this.ui(); await fn(); if(this.dead)return; this.busy=false; this.ui(); }
