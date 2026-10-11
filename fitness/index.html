@@ -154,8 +154,34 @@
   .expic.sm{width:58px;height:50px}
   .cw-amt{flex:none;display:flex;flex-direction:row;align-items:center;gap:3px;font-size:15px;color:var(--muted)}
   .cw-amt input{width:62px;padding:6px 8px;text-align:center}
-  .cw-add{display:flex;gap:8px}
-  .cw-add button{flex:none}
+  .cw-plus{display:flex;align-items:center;gap:12px;padding:8px 0;font-size:17px;font-weight:600;color:var(--accent)}
+  .cw-plus i{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;font-style:normal;font-size:28px;line-height:1}
+
+  /* --- Add Exercises list --- */
+  .pk-scrim{position:fixed;inset:0;z-index:20;background:rgb(0 0 0 / .45);display:flex;justify-content:center;align-items:flex-end}
+  .pk{position:relative;display:flex;flex-direction:column;width:min(100%,560px);height:calc(100% - 42px - env(safe-area-inset-top, 0px));background:var(--panel);border-radius:22px 22px 0 0;overflow:hidden}
+  .pk-top{flex:none;padding:22px 20px 6px}
+  .pk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .pk-head h2{margin:12px 0 0;font-size:24px;font-weight:800}
+  .pk-x{flex:none;display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:#c9cbd1;color:#fff;font-size:24px;line-height:1}
+  .pk-areas{display:inline-flex;align-items:center;gap:9px;margin-top:20px;padding:8px 16px;border-radius:999px;background:var(--chip);font-size:16px}
+  .pk-areas svg{width:18px;height:18px;fill:var(--muted)}
+  .pk-search{display:flex;flex-direction:row;align-items:center;gap:12px;margin-top:22px;padding:0 18px;height:50px;border-radius:999px;background:var(--chip);color:var(--muted)}
+  .pk-search svg{flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+  .pk-search input{flex:1;min-width:0;border:0;background:none;padding:0;font-size:17px;color:var(--ink)}
+  .pk-list{flex:1;overflow-y:auto;padding:0 20px 100px}
+  .pk-letter{margin:26px 0 6px;font-size:17px;font-weight:400;color:var(--accent)}
+  .pk-row{display:flex;align-items:center;gap:13px;width:100%;padding:8px 0;text-align:left}
+  .pk-pic{width:80px;height:70px;background:none}
+  .pk-pic img{object-fit:contain}
+  .pk-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .pk-info b{font-size:16.5px;font-weight:800;line-height:1.25;overflow-wrap:anywhere}
+  .pk-info span{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .pk-tick{flex:none;width:21px;height:21px;border-radius:50%;background:#e4e5e8}
+  .pk-row.on .pk-tick{background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/80% no-repeat}
+  .pk-none{padding:30px 0;text-align:center}
+  .pk-bar{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:10px 16px calc(14px + env(safe-area-inset-bottom, 0px));pointer-events:none}
+  .pk-bar .start{width:min(100%,528px);pointer-events:auto;padding:13px;font-size:21px;background:linear-gradient(90deg,#3f7cf6,#2450e6)}
   .cw-bar{display:flex;gap:10px}
   .cw-bar .danger{flex:none;border-radius:999px;padding:0 18px;background:var(--panel)}
 
@@ -557,6 +583,7 @@ function toast(msg){
    Icons
    ============================================================ */
 const ICON={
+  funnel:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h13l-5 6.5V19l-3 1.5v-10z"/><path d="M14 13h7M14 16.5h7M14 20h7" stroke="currentColor" stroke-width="1.6"/></svg>',
   search:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7"/><path d="M16 16l5 5"/></svg>',
   pencil:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.3V21h3.7L17.8 9.9l-3.7-3.7zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.7 3.7z"/></svg>',
   bolt:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2 4.5 13.5h6.5L9.5 22l10-12.5H13z"/></svg>',
@@ -620,10 +647,16 @@ function exDrawing(name){
    ============================================================ */
 let query='', focus='Abs', editGoal=false, monthOpen=false, sheet=null, armed=null, restore=null;
 let customOpen=false, draft=null;   // Custom Workout list, and the workout being made or changed
+let picker=null;   // the Add Exercises list: the exercises ticked so far
 
+/* The exercises in the Add Exercises list: name|reps, or name|seconds followed by s. */
+const EX_LIST='90/90 crunch|10;abdominal crunches|10;adductor stretch in standing|20s;alt v-up|10;alternate hammer curl|10;alternating dumbbell shoulder press|10;alternating hooks|20s;anterior shoulder stretch|20s;arm circles|10;arm circles clockwise|20s;arm circles counterclockwise|20s;arm curls crunch left|10;arm curls crunch right|10;arm raises|20s;arm scissors|20s;arm swings with lateral steps|20s;arnold dumbbell press|10;back arches|20s;back bow pulls|10;backward arm swings|20s;backward lunge|20s;backward lunge with front kick left|10;backward lunge with front kick right|10;bent knee side hip raises left|20s;bent knee side hip raises right|20s;bent leg twist|10;bent over dumbbell rows left|10;bent over dumbbell rows right|10;bent over row|10;bicycle crunches|10;bird dog|10;bird dog left|10;bird dog right|10;bottom leg lift left|10;bottom leg lift right|10;bow pose|20s;box push-ups|10;bridge|20s;bulgarian split squat left|10;bulgarian split squat right|10;burpees|10;butt bridge|20s;butt kicks|20s;calf raise with pigeon-toed|10;calf raise with splayed foot|10;calf raises|10;calf stretch left|20s;calf stretch right|20s;cat cow pose|20s;chair triceps side bend left|20s;chair triceps side bend right|20s;chest press pulse|20s;chest stretch|20s;child\'s pose|20s;clapping crunches|10;claps over head|10;clasp hands behind back|20s;clockwise shoulder rolls|20s;cobra stretch|20s;cobras|10;crab kick up|20s;crab kicks|20s;crab walk|20s;cross arm crunches|10;cross knee plank|20s;cross touch and reach|10;crossbody mountain climber|10;crunch kicks|10;crunches with legs raised|10;curtsy lunges|10;dead bug|10;decline push-ups|10;diagonal plank|10;diamond push-ups|10;donkey kicks left|10;donkey kicks left pulse|20s;donkey kicks right|10;donkey kicks right pulse|20s;doorway curls left|10;doorway curls right|10;double knees to chest|20s;downward facing dog|20s;downward facing dog on the wall|20s;dumbbell concentration curl left|10;dumbbell concentration curl right|10;dumbbell front raise|10;dumbbell kickbacks|10;dumbbell lying triceps extension|10;dumbbell punch|10;dumbbell rear delt row|10;dumbbell shrug|10;dumbbell side lateral raise|10;dumbbell single arm otis up left|10;dumbbell single arm otis up right|10;dumbbell triceps extension|10;dumbbell upright-row|10;dumbbell v-up|10;dumbbell woodchop left|10;dumbbell woodchop right|10;dynamic chest|10;elbow plank rotation left|10;elbow plank rotation right|10;elbows back|20s;fast spider lunges|20s;fire hydrant left|10;fire hydrant right|10;floor slides|20s;floor tricep dips|10;floor y raises|10;flutter kick squats|10;flutter kicks|20s;forward arm swings|20s;forward bend|20s;forward spine stretch|20s;frog press|10;frog pump|10;froggy glute lifts|10;glute kick back|10;glute kick back left|10;glute kick back right|10;glute kickback crossover with left leg|10;glute kickback crossover with right leg|10;glute kickback pulse left|10;glute kickback pulse right|10;glute stretch left|20s;glute stretch right|20s;half bending pushing forward|10;heel touch|10;heels to the heavens|10;high knee with twist|10;high stepping|20s;hindu push-ups|10;hip bridge & leg lift left|10;hip bridge & leg lift right|10;hip hinge|10;hops on the spot|20s;hover push up|10;hyperextension|10;in & outs|20s;inchworms|10;incline push-ups|10;jumping jacks|20s;jumping push-ups|10;jumping squats|10;knee circle|20s;knee plank|20s;knee push-ups|10;knee to chest stretch left|20s;knee to chest stretch right|20s;knee to elbow crunches|10;kneeling lunge stretch left|20s;kneeling lunge stretch right|20s;kneeling side plank left|20s;kneeling side plank right|20s;lateral plank walk|20s;leaning stretcher raises|10;left leg lateral raise|10;left lunge knee hops|10;left quad stretch with wall|20s;left side lying forward leg lift|10;leg barbell curl left|10;leg barbell curl right|10;leg in & outs|10;leg raises|10;leg spreads|10;long arm crunches|10;lumbar cat cow|10;lunge twist|10;lunges|10;lying butterfly stretch|20s;lying knee hug|10;lying swing legs left|20s;lying swing legs right|20s;lying twist stretch left|20s;lying twist stretch right|20s;military press|10;military push ups|10;modified burpees|10;modified push-up low hold|20s;mountain climber|10;mountain climber squat thrust|20s;oblique crossover crunch left|10;oblique crossover crunch right|10;oblique crunch reach|20s;oblique v-ups left|10;oblique v-ups right|10;offset push-ups|10;one down two ups|10;one leg push-ups|10;overhead arm clockwise circles|20s;overhead arm counterclockwise circles|20s;pigeon pose left|20s;pigeon pose right|20s;pike push ups|10;pilates clamshell left|10;pilates clamshell right|10;pistol box squat left|10;pistol box squat right|10;plank|20s;plank and reach|10;plank hip dips|20s;plank jacks|20s;plank leg up|10;plank taps|10;plie squats|10;prone flutter kicks|20s;prone triceps push ups|10;punches|20s;push up hold|20s;push-up & rotation|10;push-ups|10;quad stretch|20s;quick feet|20s;reclined oblique twist|10;reclined rhomboid squeezes|10;reverse crunches|10;reverse crunches with leg raised|10;reverse flutter kicks|10;reverse flys|10;reverse plank|20s;reverse push-ups|10;reverse snow angels|10;rhomboid pulls|10;right leg lateral raise|10;right lunge knee hops|10;right quad stretch with wall|20s;right side lying forward leg lift|10;roundhouse squat kicks|10;runner\'s lunge left|20s;runner\'s lunge right|20s;russian twist|10;scissors|20s;seated abs clockwise circles|10;seated abs counterclockwise circles|10;seated butterfly stretch|20s;seated cat cow|10;seated side bend left|20s;seated side bend right|20s;seated spinal twist left|20s;seated spinal twist right|20s;shoulder gators|10;shoulder outward rotation|20s;shoulder shrugs|10;shoulder stretch|20s;side arm raise|20s;side bridges left|10;side bridges right|10;side crunches left|10;side crunches right|10;side hop|20s;side leg circles left|10;side leg circles right|10;side leg raise left|10;side leg raise right|10;side lunges|20s;side lying kickback left|10;side lying kickback right|10;side plank front kick left|10;side plank front kick right|10;side plank knee crunch left|10;side plank knee crunch right|10;side plank left|20s;side plank right|20s;side step jacks|20s;side-lying floor stretch left|20s;side-lying floor stretch right|20s;side-lying leg lift left|10;side-lying leg lift right|10;single arm renegade row left|10;single arm renegade row right|10;single left leg calf raises|10;single leg calf hop left|10;single leg calf hop right|10;single leg deadlift left|10;single leg deadlift right|10;single leg drops|20s;single leg hip rotation|10;single right leg calf raises|10;sit-up twist|10;sit-ups|10;sitting hamstring stretch left|20s;sitting hamstring stretch right|20s;skater jump|20s;skipping without rope|20s;slow mountain climber|20s;spiderman plank|20s;spiderman push-ups|10;split squat left|10;split squat right|10;squat jacks|20s;squat kicks|10;squat pulses|20s;squat reach ups|20s;squats|10;staggered push-ups|10;standing biceps stretch left|20s;standing biceps stretch right|20s;standing bicycle crunches|10;standing crossover toe touches|10;standing glute kickbacks|10;standing glute kickbacks left|10;standing glute kickbacks right|10;standing hip circle|20s;standing knee to chest|20s;standing oblique crunches left|10;standing oblique crunches right|10;standing side bend|20s;star crawl|20s;star jumps|20s;starfish crunch|20s;step-up onto chair|10;straight arm knee plank|20s;straight arm plank to pike|10;straight leg bounds|20s;straight leg raise left|20s;straight leg raise right|20s;straight-arm plank|20s;sumo squat|10;sumo squat & leg raises|10;sumo squat calf raises|10;sumo squat calf raises with wall|10;superman|10;supine hamstring stretch left|20s;supine hamstring stretch right|20s;supine push up|10;swimmer and superman|20s;t plank left|10;t plank right|10;thread the needle left|10;thread the needle right|10;torso twist|20s;toy soldiers|10;toy soldiers hold|20s;triangle pose left|20s;triangle pose right|20s;triceps dips|10;triceps kickbacks|10;triceps stretch left|20s;triceps stretch right|20s;trunk rotation|20s;twisting piston|10;up and down plank|10;v crunch|10;v-hold|20s;v-up|10;walk the dog|10;walking squats|20s;wall calf raises|10;wall glute kickback left hold|10;wall glute kickback right hold|10;wall push-ups|10;wall resisting single leg calf raise left|10;wall resisting single leg calf raise right|10;wall sit|20s;wall standing glute kickbacks left|10;wall standing glute kickbacks right|10;wide arm push-ups|10;windshield wipers|20s;wrists & ankles stretch left|20s;wrists & ankles stretch right|20s;x man crunch|10;x-burpees|20s';
 /* Every exercise the app knows, with a usual amount: name -> [amount, unit]. */
-const EX_LIB=(()=>{ const lib={};
-  const add=([name,amt,unit])=>{ if(!lib[name]) lib[name]=[amt,unit]; };
+const PICK_NAMES=[];   // the ones shown in Add Exercises
+const EX_LIB=(()=>{ const lib={}, seen=new Set();
+  const add=([name,amt,unit])=>{ const k=name.toLowerCase(); if(!seen.has(k)){ seen.add(k); lib[name]=[amt,unit]; } };
+  EX_LIST.split(';').forEach(e=>{ const [n,a]=e.split('|'); add([n[0].toUpperCase()+n.slice(1), parseInt(a), a.endsWith('s') ? 's' : undefined]); });
+  PICK_NAMES.push(...Object.keys(lib));
   Object.values(BODY).forEach(l=>l.forEach(add)); CHALLENGES.forEach(c=>c.list.forEach(add));
   workoutById('abs-1').items.forEach(([n,,a,u])=>add([n,a,u]));
   return lib; })();
@@ -809,6 +842,7 @@ function trainingPage(){
   </section>
   ${customOpen ? customListView() : ''}
   ${draft ? customEditView() : ''}
+  ${picker ? pickerView() : ''}
   ${sheet ? sheetView() : ''}`;
 }
 
@@ -867,7 +901,6 @@ function customListView(){
 
 /* Making or changing one of your workouts: a name, then exercises with their reps or seconds. */
 function customEditView(){
-  const names=Object.keys(EX_LIB).sort();
   return `
   <div class="detail cw" id="custom-edit" role="dialog" aria-modal="true" aria-label="${draft.id ? 'Edit workout' : 'New workout'}">
     <div class="cw-head"><button type="button" class="plain cw-back" data-cancel-custom aria-label="Back">${ICON.back}</button><h2>${draft.id ? 'EDIT WORKOUT' : 'NEW WORKOUT'}</h2></div>
@@ -878,19 +911,47 @@ function customEditView(){
         <li><span class="expic sm">${exDrawing(i[0])}</span><b>${esc(titleCase(i[0]))}</b>
           <label class="cw-amt">${i[3]==='s' ? '' : 'x'}<input type="number" min="1" max="600" inputmode="numeric" data-amt="${j}" value="${i[2]}" aria-label="${i[3]==='s'?'Seconds':'Reps'} for ${esc(i[0])}">${i[3]==='s' ? 's' : ''}</label>
           <button type="button" class="x" data-del-ex="${j}" aria-label="Remove ${esc(i[0])}">&times;</button></li>`).join('')
-        || `<li class="muted">Add your first exercise below.</li>`}
+        || `<li class="muted">Tap + to add exercises.</li>`}
       </ul>
-      <div class="cw-add">
-        <input id="cw-add" list="cw-lib" placeholder="Add an exercise, e.g. Squats" autocomplete="off">
-        <datalist id="cw-lib">${names.map(n=>`<option value="${esc(titleCase(n))}">`).join('')}</datalist>
-        <button type="button" class="primary" data-add-ex>Add</button>
-      </div>
+      <button type="button" class="plain cw-plus" id="cw-plus" data-add-ex><i>+</i>Add exercises</button>
     </div>
     <div class="startbar cw-bar">
       ${draft.id ? `<button type="button" class="danger" data-delete-custom>${armed==='custom' ? 'Tap again to delete' : 'Delete'}</button>` : ''}
       <button type="button" class="start" data-save-custom>Save</button>
     </div>
   </div>`;
+}
+
+/* Add Exercises: every exercise A to Z with its drawing; tick the ones you want, then Close. */
+function pickerView(){
+  const names=[...PICK_NAMES].sort((a,b)=>a.localeCompare(b));
+  let letter='', html='';
+  names.forEach(n=>{
+    const l=n[0].toUpperCase(), [amt,unit]=EX_LIB[n];
+    if(l!==letter){ letter=l; html+=`<h3 class="pk-letter" data-letter="${esc(l)}">${esc(l)}</h3>`; }
+    html+=`<button type="button" class="plain pk-row${picker.has(n)?' on':''}" data-pick="${esc(n)}" data-letter-of="${esc(l)}" aria-pressed="${picker.has(n)}">
+      <span class="expic pk-pic">${exDrawing(n)}</span>
+      <span class="pk-info"><b>${esc(n.toUpperCase())}</b><span>${amount([n,1,amt,unit])}</span></span><i class="pk-tick" aria-hidden="true"></i></button>`;
+  });
+  return `
+  <div class="pk-scrim" id="pk-scrim">
+    <div class="pk" role="dialog" aria-modal="true" aria-label="Add exercises">
+      <div class="pk-top">
+        <div class="pk-head"><h2>Add Exercises</h2><button type="button" class="pk-x" data-close-picker aria-label="Close">&times;</button></div>
+        <span class="pk-areas">${ICON.funnel}All Areas (${names.length})</span>
+        <label class="pk-search">${ICON.search}<input id="pk-q" type="search" placeholder="Search exercises" autocomplete="off" aria-label="Search exercises"></label>
+      </div>
+      <div class="pk-list" id="pk-list">${html}<p class="empty pk-none" hidden>No exercises found</p></div>
+      <div class="pk-bar"><button type="button" class="start" data-done-picker>Close</button></div>
+    </div>
+  </div>`;
+}
+/* Searching only hides rows, so typing stays quick with all the drawings on the page. */
+function filterPicker(q){
+  q=q.trim().toLowerCase(); const shown=new Set();
+  document.querySelectorAll('.pk-row').forEach(r=>{ const ok=!q || r.dataset.pick.toLowerCase().includes(q); r.hidden=!ok; if(ok) shown.add(r.dataset.letterOf); });
+  document.querySelectorAll('.pk-letter').forEach(h=>h.hidden=!shown.has(h.dataset.letter));
+  document.querySelector('.pk-none').hidden=shown.size>0;
 }
 
 function healthPage(){
@@ -1029,14 +1090,14 @@ const app=document.getElementById('app');
 
 function render(){
   const page=PAGES[location.hash.slice(1)] ? location.hash.slice(1) : 'training';
-  const keep=['detail','custom-page','custom-edit'].map(id=>[id, document.getElementById(id)?.scrollTop||0]);
+  const keep=['detail','custom-page','custom-edit','pk-list'].map(id=>[id, document.getElementById(id)?.scrollTop||0]);
   app.innerHTML=PAGES[page]();
   keep.forEach(([id,y])=>{ const el=document.getElementById(id); if(el) el.scrollTop=y; });   // pages on top keep their place
   document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on', a.hash==='#'+page));
   const s=streak(); document.querySelector('#flame title').textContent=s ? `${s} day streak` : 'No streak yet';
   paintResults();
 }
-window.addEventListener('hashchange', ()=>{ armed=null; restore=null; monthOpen=false; sheet=null; customOpen=false; draft=null; render(); });
+window.addEventListener('hashchange', ()=>{ armed=null; restore=null; monthOpen=false; sheet=null; customOpen=false; draft=null; picker=null; render(); });
 document.addEventListener('scroll', e=>{
   if(e.target.id!=='detail') return;
   const top=document.getElementById('start-top'), bar=document.getElementById('startbar');
@@ -1046,18 +1107,11 @@ document.addEventListener('scroll', e=>{
 document.addEventListener('keydown', e=>{
   if(e.key!=='Escape') return;
   if(monthOpen||sheet){ monthOpen=false; sheet=null; render(); }
+  else if(picker){ picker=null; render(); }
   else if(draft){ draft=null; render(); }
   else if(customOpen){ customOpen=false; render(); }
 });
 
-/* Adds the exercise typed in the editor, with its usual amount. */
-function addExercise(){
-  const box=document.getElementById('cw-add'), typed=box.value.trim(); if(!typed) return;
-  const key=Object.keys(EX_LIB).find(n=>n.toLowerCase()===typed.toLowerCase());
-  const [amt,unit]=key ? EX_LIB[key] : [12];
-  draft.items.push([key||typed, 1, amt, unit]); render();
-  document.getElementById('cw-add').focus();
-}
 
 /* A change from your other device redraws the page, but not while you are typing in a box. */
 let waiting=false;
@@ -1087,6 +1141,7 @@ function renderKeepScroll(){
 app.addEventListener('click', e=>{
   if(e.target.id==='overlay'){ monthOpen=false; render(); return; }          // tap outside the calendar closes it
   if(e.target.id==='sheet-overlay'){ sheet=null; renderKeepScroll(); return; } // tap outside the sheet closes it
+  if(e.target.id==='pk-scrim'){ picker=null; render(); return; }               // tap outside Add Exercises closes it
   const b=e.target.closest('button'); if(!b) return;
   const t=day(today()), p=data.profile;
   if(b.dataset.openMonth!=null){ monthOpen=true; render(); document.querySelector('[data-close-month]').focus(); }
@@ -1108,12 +1163,15 @@ app.addEventListener('click', e=>{
   else if(b.dataset.openCustom){ sheet={type:'custom', id:b.dataset.openCustom}; renderKeepScroll(); }
   else if(b.dataset.editCustom){ const c=customById(b.dataset.editCustom); draft=clone(c); sheet=null; armed=null; render(); }
   else if(b.dataset.cancelCustom!=null){ draft=null; armed=null; renderKeepScroll(); }
-  else if(b.dataset.addEx!=null) addExercise();
+  else if(b.dataset.addEx!=null){ picker=new Set(); render(); document.getElementById('pk-q').focus({preventScroll:true}); }
+  else if(b.dataset.pick){ const n=b.dataset.pick, on=!picker.has(n); on ? picker.add(n) : picker.delete(n); b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); }
+  else if(b.dataset.closePicker!=null){ picker=null; render(); }
+  else if(b.dataset.donePicker!=null){ picker.forEach(n=>{ const [amt,unit]=EX_LIB[n]; draft.items.push([n,1,amt,unit]); }); picker=null; render(); }
   else if(b.dataset.delEx!=null){ draft.items.splice(+b.dataset.delEx,1); render(); }
   else if(b.dataset.saveCustom!=null){
     draft.name=draft.name.trim();
     if(!draft.name){ toast('Give your workout a name'); document.getElementById('cw-name').focus(); return; }
-    if(!draft.items.length){ toast('Add at least one exercise'); document.getElementById('cw-add').focus(); return; }
+    if(!draft.items.length){ toast('Add at least one exercise'); document.getElementById('cw-plus').focus(); return; }
     if(draft.id){ const i=p.custom.findIndex(c=>c.id===draft.id); p.custom[i]=draft; }
     else p.custom.push({...draft, id:Date.now().toString(36)});
     toast(`Saved ${draft.name}`); draft=null; customOpen=true; saveProfile(); render();
@@ -1169,9 +1227,9 @@ app.addEventListener('click', e=>{
 app.addEventListener('input', e=>{
   if(e.target.id==='search'){ query=e.target.value; paintResults(); }
   else if(e.target.id==='cw-name') draft.name=e.target.value;
+  else if(e.target.id==='pk-q') filterPicker(e.target.value);
   else if(e.target.dataset.amt!=null){ const v=Math.round(num(e.target.value)); if(v>0) draft.items[+e.target.dataset.amt][2]=v; }
 });
-app.addEventListener('keydown', e=>{ if(e.target.id==='cw-add' && e.key==='Enter'){ e.preventDefault(); addExercise(); } });
 app.addEventListener('keydown', e=>{ if(e.target.id==='search' && e.key==='Escape'){ query=''; e.target.value=''; paintResults(); } });
 
 app.addEventListener('change', e=>{
