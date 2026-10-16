@@ -451,7 +451,7 @@ class Cube4 {
 function describe4(tok){
   const f=tok[0], w=tok.includes('w'), suf=tok.replace(/^[A-Za-z]w?/,''), F=f.toUpperCase();
   if('xyz'.includes(f)) return describe(tok);
-  const what = f!==F ? `Second layer from the ${FACE_NAME[F].toLowerCase()} (inner slice)` : w ? `${FACE_NAME[F]} two layers` : `${FACE_NAME[F]} face`;
+  const what = f!==F ? `Only the centre layer next to the ${FACE_NAME[F].toLowerCase()} (slice move, the ${FACE_NAME[F].toLowerCase()} layer stays still)` : w ? `${FACE_NAME[F]} two layers` : `${FACE_NAME[F]} face`;
   return suf==='2' ? `${what}: half a turn (turn it twice)` : `${what}: ${HINT[F+suf]}`;
 }
 
