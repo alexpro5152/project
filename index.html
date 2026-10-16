@@ -1061,16 +1061,17 @@ const ALGS = [
     tips:['Uw = the top two layers together. Uw\' brings the left half over to the right, Uw at the end puts the centres back.',
           'The middle part "R U R\' F R\' F\' R" swaps a finished edge in, so the two halves can meet. The rest of the cube gets mixed: that is fine, you solve it like a 3x3 afterwards.',
           'Pair all 12 edges this way, then solve the 4x4 like a 3x3.'] },
-  { id:'4x4-pair-diag', level:'4x4', step:'4x4 · 1b · edge pairing', title:'Combine with the centres, then swap it out', moves:"Uw' R U R' Uw", focus:'follow-BR',
-    setup:"R' U2 Uw' R U' R' Uw",
-    groups:[["Uw'",1,'Halves combined'],["R U R'",3,'Swapped out'],["Uw",1,'Edge joined']],
-    done:'Joined! The blue-orange edge is now one piece, at the top left.',
-    purpose:'Combine the two halves by turning the top two layers (up centre), then swap the combined edge out for one that is not combined yet, and turn the centres back.',
+  { id:'4x4-pair-diag', level:'4x4', step:'4x4 · 1b · edge pairing', title:'Combine with the centre layer, then swap it out', moves:"u' R U R' u", focus:'follow-BR',
+    setup:"R' U u' R U' R' u",
+    groups:[["u'",1,'Halves combined'],["R U R'",3,'Swapped out'],["u",1,'Edge joined']],
+    done:'Joined! The blue-orange edge is now one piece, at the top front.',
+    purpose:'Turn only the centre layer to combine the two halves, swap the combined edge out for one that is not combined yet, then turn the centre layer back.',
     hold:'Centres done. The two halves of one edge (here <b>blue-orange</b>) sit <b>diagonal</b>: one <b>high on the front-left</b> edge with <b>orange facing you</b>, one <b>low on the front-right</b> edge with <b>blue facing you</b>. Only the blue-orange pieces are coloured, so you can follow them.',
-    tips:['Uw\' = turn the top two layers (with the up centre). The high half goes to the right and sits on top of the low half: the edge is combined.',
+    tips:['This turn has a name: a <b>slice move</b>. A small u means: turn <b>only the upper centre layer</b> (the second layer from the top). The top layer does not move.',
+          'u\' = that centre layer turns to the right (like U\'). The high half goes to the right and sits on top of the low half: the edge is combined.',
           'R U R\' takes the combined edge up to the top and puts an edge that is not combined yet in its place.',
-          'Uw = turn the top two layers back, so the centres are solved again. The combined edge stays together on top.',
-          'If the low half is on the left and the high half on the right, use Uw instead (Uw L\' U\' L Uw\').'] },
+          'u = turn the centre layer back, so the centres are solved again. The combined edge stays together on top.',
+          'If the low half is on the left and the high half on the right, turn the centre layer the other way: u L\' U\' L u\'.'] },
   { id:'4x4-oll', level:'4x4', step:'4x4 · 2 · OLL parity', title:'One edge flipped', moves:"r' U2 l F2 l' F2 r2 U2 r U2 r' U2 F2 r2 F2", focus:'all',
     purpose:'Happens only on a 4x4: solving it like a 3x3, one top edge is upside down. This flips just that edge.',
     hold:'Yellow on top. One top edge is <b>flipped</b> (its yellow faces you). Hold it at the <b>front</b>.',
@@ -1179,7 +1180,7 @@ function renderOverview(level, puzzle='3x3'){
   else if(group==='twisty' || !level){ app.innerHTML = `<h1>Algorithms</h1>${puzzles}${sub}`; return; }
   const extra = level==='intermediate' ? `<span><b>r</b> right two layers</span><span><b>M</b> middle slice, turned like L</span>`
               : level==='advanced-f2l' ? `<span><b>r</b> right two layers</span><span><b>d</b> bottom two layers</span><span><b>(…)3</b> = do the bracket 3 times</span>`
-              : level==='4x4' ? `<span><b>Rw</b> right two layers together</span><span><b>Uw</b> top two layers together</span><span><b>r l</b> only the second layer from the right / left (inner slice)</span>`
+              : level==='4x4' ? `<span><b>Rw</b> right two layers together</span><span><b>Uw</b> top two layers together</span><span><b>r l u</b> only the second layer from the right / left / top (inner slice, the centre layer)</span>`
               : level==='advanced-pll' ? `<span><b>M</b> middle slice, like L</span><span><b>x z</b> tip / roll the whole cube</span><span><b>y</b> turn the whole cube</span><span><b>d u</b> bottom / top two layers</span>`
               : level==='advanced-oll' ? `<span><b>r l f</b> two layers at once</span><span><b>M</b> middle slice, like L</span><span><b>S</b> front-back middle slice, like F</span><span><b>x</b> tip the whole cube, like R</span><span><b>d</b> bottom two layers</span><span><b>(…)2</b> = do the bracket twice</span>` : '';
   app.innerHTML = `
