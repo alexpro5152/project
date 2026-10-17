@@ -1302,6 +1302,22 @@ class Player {
     });
     app.querySelector('.speed input').oninput=e=>{ dur=1400-(e.target.value-1)*130; };
     this.ui();
+    // keep the text line as tall as its longest text, so the cube below never jumps
+    this.onResize=()=>this.fitDesc(); window.addEventListener('resize',this.onResize);
+    this.fitDesc(); if(document.fonts) document.fonts.ready.then(()=>{ if(!this.dead) this.fitDesc(); });
+  }
+  fitDesc(){
+    const d=this.desc, keep=d.textContent, step=this.step, n=this.moves.length, R=this.alg.repeat, texts=[];
+    for(let i=0;i<=n;i++){ this.step=i; texts.push(this.idleText()); }
+    this.step=step;
+    for(const mv of this.moves){
+      texts.push(`${mv}:  ${this.hint(mv)}`, `Undo ${mv}:  ${this.hint(inverseTok(mv))}`);
+      if(R) texts.push(`Round ${R} of ${R}: ${mv}`);
+    }
+    if(R) texts.push(`${R} rounds later... back exactly where we started!`);
+    d.style.minHeight='';
+    let h=0; for(const t of texts){ d.textContent=t; h=Math.max(h,d.getBoundingClientRect().height); }
+    d.textContent=keep; d.style.minHeight=Math.ceil(h)+'px';
   }
   groupOf(i){ return this.groups.findIndex(g=>i>=g.from&&i<g.to); }
   idleText(){
@@ -1323,7 +1339,7 @@ class Player {
   async forward(){ const mv=this.moves[this.step]; this.ui(this.step,`${mv}:  ${this.hint(mv)}`); await this.big.animate(mv,dur); if(this.dead)return; this.step++; this.ui(); }
   async backward(){ const mv=this.moves[this.step-1]; this.ui(this.step-1,`Undo ${mv}:  ${this.hint(inverseTok(mv))}`); await this.big.animate(inverseTok(mv),dur); if(this.dead)return; this.step--; this.ui(); }
   async run(fn){ if(this.busy)return; this.busy=true; this.ui(); await fn(); if(this.dead)return; this.busy=false; this.ui(); }
-  destroy(){ this.dead=true; this.big.dead=true; }
+  destroy(){ this.dead=true; this.big.dead=true; window.removeEventListener('resize',this.onResize); }
 }
 
 function route(){
