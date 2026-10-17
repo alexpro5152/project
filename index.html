@@ -1141,7 +1141,7 @@ const LEVELS = {
 const ICON_3X3 = (()=>{ const c=['--R','--W','--G','--Y','--B','--O','--G','--R','--Y']; let r='';
   c.forEach((v,i)=>{ r+=`<rect x="${(i%3)*7+1}" y="${Math.floor(i/3)*7+1}" width="6" height="6" rx="1.5" style="fill:var(${v})"/>`; });
   return `<svg class="pz-icon" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="3.5" style="fill:#111"/>${r}</svg>`; })();
-// Two main buttons: 3x3 opens the 3x3 levels, Twisty puzzles opens the other puzzles.
+// Two main buttons: 3x3 opens the 3x3 levels, Twisty and big cubes opens the other puzzles.
 // The 2x2 page has its own three levels.
 const TWO_LEVELS = {
   '2x2':     { name:'2x2 Beginner', short:'Beginner' },
@@ -1149,7 +1149,7 @@ const TWO_LEVELS = {
   '2x2-adv': { name:'2x2 Advanced', short:'Advanced', intro:`The <b>Ortega</b> method. First make the <b>white face</b> on the bottom (the sides do not need to match yet). Then one of <b>7 algorithms</b> turns all yellow up, and one of <b>6 algorithms</b> fixes both layers at once.` },
 };
 const TWISTY = { pyraminx:{ name:'Pyraminx' }, mirror:{ name:'Mirror cube' }, megaminx:{ name:'Megaminx' }, '2x2':{ name:'2x2' }, '4x4':{ name:'4x4' } };
-const PUZZLES = { '3x3':{ name:'3x3', icon:ICON_3X3 }, twisty:{ name:'Twisty puzzles' }, ...TWISTY };
+const PUZZLES = { '3x3':{ name:'3x3', icon:ICON_3X3 }, twisty:{ name:'Twisty and big cubes' }, ...TWISTY };
 const levelOf = alg => alg.level || 'beginner';
 
 // Flat picture of the top layer at the start of a card: the 3x3 top face with
