@@ -60,6 +60,12 @@
   .face::after{content:'';position:absolute;inset:4%;border-radius:12%;background:var(--c,#1b1b1b)}
   .cubie.dim .face::after{background:var(--dim)}
   .cubie.dim .face.inner::after{background:#1b1b1b}
+  /* while a layer turns, the pieces that stay still go darker so the turning layer stands out */
+  .face::after,.pyra-front{transition:filter .15s}
+  .cube.turning .cubie.still .face::after,.cube.turning .pyra-st.still .pyra-front{filter:brightness(.5) saturate(.6)}
+  .big{position:relative}
+  .turn-badge{position:absolute;left:10px;top:8px;z-index:2;pointer-events:none;font:800 34px/1 ui-monospace,Menlo,Consolas,monospace;color:#fff;background:var(--accent);border-radius:12px;padding:8px 14px;box-shadow:0 2px 8px rgba(0,0,0,.25);opacity:0;transform:scale(.85);transition:opacity .15s,transform .15s}
+  .turn-badge.on{opacity:1;transform:none}
 
   /* --- overview --- */
   .levels{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0 16px}
@@ -298,6 +304,7 @@ class Cube {
   reset(){ for(const c of this.cubies) c.M=c.M0; this.render(); }
   layer(m){ if(m.layer===null) return this.cubies; if(Array.isArray(m.layer)){ const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>m.layer.includes(Math.round(c.M[i][3]/this.S))); } const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>Math.round(c.M[i][3]/this.S)===m.layer); }
   apply(tok){ const m=parseMove(tok), Rm=rot(m.axis,m.angle); for(const c of this.layer(m)) c.M=snapInt(mul(Rm,c.M)); this.render(); }
+  movingEls(tok){ return this.layer(parseMove(tok)).map(c=>c.el); }
   applyAll(seq){ for(const t of seq) this.apply(t); }
   isSolved(){ return this.cubies.every(c=>JSON.stringify(c.M)===JSON.stringify(c.M0)); }
   animate(tok, dur){
@@ -373,6 +380,7 @@ class Pyra {
   render(){ for(const c of this.cubies) c.el.style.transform=css(c.M); }
   reset(){ for(const c of this.cubies){ c.slot=this.cubies.indexOf(c); c.M=c.M0; } this.render(); }
   moving(tok){ const m=PYRA_MOVES[tok]; return this.cubies.filter(c=>m.set.includes(c.slot)); }
+  movingEls(tok){ return this.moving(tok).map(c=>c.el); }
   apply(tok){ const m=PYRA_MOVES[tok]; for(const c of this.moving(tok)){ c.slot=m.to[c.slot]; c.M=this.slotM[c.slot].M; } this.render(); }
   applyAll(seq){ for(const t of seq) this.apply(t); }
   // each face shows one colour
@@ -433,6 +441,7 @@ class Cube4 {
   reset(){ for(const c of this.cubies) c.M=c.M0; this.render(); }
   layer(m){ const i={x:0,y:1,z:2}[m.axis]; return this.cubies.filter(c=>m.layers.includes(Math.round(c.M[i][3]/this.h))); }
   apply(tok){ const m=parse4(tok), R=rot(m.axis,m.angle); for(const c of this.layer(m)) c.M=snapInt(mul(R,c.M)); this.render(); }
+  movingEls(tok){ return this.layer(parse4(tok)).map(c=>c.el); }
   applyAll(seq){ for(const t of seq) this.apply(t); }
   isSolved(){ return this.cubies.every(c=>JSON.stringify(c.M)===JSON.stringify(c.M0)); }
   animate(tok, dur){
@@ -1261,6 +1270,7 @@ class Player {
     this.desc=app.querySelector('.desc');
 
     this.big=makeCube(app.querySelector('.big'), {view:viewOf(alg), focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
+    this.badge=document.createElement('div'); this.badge.className='turn-badge'; this.badge.setAttribute('aria-hidden','true'); app.querySelector('.big').appendChild(this.badge);
     this.resetView=enableOrbit(app.querySelector('.big'), this.big.el, viewOf(alg));
     app.querySelector('.big').insertAdjacentHTML('afterend','<p class="drag-hint">Drag or swipe the cube to turn it around.</p>');
     this.start=startSeq(alg); this.big.applyAll(this.start);
@@ -1294,7 +1304,7 @@ class Player {
       for(let r=1;r<=alg.repeat && !this.dead;r++){
         while(this.step<moves.length && !this.dead){
           const mv=moves[this.step]; this.ui(this.step,`Round ${r} of ${alg.repeat}: ${mv}`);
-          await this.big.animate(mv,Math.max(180,dur*0.6)); this.step++;
+          await this.turn(mv,Math.max(180,dur*0.6)); this.step++;
         }
         await pause(250); this.step=0;
       }
@@ -1336,8 +1346,18 @@ class Player {
     this.B('play').disabled=this.busy; this.B('reset').disabled=this.busy; if(this.alg.repeat) this.B('rep').disabled=this.busy;
   }
   hint(t){ return this.alg.level==='pyraminx' ? describePyra(t) : this.alg.level==='4x4' ? describe4(t) : describe(t); }
-  async forward(){ const mv=this.moves[this.step]; this.ui(this.step,`${mv}:  ${this.hint(mv)}`); await this.big.animate(mv,dur); if(this.dead)return; this.step++; this.ui(); }
-  async backward(){ const mv=this.moves[this.step-1]; this.ui(this.step-1,`Undo ${mv}:  ${this.hint(inverseTok(mv))}`); await this.big.animate(inverseTok(mv),dur); if(this.dead)return; this.step--; this.ui(); }
+  // light up the layer that is about to turn, show its name on the cube, wait a moment, then turn it
+  async turn(mv,d,label=mv){
+    const cube=this.big.el, moving=new Set(this.big.movingEls(mv)), all=[...cube.children].filter(e=>e!==this.badge);
+    const whole=moving.size>=all.length;                 // a whole-cube turn: nothing to darken
+    if(!whole){ for(const e of all) e.classList.toggle('still',!moving.has(e)); cube.classList.add('turning'); }
+    this.badge.textContent=label; this.badge.classList.add('on');
+    await pause(Math.min(350,d*0.4));
+    if(!this.dead) await this.big.animate(mv,d);
+    cube.classList.remove('turning'); for(const e of all) e.classList.remove('still'); this.badge.classList.remove('on');
+  }
+  async forward(){ const mv=this.moves[this.step]; this.ui(this.step,`${mv}:  ${this.hint(mv)}`); await this.turn(mv,dur); if(this.dead)return; this.step++; this.ui(); }
+  async backward(){ const mv=this.moves[this.step-1]; this.ui(this.step-1,`Undo ${mv}:  ${this.hint(inverseTok(mv))}`); await this.turn(inverseTok(mv),dur,'Undo '+mv); if(this.dead)return; this.step--; this.ui(); }
   async run(fn){ if(this.busy)return; this.busy=true; this.ui(); await fn(); if(this.dead)return; this.busy=false; this.ui(); }
   destroy(){ this.dead=true; this.big.dead=true; window.removeEventListener('resize',this.onResize); }
 }
