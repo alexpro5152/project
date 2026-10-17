@@ -80,6 +80,10 @@
   .cubie.dim .face::after{background:var(--dim)}
   .cubie.dim .face.inner::after{background:#1b1b1b}
   .big{position:relative}
+  /* on a step page only the puzzle can be grabbed; the space around it scrolls the page */
+  .big.has-hit{touch-action:auto;cursor:default}
+  .orbit-hit{position:absolute;z-index:1;touch-action:none;cursor:grab}
+  .big.dragging .orbit-hit{cursor:grabbing}
   .turn-badge{position:absolute;left:10px;top:8px;z-index:2;pointer-events:none;font:800 34px/1 ui-monospace,Menlo,Consolas,monospace;color:#fff;background:var(--accent);border-radius:12px;padding:8px 14px;box-shadow:0 2px 8px rgba(0,0,0,.25);opacity:0;transform:scale(.85);transition:opacity .15s,transform .15s}
   .turn-badge.on{opacity:1;transform:none}
 
@@ -240,12 +244,31 @@ const VIEWS = Object.fromEntries(Object.entries(VIEW_ANGLES).map(([k,v])=>[k,vie
 // Returns a function that turns it back to the starting view.
 // onTurn(turned) is called when the view leaves or returns to the start; moved() says whether
 // the last press was a drag (so a card link can ignore the click that ends a drag).
-function enableOrbit(scene, cubeEl, view, {onTurn=()=>{}, speed=0.5}={}){
-  const home=VIEW_ANGLES[view]; let angle=home.slice(), drag=null, wasDrag=false;
+// With hit:true only the puzzle itself can be grabbed: an invisible box is kept over the puzzle,
+// and a swipe anywhere else in the scene scrolls the page as usual.
+function enableOrbit(scene, cubeEl, view, {onTurn=()=>{}, speed=0.5, hit=false}={}){
+  const home=VIEW_ANGLES[view]; let angle=home.slice(), drag=null, wasDrag=false, hitEl=null;
   const show=()=>{ cubeEl.style.transform=viewCSS(angle); };
+  // put the grab box over everything that can be seen of the puzzle, with a small margin
+  const fit=()=>{
+    if(!hitEl || !scene.isConnected) return;
+    const box=scene.getBoundingClientRect(); let l=Infinity,t=Infinity,r=-Infinity,b=-Infinity;
+    for(const e of cubeEl.querySelectorAll('.face:not(.inner),.pyra-front')){
+      const q=e.getBoundingClientRect(); if(!q.width||!q.height) continue;
+      l=Math.min(l,q.left); t=Math.min(t,q.top); r=Math.max(r,q.right); b=Math.max(b,q.bottom);
+    }
+    if(l===Infinity) return;
+    const pad=12;
+    Object.assign(hitEl.style,{left:(l-box.left-pad)+'px', top:(t-box.top-pad)+'px', width:(r-l+2*pad)+'px', height:(b-t+2*pad)+'px'});
+  };
+  if(hit){
+    hitEl=document.createElement('div'); hitEl.className='orbit-hit'; scene.appendChild(hitEl); scene.classList.add('has-hit');
+    requestAnimationFrame(fit); window.addEventListener('resize',fit);
+  }
   scene.addEventListener('dragstart',e=>e.preventDefault());
   scene.addEventListener('pointerdown',e=>{
     if(e.button>0) return;
+    if(hitEl && e.target!==hitEl) return;               // beside the puzzle: leave it to the page
     drag={x:e.clientX,y:e.clientY,start:angle.slice(),moved:false}; wasDrag=false; cubeEl.classList.remove('settle');
     scene.setPointerCapture(e.pointerId); scene.classList.add('dragging');
   });
@@ -257,10 +280,11 @@ function enableOrbit(scene, cubeEl, view, {onTurn=()=>{}, speed=0.5}={}){
     angle=[drag.start[0]-dy*speed, drag.start[1]+dx*speed]; show(); onTurn(true);
   });
   // the click that follows a drag is ignored; forget the drag right after that click
-  const end=()=>{ if(drag){ wasDrag=drag.moved; if(wasDrag) setTimeout(()=>{ wasDrag=false; },0); } drag=null; scene.classList.remove('dragging'); };
+  const end=()=>{ if(drag){ wasDrag=drag.moved; if(wasDrag) setTimeout(()=>{ wasDrag=false; },0); fit(); } drag=null; scene.classList.remove('dragging'); };
   scene.addEventListener('pointerup',end); scene.addEventListener('pointercancel',end);
-  const reset=()=>{ cubeEl.classList.add('settle'); angle=home.slice(); show(); onTurn(false); };
+  const reset=()=>{ cubeEl.classList.add('settle'); angle=home.slice(); show(); onTurn(false); setTimeout(fit,480); };
   reset.moved=()=>wasDrag;
+  reset.fit=fit;
   return reset;
 }
 
@@ -1306,7 +1330,7 @@ class Player {
 
     this.big=makeCube(app.querySelector('.big'), {view:viewOf(alg), focus:alg.focus, flip:alg.flip, ...puzzleOpts(alg)});
     this.badge=document.createElement('div'); this.badge.className='turn-badge'; this.badge.setAttribute('aria-hidden','true'); app.querySelector('.big').appendChild(this.badge);
-    this.resetView=enableOrbit(app.querySelector('.big'), this.big.el, viewOf(alg));
+    this.resetView=enableOrbit(app.querySelector('.big'), this.big.el, viewOf(alg), {hit:true});
     app.querySelector('.big').insertAdjacentHTML('afterend',`<p class="drag-hint">${tr('Drag or swipe the cube to turn it around.')}</p>`);
     this.start=startSeq(alg); this.big.applyAll(this.start);
 
@@ -1325,7 +1349,7 @@ class Player {
     groups.forEach((g,i)=>addSnap(g.name ? tr(g.name) : i===groups.length-1 ? tr('End') : fmt('Step {n}',{n:i+1}), fmt('after {label}',{label:g.label}), [...this.start,...moves.slice(0,g.to)], g.to));
 
     const B=n=>app.querySelector(`[data-b="${n}"]`); this.B=B;
-    const restart=()=>{ this.big.reset(); this.big.applyAll(this.start); this.step=0; };
+    const restart=()=>{ this.big.reset(); this.big.applyAll(this.start); this.step=0; this.resetView.fit(); };
     B('step').onclick=()=>this.run(async()=>{ if(this.step<moves.length) await this.forward(); });
     B('back').onclick=()=>this.run(async()=>{ if(this.step>0) await this.backward(); });
     B('reset').onclick=()=>this.run(async()=>restart());
@@ -1386,7 +1410,7 @@ class Player {
     this.badge.textContent=label; this.badge.classList.add('on');
     await pause(Math.min(350,d*0.4));
     if(!this.dead) await this.big.animate(mv,d);
-    this.badge.classList.remove('on');
+    this.badge.classList.remove('on'); this.resetView.fit();
   }
   async forward(){ const mv=this.moves[this.step]; this.ui(this.step,`${mv}:  ${this.hint(mv)}`); await this.turn(mv,dur); if(this.dead)return; this.step++; this.ui(); }
   async backward(){ const mv=this.moves[this.step-1]; this.ui(this.step-1,`${fmt('Undo {mv}',{mv})}:  ${this.hint(inverseTok(mv))}`); await this.turn(inverseTok(mv),dur,fmt('Undo {mv}',{mv})); if(this.dead)return; this.step--; this.ui(); }
