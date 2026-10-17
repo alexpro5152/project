@@ -36,7 +36,11 @@
   body{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
   a{color:inherit;text-decoration:none}
   header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
-  header .brand{font-weight:800;font-size:18px}
+  .settings-btn{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:600;padding:6px 12px;border-radius:10px;border:2px solid var(--edge);background:var(--panel);color:var(--ink)}
+  .settings-list{width:min(520px,100%);display:flex;flex-direction:column;gap:10px;margin-top:10px}
+  .set-row{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-radius:14px;border:2px solid var(--edge);background:var(--panel);font-size:19px;font-weight:700}
+  .set-row .chev{color:var(--muted);font-size:24px;line-height:1}
+  .set-row:hover{border-color:var(--accent)}
   header .grip{color:var(--muted);font-size:15px}
   header .right{display:flex;align-items:center;gap:14px}
   .theme{font-size:15px;padding:6px 12px;border-radius:10px}
@@ -141,7 +145,7 @@
 </head>
 <body>
 <header>
-  <a class="brand" href="#">&#129513; Cube Algorithms</a>
+  <a class="settings-btn" href="#settings"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.7 7.7 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.7 7.7 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.7 7.7 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>Settings</a>
   <div class="right">
     <span class="grip">Grip: yellow on top, green facing you</span>
     <button class="theme" id="theme" type="button"></button>
@@ -1357,6 +1361,9 @@ function route(){
   if(player){ player.destroy(); player=null; }
   const id=location.hash.slice(1), alg=ALGS.find(a=>a.id===id);
   if(alg) player=new Player(alg);
+  else if(id==='settings') app.innerHTML=`<a class="back" href="#">&larr; Algorithms</a><h1>Settings</h1>
+      <div class="settings-list"><a class="set-row" href="#languages">Languages<span class="chev">&rsaquo;</span></a></div>`;
+  else if(id==='languages') app.innerHTML='';
   else if(TWO_LEVELS[id]) renderOverview(id, '2x2');
   else if(PUZZLES[id]) renderOverview(null, id);
   else renderOverview(LEVELS[id] ? id : 'beginner');
