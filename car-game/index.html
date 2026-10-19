@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Chakra+Petch:wght@500;700&display=swap">
 <style>
-  /* Layout: full-bleed canvas world; HUD pinned to the top corners; two pedals pinned to the bottom corners. */
+  /* Layout: full-bleed landscape game box (turned sideways on upright phones); HUD in the top corners; ← and → buttons in the bottom corners. */
   :root {
     --sky-top: #1d2246;
     --sky-mid: #87477a;
@@ -35,9 +35,8 @@
     --ink-dim: #e8c9b0;
     --panel: rgba(26, 16, 34, 0.74);
     --line: rgba(255, 243, 224, 0.18);
-    --pedal-hi: #4d4656;
-    --pedal-lo: #24202b;
-    --pedal-rib: rgba(255, 255, 255, 0.10);
+    --key-hi: #4d4656;
+    --key-lo: #24202b;
     --shadow: rgba(0, 0, 0, 0.45);
     --gas: #7ee08a;
     --brake: #ff6b5e;
@@ -63,10 +62,13 @@
   button { font: inherit; color: inherit; }
   button:focus-visible { outline: 3px solid var(--crust); outline-offset: 3px; }
 
-  #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  /* Everything lives in one box. On an upright phone the box is turned 90° so the game plays sideways. */
+  #game { position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; container: game / size; }
+  #game.sideways { transform-origin: 0 0; }
+  #world { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
   .hud {
-    position: fixed;
+    position: absolute;
     top: calc(env(safe-area-inset-top, 0px) + 14px);
     z-index: 2;
     display: grid;
@@ -76,8 +78,8 @@
   }
   .hud--left { left: max(16px, env(safe-area-inset-left, 0px)); }
   .hud--right { right: max(16px, env(safe-area-inset-right, 0px)); justify-items: end; }
-  .readout { font: 700 clamp(34px, 6vw, 54px)/1 var(--font-hud); font-variant-numeric: tabular-nums; }
-  .readout--small { font-size: clamp(22px, 3.6vw, 32px); }
+  .readout { font: 700 clamp(34px, 6cqw, 54px)/1 var(--font-hud); font-variant-numeric: tabular-nums; }
+  .readout--small { font-size: clamp(22px, 3.6cqw, 32px); }
   .readout small { font-size: 0.42em; margin-left: 4px; color: var(--ink-dim); letter-spacing: 0.08em; }
   .label { font: 500 13px/1.2 var(--font-hud); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
   .hud-buttons { display: flex; gap: 8px; margin-top: 6px; pointer-events: auto; }
@@ -94,13 +96,13 @@
   }
 
   .toast {
-    position: fixed;
+    position: absolute;
     left: 50%;
-    top: calc(env(safe-area-inset-top, 0px) + 22vh);
+    top: calc(env(safe-area-inset-top, 0px) + 22cqh);
     z-index: 2;
     transform: translate(-50%, 0) scale(0.8);
     opacity: 0;
-    font: 400 clamp(26px, 5vw, 44px)/1 var(--font-display);
+    font: 400 clamp(26px, 5cqw, 44px)/1 var(--font-display);
     color: var(--crust);
     text-shadow: 0 3px 0 var(--shadow);
     white-space: nowrap;
@@ -109,55 +111,32 @@
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 
-  .pedal {
-    position: fixed;
+  .arrow {
+    position: absolute;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
     z-index: 4;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 0 0 14px;
+    display: grid;
+    place-items: center;
+    width: clamp(96px, 17cqw, 150px);
+    height: clamp(84px, 28cqh, 130px);
+    padding: 0;
     border: 3px solid var(--shadow);
-    border-radius: 16px 16px 22px 22px;
-    background:
-      repeating-linear-gradient(180deg, var(--pedal-rib) 0 6px, transparent 6px 15px),
-      linear-gradient(180deg, var(--pedal-hi), var(--pedal-lo));
+    border-radius: 22px;
+    background: linear-gradient(180deg, var(--key-hi), var(--key-lo));
     box-shadow: 0 7px 0 var(--shadow);
-    font: 700 15px/1 var(--font-hud);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+    color: var(--accent);
     cursor: pointer;
     touch-action: none;
     transition: transform 0.06s, box-shadow 0.06s;
   }
-  .pedal::before {
-    content: "";
-    position: absolute;
-    top: 12px;
-    left: 18%;
-    right: 18%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--accent);
-    opacity: 0.55;
-  }
-  .pedal.on { transform: translateY(6px); box-shadow: 0 1px 0 var(--shadow); }
-  .pedal.on::before { opacity: 1; box-shadow: 0 0 14px var(--accent); }
-  .pedal--brake {
-    --accent: var(--brake);
-    left: max(16px, env(safe-area-inset-left, 0px));
-    width: clamp(112px, 24vw, 176px);
-    height: clamp(96px, 22vh, 140px);
-  }
-  .pedal--gas {
-    --accent: var(--gas);
-    right: max(16px, env(safe-area-inset-right, 0px));
-    width: clamp(86px, 17vw, 128px);
-    height: clamp(124px, 30vh, 196px);
-  }
+  .arrow svg { width: 48%; height: 48%; fill: currentColor; opacity: 0.8; }
+  .arrow.on { transform: translateY(6px); box-shadow: 0 1px 0 var(--shadow); }
+  .arrow.on svg { opacity: 1; filter: drop-shadow(0 0 10px var(--accent)); }
+  .arrow--left { --accent: var(--brake); left: max(16px, env(safe-area-inset-left, 0px)); }
+  .arrow--right { --accent: var(--gas); right: max(16px, env(safe-area-inset-right, 0px)); }
 
   .overlay {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 3;
     display: grid;
@@ -181,7 +160,7 @@
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
   }
-  .card h1 { margin: 0; font: 400 clamp(34px, 7vw, 50px)/0.95 var(--font-display); color: var(--crust); text-wrap: balance; }
+  .card h1 { margin: 0; font: 400 clamp(34px, 7cqw, 50px)/0.95 var(--font-display); color: var(--crust); text-wrap: balance; }
   .card p { margin: 0; font: 500 15px/1.5 var(--font-hud); color: var(--ink); max-width: 60ch; }
   .card .label { color: var(--ink-dim); }
   .stats { display: flex; gap: 28px; margin: 2px 0 0; }
@@ -216,16 +195,17 @@
   }
   .go:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--car-shade); }
 
-  @media (max-width: 640px) {
+  @container game (max-width: 640px) {
     .overlay { padding-block-start: calc(env(safe-area-inset-top, 0px) + 120px); align-items: start; }
     .keys { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .toast, .pedal { transition: none; }
+    .toast, .arrow { transition: none; }
   }
 </style>
 </head>
 <body>
+<div id="game">
 <canvas id="world" aria-label="Side view of a buggy driving over hilly terrain"></canvas>
 
 <div class="hud hud--left">
@@ -243,24 +223,29 @@
 
 <div class="overlay" id="overlay">
   <div class="card" role="dialog" aria-labelledby="ov-title">
-    <div class="label" id="ov-eyebrow">Two pedals, no steering</div>
+    <div class="label" id="ov-eyebrow">Two arrows, no steering</div>
     <h1 id="ov-title">Pedal Rally</h1>
-    <p id="ov-text">Drive as far as you can over hills, rocks, logs and water pits. Gas speeds up, Brake slows down and then reverses. In the air, Gas tips the nose up and Brake tips it down. Land on your wheels, not your roof.</p>
+    <p id="ov-text">Drive as far as you can over hills, rocks, logs and water pits. Hold → to drive forward. Hold ← to slow down, then reverse. In the air, → tips the nose up and ← tips it down. Land on your wheels, not your roof.</p>
     <dl class="stats" id="ov-stats" hidden>
       <div><dt>Distance</dt><dd id="ov-dist">0 m</dd></div>
       <div><dt>Best</dt><dd id="ov-best">0 m</dd></div>
     </dl>
     <ul class="keys">
-      <li><kbd>→</kbd><kbd>D</kbd> Gas</li>
-      <li><kbd>←</kbd><kbd>A</kbd> Brake / reverse</li>
+      <li><kbd>→</kbd><kbd>D</kbd> Forward</li>
+      <li><kbd>←</kbd><kbd>A</kbd> Back / reverse</li>
       <li><kbd>R</kbd> Restart</li>
     </ul>
     <button class="go" id="ov-go" type="button">Start driving</button>
   </div>
 </div>
 
-<button class="pedal pedal--brake" id="pedal-brake" type="button" tabindex="-1">Brake</button>
-<button class="pedal pedal--gas" id="pedal-gas" type="button" tabindex="-1">Gas</button>
+<button class="arrow arrow--left" id="arrow-left" type="button" tabindex="-1" aria-label="Back (slow down, then reverse)">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.5 6 12l9.5 8.5z"/></svg>
+</button>
+<button class="arrow arrow--right" id="arrow-right" type="button" tabindex="-1" aria-label="Forward">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3.5 18 12l-9.5 8.5z"/></svg>
+</button>
+</div>
 
 <script>
 (() => {
@@ -623,9 +608,16 @@
   const canvas = document.getElementById('world');
   const ctx = canvas.getContext('2d');
   let W = 0, HS = 0, dpr = 1, basePX = 30, PX = 30;
+  const gameEl = document.getElementById('game');
+  const touchScreen = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   function resize() {
     dpr = Math.min(2, window.devicePixelRatio || 1);
-    W = window.innerWidth; HS = window.innerHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const sideways = touchScreen && vh > vw;
+    gameEl.classList.toggle('sideways', sideways);
+    gameEl.style.transform = sideways ? 'translateX(' + vw + 'px) rotate(90deg)' : '';
+    W = sideways ? vh : vw; HS = sideways ? vw : vh;
+    gameEl.style.width = W + 'px'; gameEl.style.height = HS + 'px';
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(HS * dpr);
     basePX = Math.max(16, Math.min(HS / 15, W / 26));
   }
@@ -857,22 +849,32 @@
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       const ac = new AC();
-      const o1 = ac.createOscillator(), o2 = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
-      o1.type = 'sawtooth'; o2.type = 'square'; f.type = 'lowpass'; f.frequency.value = 650; g.gain.value = 0;
-      o1.connect(f); o2.connect(f); f.connect(g); g.connect(ac.destination);
+      // A soft engine tone: a triangle wave plus a quieter sine an octave up, rounded off by a low-pass filter.
+      const o1 = ac.createOscillator(), o2 = ac.createOscillator(), mix2 = ac.createGain(), f = ac.createBiquadFilter(), g = ac.createGain();
+      o1.type = 'triangle'; o2.type = 'sine'; mix2.gain.value = 0.35;
+      f.type = 'lowpass'; f.frequency.value = 1600; f.Q.value = 0.5; g.gain.value = 0;
+      o1.connect(f); o2.connect(mix2); mix2.connect(f); f.connect(g); g.connect(ac.destination);
       o1.start(); o2.start();
       audio = { ac, o1, o2, g };
     } catch (e) { audio = null; }
   }
+  // Engine pitch follows speed through four gears, so it rises and drops back like a real car shifting up.
+  const GEARS = [0, 7, 13, 19, 30];
+  function engineHz() {
+    const v = (Math.abs(wheels[0].s) + Math.abs(wheels[1].s)) / 2 * WHEEL_R;
+    let gear = 0;
+    while (gear < GEARS.length - 2 && v > GEARS[gear + 1]) gear++;
+    const t = clamp((v - GEARS[gear]) / (GEARS[gear + 1] - GEARS[gear]), 0, 1);
+    return 85 + gear * 12 + t * 110;
+  }
   function updateAudio() {
     if (!audio) return;
     const t = audio.ac.currentTime;
-    const spin = (Math.abs(wheels[0].s) + Math.abs(wheels[1].s)) / 2;
     const on = state === 'run' && !muted;
-    const f = 34 + spin * 1.5 + (input.gas && on ? 14 : 0);
-    audio.o1.frequency.setTargetAtTime(f, t, 0.06);
-    audio.o2.frequency.setTargetAtTime(f * 0.5, t, 0.06);
-    audio.g.gain.setTargetAtTime(on ? (input.gas ? 0.07 : 0.04) : 0, t, 0.08);
+    const f = engineHz();
+    audio.o1.frequency.setTargetAtTime(f, t, 0.08);
+    audio.o2.frequency.setTargetAtTime(f * 2, t, 0.08);
+    audio.g.gain.setTargetAtTime(on ? (input.gas ? 0.09 : 0.05) : 0, t, 0.1);
   }
   soundBtn.addEventListener('click', () => { muted = !muted; store.set('pedalRally.muted', muted); syncSoundBtn(); initAudio(); soundBtn.blur(); });
 
@@ -895,15 +897,15 @@
     if (GAS_KEYS.includes(e.code)) input.gasKey = false;
     else if (BRAKE_KEYS.includes(e.code)) input.brakeKey = false;
   });
-  window.addEventListener('blur', () => { input.gasKey = input.brakeKey = input.gasPad = input.brakePad = false; syncPedals(); });
+  window.addEventListener('blur', () => { input.gasKey = input.brakeKey = input.gasPad = input.brakePad = false; syncArrows(); });
 
-  const pedals = { gas: $('pedal-gas'), brake: $('pedal-brake') };
-  function syncPedals() {
-    pedals.gas.classList.toggle('on', input.gas);
-    pedals.brake.classList.toggle('on', input.brake);
+  const arrows = { gas: $('arrow-right'), brake: $('arrow-left') };
+  function syncArrows() {
+    arrows.gas.classList.toggle('on', input.gas);
+    arrows.brake.classList.toggle('on', input.brake);
   }
   for (const name of ['gas', 'brake']) {
-    const el = pedals[name], prop = name + 'Pad';
+    const el = arrows[name], prop = name + 'Pad';
     el.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       try { el.setPointerCapture(e.pointerId); } catch (err) { /* not supported */ }
@@ -957,7 +959,7 @@
     cam.y += (ty - cam.y) * Math.min(1, dt * 4);
     shake = Math.max(0, shake - dt);
 
-    syncPedals();
+    syncArrows();
     updateHud();
     updateAudio();
     render();
