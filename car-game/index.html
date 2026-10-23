@@ -210,7 +210,7 @@
 
 <div class="hud hud--left">
   <div class="readout"><span id="hud-dist">0</span><small>m</small></div>
-  <div class="label">Best <span id="hud-best">0</span> m</div>
+  <div class="label">Level <span id="hud-level">1</span> · Best <span id="hud-best">0</span> m</div>
 </div>
 <div class="hud hud--right">
   <div class="readout readout--small"><span id="hud-speed">0</span><small>km/h</small></div>
@@ -225,9 +225,10 @@
   <div class="card" role="dialog" aria-labelledby="ov-title">
     <div class="label" id="ov-eyebrow">Two arrows, no steering</div>
     <h1 id="ov-title">Pedal Rally</h1>
-    <p id="ov-text">Drive as far as you can over hills, rocks, logs and water pits. Hold → to drive forward. Hold ← to slow down, then reverse. In the air, → tips the nose up and ← tips it down. Land on your wheels, not your roof.</p>
+    <p id="ov-text">Drive as far as you can over hills, rocks, logs and water pits. Every 200 m a new level starts and the road gets harder. Hold → to drive forward. Hold ← to slow down, then reverse. In the air, → tips the nose up and ← tips it down. Land on your wheels, not your roof.</p>
     <dl class="stats" id="ov-stats" hidden>
       <div><dt>Distance</dt><dd id="ov-dist">0 m</dd></div>
+      <div><dt>Level</dt><dd id="ov-level">1</dd></div>
       <div><dt>Best</dt><dd id="ov-best">0 m</dd></div>
     </dl>
     <ul class="keys">
@@ -290,6 +291,10 @@
   const AIR_ACC = 5.5, AIR_WMAX = 4.5;  // air control
   const MU_TIRE = 1.15, MU_BODY = 0.5;
   const START_X = 8;
+  // A new level starts every LEVEL_LEN metres. Difficulty d grows with distance: 0 at the start,
+  // 1 at level 7 (1200 m), and keeps rising to MAX_D so the far road stays hard but jumpable.
+  const LEVEL_LEN = 200, MAX_D = 1.6;
+  const difficultyAt = (x) => Math.min(MAX_D, Math.max(0, x - START_X) / (LEVEL_LEN * 6));
 
   // Body outline (local coords, x forward, y up). Third value marks the roll cage: touching ground there = crash.
   const TUB = [[-1.65, -0.30], [1.70, -0.30], [1.80, 0.10], [1.10, 0.32], [-0.75, 0.32], [-1.72, 0.26]];
@@ -306,7 +311,7 @@
 
   function baseH(x) {
     const ramp = smooth((x - 25) / 70);
-    const grow = 1 + Math.min(1.4, Math.max(0, x) / 1400);
+    const grow = 1 + Math.min(2, Math.max(0, x) / 1000);
     return ramp * grow * (2.4 * Math.sin(0.017 * x + P1) + 1.0 * Math.sin(0.043 * x + P2) + 0.35 * Math.sin(0.12 * x + P3));
   }
   const R = (a, b) => a + (b - a) * rng();
@@ -314,22 +319,22 @@
 
   const MAKERS = {
     bump(x, d) {
-      const L = R(3, 5), A = R(0.45, 0.9) + 0.4 * d;
+      const L = R(3, 5), A = R(0.45, 0.9) + 0.5 * d;
       return { x0: x, x1: x + L, fn: (u, h) => h + A * Math.sin(Math.PI * u / L) ** 2 };
     },
     rock(x, d) {
-      const L = R(1.6, 3.2), A = R(0.35, 0.7) + 0.35 * d, e = 0.45;
+      const L = R(1.6, 3.2), A = R(0.35, 0.7) + 0.45 * d, e = 0.45;
       return { x0: x, x1: x + L, fn: (u, h) => h + A * Math.min(smooth(u / e), smooth((L - u) / e)) };
     },
     logs(x, d) {
-      const n = RI(3, 5), S = R(2.2, 3.0), r = R(0.28, 0.42) + 0.1 * d;
+      const n = RI(3, 5) + Math.floor(2 * d), S = R(2.2, 3.0), r = R(0.28, 0.42) + 0.12 * d;
       return {
         x0: x, x1: x + n * S,
         fn: (u, h) => { const c = (Math.floor(u / S) + 0.5) * S, dd = u - c; return Math.abs(dd) < r ? h + Math.sqrt(r * r - dd * dd) : h; },
       };
     },
     hill(x, d) {
-      const L = R(24, 40), A = R(2.5, 4.5) + 3.5 * d;
+      const L = R(24, 40), A = R(2.5, 4.5) + 4 * d;
       return { x0: x, x1: x + L, fn: (u, h) => h + A * 0.5 * (1 - Math.cos(2 * Math.PI * u / L)) };
     },
     ramp(x, d) {
@@ -352,7 +357,7 @@
       };
     },
     steps(x, d) {
-      const n = RI(3, 5), sH = R(0.3, 0.45) + 0.1 * d, T = R(2.2, 3.0), down = 12;
+      const n = RI(3, 5) + Math.floor(2 * d), sH = R(0.3, 0.45) + 0.15 * d, T = R(2.2, 3.0), down = 12;
       return {
         x0: x, x1: x + n * T + down,
         fn: (u, h) => {
@@ -361,23 +366,37 @@
         },
       };
     },
-    dip(x) {
-      const L = R(4, 6), A = R(0.8, 1.4);
+    // Two or three rocks close together: no room to settle between them.
+    rocks(x, d) {
+      const n = d > 1 && rng() < 0.5 ? 3 : 2, parts = [];
+      let cx = x;
+      for (let k = 0; k < n; k++) { const f = MAKERS.rock(cx, d); parts.push(f); cx = f.x1 + R(2.5, 4.5); }
+      return {
+        x0: x, x1: parts[n - 1].x1,
+        fn: (u, h) => { const X = x + u; for (const f of parts) if (X >= f.x0 && X <= f.x1) return f.fn(X - f.x0, h); return h; },
+      };
+    },
+    dip(x, d) {
+      const L = R(4, 6), A = R(0.8, 1.4) + 0.4 * d;
       return { x0: x, x1: x + L, fn: (u, h) => h - A * Math.sin(Math.PI * u / L) ** 2 };
     },
   };
 
   function addFeature() {
-    const x = nextFeatX, d = Math.min(1, x / 1600);
-    const pool = [['bump', 3], ['rock', 3], ['logs', 2], ['hill', 2], ['ramp', 2]];
-    if (x > 140) pool.push(['pit', 2 + 3 * d]);
-    if (x > 220) pool.push(['steps', 1.5], ['dip', 1.5]);
+    const x = nextFeatX, d = difficultyAt(x);
+    // Easy obstacles fade out and hard ones take over as you get further.
+    const pool = [['bump', Math.max(0.5, 3 - 1.5 * d)], ['rock', 3], ['logs', 2 + d], ['hill', 2 + d], ['ramp', 2]];
+    if (x > 150) pool.push(['pit', 2 + 3 * d]);
+    if (x > 250) pool.push(['steps', 1.5 + d], ['dip', 1.5]);
+    if (x > 400) pool.push(['rocks', 1 + 2 * d]);
     let total = 0; for (const p of pool) total += p[1];
     let pick = rng() * total, type = pool[0][0];
     for (const p of pool) { pick -= p[1]; if (pick <= 0) { type = p[0]; break; } }
     const f = MAKERS[type](x, d);
     feats.push(f);
-    nextFeatX = f.x1 + (26 - 14 * d) * (0.6 + rng() * 0.8);
+    // Obstacles come closer together, and far out some follow straight after the last one.
+    const chain = rng() < 0.35 * d;
+    nextFeatX = f.x1 + (chain ? R(2, 5) : Math.max(5, 26 - 13 * d) * (0.6 + rng() * 0.8));
   }
 
   function computeH(x) {
@@ -433,7 +452,7 @@
 
   // ---------- Game state ----------
   let car, wheels, state = 'title', crashT = 0, crashReason = null, overlayOpen = true;
-  let dist = 0, best = store.get('pedalRally.best', 0);
+  let dist = 0, best = store.get('pedalRally.best', 0), level = 1;
   let airT = 0, airRot = 0, tipT = 0, lastProgressX = 0, lastProgressT = 0, stuckShown = false;
   let simTime = 0, shake = 0;
   const particles = [];
@@ -452,7 +471,7 @@
     const y = groundAt(START_X) + 0.95;
     car = { x: START_X, y, a: 0, vx: 0, vy: 0, w: 0 };
     wheels = ANCHORS.map(([ax, ay]) => ({ ax, ay, x: START_X + ax, y: y + ay, vx: 0, vy: 0, s: 0, phi: 0, contact: false, slip: 0, cx: 0, cy: 0 }));
-    dist = 0; airT = 0; airRot = 0; tipT = 0; lastProgressX = START_X; lastProgressT = simTime; stuckShown = false;
+    dist = 0; level = 1; airT = 0; airRot = 0; tipT = 0; lastProgressX = START_X; lastProgressT = simTime; stuckShown = false;
     particles.length = 0;
     cam.x = START_X + (W / basePX) * 0.3; cam.y = y + 1.2;
   }
@@ -696,7 +715,10 @@
 
     // Distance posts every 50 m, plus a flag at your best.
     const posts = [];
-    for (let k = Math.max(1, Math.ceil((left - START_X) / 50)); START_X + k * 50 < right; k++) posts.push([START_X + k * 50, k * 50 + ' m', COL.ink]);
+    for (let k = Math.max(1, Math.ceil((left - START_X) / 50)); START_X + k * 50 < right; k++) {
+      const m = k * 50, isLevel = m % LEVEL_LEN === 0;
+      posts.push([START_X + m, isLevel ? 'Level ' + (m / LEVEL_LEN + 1) : m + ' m', isLevel ? COL.crust : COL.ink]);
+    }
     if (best > 0 && START_X + best > left && START_X + best < right) posts.push([START_X + best, 'Best', COL.gas]);
     for (const [x, , col] of posts) {
       const g = groundAt(x);
@@ -800,15 +822,15 @@
 
   // ---------- HUD, overlay, toasts ----------
   const $ = (id) => document.getElementById(id);
-  const hud = { dist: $('hud-dist'), best: $('hud-best'), speed: $('hud-speed') };
+  const hud = { dist: $('hud-dist'), best: $('hud-best'), speed: $('hud-speed'), level: $('hud-level') };
   const overlay = $('overlay');
   let lastHud = '';
   function updateHud() {
     const d = Math.floor(dist), b = Math.max(best, d), v = Math.round(Math.abs(car.vx * Math.cos(car.a) + car.vy * Math.sin(car.a)) * 3.6);
-    const key = d + '|' + b + '|' + v;
+    const key = d + '|' + b + '|' + v + '|' + level;
     if (key === lastHud) return;
     lastHud = key;
-    hud.dist.textContent = d; hud.best.textContent = b; hud.speed.textContent = v;
+    hud.dist.textContent = d; hud.best.textContent = b; hud.speed.textContent = v; hud.level.textContent = level;
   }
 
   const REASONS = {
@@ -823,6 +845,7 @@
     $('ov-title').textContent = title;
     $('ov-text').textContent = text;
     $('ov-dist').textContent = Math.floor(dist) + ' m';
+    $('ov-level').textContent = level;
     $('ov-best').textContent = best + ' m';
     $('ov-stats').hidden = false;
     $('ov-go').textContent = 'Drive again';
@@ -932,6 +955,8 @@
       dist = Math.max(dist, car.x - START_X);
       if (car.x > lastProgressX + 0.5) { lastProgressX = car.x; lastProgressT = simTime; stuckShown = false; }
       else if (!stuckShown && simTime - lastProgressT > 7) { stuckShown = true; toast('Stuck? Press Restart'); }
+      const lvl = 1 + Math.floor(dist / LEVEL_LEN);
+      if (lvl > level) { level = lvl; toast('Level ' + level); }
     }
     if (state === 'crashed' && !overlayOpen && simTime - crashT > 1.1) showOverlay();
 
