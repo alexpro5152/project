@@ -307,8 +307,8 @@
 
   // Level 1 is a fixed 50 m course: a little hill, flat ground, a log bridge over water,
   // the finish strip, then a barrier (two poles joined by a padded bar) that stops the car.
-  const L1 = { len: 50, hill0: 14, hill1: 24, hillH: 1.2, bridge0: 30, bridge1: 42, finish: START_X + 50, gate: START_X + 59, end: START_X + 80 };
-  const LOG_R = 0.22, BR_N = 20, BR_M = 10;   // bridge: log radius, number of rope links, mass per log
+  const L1 = { len: 50, hill0: 13, hill1: 26, hillH: 2.4, bridge0: 30, bridge1: 42, finish: START_X + 50, gate: START_X + 59, lake: START_X + 62 };
+  const LOG_R = 0.15, BR_N = 20, BR_M = 10;   // bridge: half the log thickness, number of rope links, mass per log
   const GATE_K = 60000, GATE_C = 6000;        // barrier padding: spring and damping
 
   // Body outline (local coords, x forward, y up). Third value marks the roll cage: touching ground there = crash.
@@ -418,7 +418,7 @@
     if (x < 3) return (3 - x) * 3;
     if (x >= L1.hill0 && x <= L1.hill1) return L1.hillH * 0.5 * (1 - Math.cos(2 * Math.PI * (x - L1.hill0) / (L1.hill1 - L1.hill0)));
     if (x > L1.bridge0 && x < L1.bridge1) return -4; // ravine under the bridge
-    if (x > L1.end) return (x - L1.end) * 3;         // end of the course
+    if (x > L1.lake) return -3.5;                    // lake after the barrier
     return 0;
   }
 
@@ -428,7 +428,7 @@
   function makeBridge(x0, x1, y) {
     const nodes = [];
     for (let i = 0; i <= BR_N; i++) nodes.push({ x: x0 + (x1 - x0) * i / BR_N, y, vx: 0, vy: 0, ox: 0, oy: 0, pin: i === 0 || i === BR_N });
-    return { nodes, seg: (x1 - x0) / BR_N * 1.012 };
+    return { nodes, seg: (x1 - x0) / BR_N * 1.008 };
   }
   function stepBridge(dt) {
     if (!bridge) return;
@@ -570,6 +570,7 @@
     H = []; feats = []; pits = []; nextFeatX = 45; fIdx = 0; bridge = null; gatePush = 0;
     if (mode === 'level1') {
       pits.push({ x0: L1.bridge0 + 0.3, x1: L1.bridge1 - 0.3, floor: -4, water: -2.6 });
+      pits.push({ x0: L1.lake + 0.3, x1: Infinity, floor: -3.5, water: -1.4 });
       bridge = makeBridge(L1.bridge0, L1.bridge1, -LOG_R);
       for (let i = 0; i < 1500; i++) stepBridge(DT); // let it settle into its sag before the car arrives
     }
@@ -810,14 +811,15 @@
       if (p.x1 < left || p.x0 > right) continue;
       ctx.fillStyle = COL.water;
       ctx.globalAlpha = 0.85;
-      ctx.fillRect(p.x0 - 0.6, p.floor - 0.5, p.x1 - p.x0 + 1.2, p.water - p.floor + 0.5);
+      const wx0 = Math.max(p.x0 - 0.6, left), wx1 = Math.min(p.x1 + 0.6, right);
+      ctx.fillRect(wx0, p.floor - 0.5, wx1 - wx0, p.water - p.floor + 0.5);
       ctx.globalAlpha = 1;
       ctx.strokeStyle = COL['water-top'];
       ctx.lineWidth = 0.08;
       ctx.beginPath();
-      for (let x = p.x0 - 0.6; x <= p.x1 + 0.6; x += 0.25) {
+      for (let x = wx0; x <= wx1; x += 0.25) {
         const y = p.water + 0.05 * Math.sin(x * 3 + simTime * 3);
-        if (x === p.x0 - 0.6) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        if (x === wx0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.stroke();
     }
@@ -874,20 +876,26 @@
     // Rope tying the logs together
     ctx.strokeStyle = COL.rope; ctx.lineWidth = 0.07;
     ctx.beginPath(); ns.forEach((n, i) => (i ? ctx.lineTo(n.x, n.y) : ctx.moveTo(n.x, n.y))); ctx.stroke();
-    // Logs, seen end-on
-    for (const n of ns) {
-      ctx.fillStyle = COL.wood; ctx.beginPath(); ctx.arc(n.x, n.y, LOG_R, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = COL['wood-dark']; ctx.lineWidth = 0.04;
-      ctx.beginPath(); ctx.arc(n.x, n.y, LOG_R * 0.92, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(n.x, n.y, LOG_R * 0.45, 0, Math.PI * 2); ctx.stroke();
-    }
+    // Logs as rectangles, each turned to follow the bridge's curve
+    const w = bridge.seg * 0.86, h = LOG_R * 2;
+    ns.forEach((n, i) => {
+      const a = ns[Math.max(0, i - 1)], b = ns[Math.min(ns.length - 1, i + 1)];
+      ctx.save();
+      ctx.translate(n.x, n.y);
+      ctx.rotate(Math.atan2(b.y - a.y, b.x - a.x));
+      ctx.fillStyle = COL.wood; ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.strokeStyle = COL['wood-dark']; ctx.lineWidth = 0.035;
+      ctx.strokeRect(-w / 2, -h / 2, w, h);
+      ctx.beginPath(); ctx.moveTo(-w * 0.3, 0.02); ctx.lineTo(w * 0.32, 0.02); ctx.stroke();
+      ctx.restore();
+    });
   }
 
   // Black and white checkered strip on the road at the finish line.
   function drawFinishStrip() {
-    const sq = 0.25, x0 = L1.finish - 0.5;
+    const sq = 0.2, x0 = L1.finish - 0.4;
     for (let col = 0; col < 4; col++) {
-      for (let row = 0; row < 3; row++) {
+      for (let row = 0; row < 2; row++) {
         ctx.fillStyle = (col + row) % 2 ? COL['check-dark'] : COL['check-light'];
         ctx.fillRect(x0 + col * sq, 0.05 - (row + 1) * sq, sq, sq);
       }
@@ -897,7 +905,7 @@
   // Barrier after the finish: two poles (one near, one far side of the road) joined by a bar at bumper height.
   // The far pole is drawn behind the car, the near pole in front of it. The poles lean when the car pushes the bar.
   function drawBarrier(front) {
-    const g = L1.gate, h = 1.15, lean = Math.min(0.5, gatePush);
+    const g = L1.gate, h = 1.5, lean = Math.min(0.5, gatePush);
     const striped = (xa, ya, xb, yb, w) => {
       ctx.lineCap = 'butt'; ctx.lineWidth = w;
       const n = 6;
@@ -909,14 +917,14 @@
         ctx.stroke();
       }
     };
-    const farX = g + 0.45, farY = 0.35;
+    const farX = g + 0.6, farY = 0.45;
     if (!front) {
-      striped(farX, farY, farX + lean * 0.8, farY + h * 0.85, 0.11);
-      striped(g + lean, h, farX + lean * 0.8, farY + h * 0.85, 0.16);
+      striped(farX, farY, farX + lean * 0.8, farY + h * 0.85, 0.2);
+      striped(g + lean, h, farX + lean * 0.8, farY + h * 0.85, 0.26);
     } else {
-      striped(g, 0, g + lean, h, 0.14);
+      striped(g, 0, g + lean, h, 0.26);
       ctx.fillStyle = COL['check-light'];
-      ctx.beginPath(); ctx.arc(g + lean, h, 0.1, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(g + lean, h, 0.16, 0, Math.PI * 2); ctx.fill();
     }
   }
 
