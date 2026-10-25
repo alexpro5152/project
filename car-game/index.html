@@ -31,6 +31,11 @@
     --water: #3da5c6;
     --water-top: #9fe3f2;
     --dust: #d9a77a;
+    --wood: #b5804e;
+    --wood-dark: #6b4226;
+    --rope: #dcc79c;
+    --check-dark: #15121a;
+    --check-light: #f7f2ea;
     --ink: #fff3e0;
     --ink-dim: #e8c9b0;
     --panel: rgba(26, 16, 34, 0.74);
@@ -194,6 +199,10 @@
     cursor: pointer;
   }
   .go:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--car-shade); }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .actions .go { margin-top: 0; }
+  .go--alt { background: transparent; color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
+  .go--alt:active { transform: translateY(2px); box-shadow: none; }
 
   @container game (max-width: 640px) {
     .overlay { padding-block-start: calc(env(safe-area-inset-top, 0px) + 120px); align-items: start; }
@@ -210,7 +219,7 @@
 
 <div class="hud hud--left">
   <div class="readout"><span id="hud-dist">0</span><small>m</small></div>
-  <div class="label">Level <span id="hud-level">1</span> · Best <span id="hud-best">0</span> m</div>
+  <div class="label" id="hud-info">Level 1</div>
 </div>
 <div class="hud hud--right">
   <div class="readout readout--small"><span id="hud-speed">0</span><small>km/h</small></div>
@@ -225,18 +234,17 @@
   <div class="card" role="dialog" aria-labelledby="ov-title">
     <div class="label" id="ov-eyebrow">Two arrows, no steering</div>
     <h1 id="ov-title">Pedal Rally</h1>
-    <p id="ov-text">Drive as far as you can over hills, rocks, logs and water pits. Every 200 m a new level starts and the road gets harder. Hold → to drive forward. Hold ← to slow down, then reverse. In the air, → tips the nose up and ← tips it down. Land on your wheels, not your roof.</p>
-    <dl class="stats" id="ov-stats" hidden>
-      <div><dt>Distance</dt><dd id="ov-dist">0 m</dd></div>
-      <div><dt>Level</dt><dd id="ov-level">1</dd></div>
-      <div><dt>Best</dt><dd id="ov-best">0 m</dd></div>
-    </dl>
+    <p id="ov-text">Level 1 is a short 50 m course: a little hill, a wobbly log bridge, then the finish line. After that the endless road begins, and it gets harder every 200 m. Hold → to drive forward. Hold ← to slow down, then reverse. In the air, → tips the nose up and ← tips it down.</p>
+    <dl class="stats" id="ov-stats" hidden></dl>
     <ul class="keys">
       <li><kbd>→</kbd><kbd>D</kbd> Forward</li>
       <li><kbd>←</kbd><kbd>A</kbd> Back / reverse</li>
       <li><kbd>R</kbd> Restart</li>
     </ul>
-    <button class="go" id="ov-go" type="button">Start driving</button>
+    <div class="actions">
+      <button class="go" id="ov-go" type="button">Start Level 1</button>
+      <button class="go go--alt" id="ov-alt" type="button">Endless road</button>
+    </div>
   </div>
 </div>
 
@@ -257,7 +265,8 @@
   const tok = (n) => css.getPropertyValue(n).trim();
   const COL = {};
   ['sky-top', 'sky-mid', 'sky-low', 'sun', 'ridge-far', 'ridge-near', 'earth', 'earth-deep', 'crust', 'strata',
-   'car', 'car-shade', 'cage', 'helmet', 'visor', 'tire', 'rim', 'water', 'water-top', 'dust', 'ink', 'brake', 'gas']
+   'car', 'car-shade', 'cage', 'helmet', 'visor', 'tire', 'rim', 'water', 'water-top', 'dust', 'ink', 'brake', 'gas',
+   'wood', 'wood-dark', 'rope', 'check-dark', 'check-light']
     .forEach((n) => { COL[n] = tok('--' + n); });
 
   // ---------- Helpers ----------
@@ -295,6 +304,12 @@
   // 1 at level 7 (1200 m), and keeps rising to MAX_D so the far road stays hard but jumpable.
   const LEVEL_LEN = 200, MAX_D = 1.6;
   const difficultyAt = (x) => Math.min(MAX_D, Math.max(0, x - START_X) / (LEVEL_LEN * 6));
+
+  // Level 1 is a fixed 50 m course: a little hill, flat ground, a log bridge over water,
+  // the finish strip, then a barrier (two poles joined by a padded bar) that stops the car.
+  const L1 = { len: 50, hill0: 14, hill1: 24, hillH: 1.2, bridge0: 30, bridge1: 42, finish: START_X + 50, gate: START_X + 59, end: START_X + 80 };
+  const LOG_R = 0.22, BR_N = 20, BR_M = 10;   // bridge: log radius, number of rope links, mass per log
+  const GATE_K = 60000, GATE_C = 6000;        // barrier padding: spring and damping
 
   // Body outline (local coords, x forward, y up). Third value marks the roll cage: touching ground there = crash.
   const TUB = [[-1.65, -0.30], [1.70, -0.30], [1.80, 0.10], [1.10, 0.32], [-0.75, 0.32], [-1.72, 0.26]];
@@ -399,7 +414,94 @@
     nextFeatX = f.x1 + (chain ? R(2, 5) : Math.max(5, 26 - 13 * d) * (0.6 + rng() * 0.8));
   }
 
+  function level1H(x) {
+    if (x < 3) return (3 - x) * 3;
+    if (x >= L1.hill0 && x <= L1.hill1) return L1.hillH * 0.5 * (1 - Math.cos(2 * Math.PI * (x - L1.hill0) / (L1.hill1 - L1.hill0)));
+    if (x > L1.bridge0 && x < L1.bridge1) return -4; // ravine under the bridge
+    if (x > L1.end) return (x - L1.end) * 3;         // end of the course
+    return 0;
+  }
+
+  // The bridge is a chain of logs tied with rope, pinned at both banks. Each log is a point mass; the
+  // rope links are kept at a fixed length by repeated position corrections, so the bridge sags and swings.
+  let bridge = null;
+  function makeBridge(x0, x1, y) {
+    const nodes = [];
+    for (let i = 0; i <= BR_N; i++) nodes.push({ x: x0 + (x1 - x0) * i / BR_N, y, vx: 0, vy: 0, ox: 0, oy: 0, pin: i === 0 || i === BR_N });
+    return { nodes, seg: (x1 - x0) / BR_N * 1.012 };
+  }
+  function stepBridge(dt) {
+    if (!bridge) return;
+    const ns = bridge.nodes, seg = bridge.seg;
+    for (const n of ns) {
+      if (n.pin) continue;
+      n.vy += GRAV * dt; n.vx *= 1 - 0.8 * dt; n.vy *= 1 - 0.8 * dt;
+      n.ox = n.x; n.oy = n.y; n.x += n.vx * dt; n.y += n.vy * dt;
+    }
+    for (let it = 0; it < 12; it++) {
+      for (let i = 0; i < ns.length - 1; i++) {
+        const a = ns[i], b = ns[i + 1], wa = a.pin ? 0 : 1, wb = b.pin ? 0 : 1;
+        const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1e-6, k = (d - seg) / d / (wa + wb);
+        a.x += dx * k * wa; a.y += dy * k * wa; b.x -= dx * k * wb; b.y -= dy * k * wb;
+      }
+    }
+    for (const n of ns) if (!n.pin) { n.vx = (n.x - n.ox) / dt; n.vy = (n.y - n.oy) / dt; }
+  }
+  // Deepest overlap between a circle and the bridge's logs (capsules along the rope links).
+  const BC = { nx: 0, ny: 1, pen: 0, i: 0, t: 0 };
+  function bridgeDeepest(cx, cy, r) {
+    if (!bridge) return null;
+    const ns = bridge.nodes, rr = r + LOG_R;
+    if (cx < ns[0].x - rr || cx > ns[ns.length - 1].x + rr) return null;
+    let found = false, bp = 0;
+    for (let i = 0; i < ns.length - 1; i++) {
+      const a = ns[i], b = ns[i + 1], ex = b.x - a.x, ey = b.y - a.y;
+      let t = ((cx - a.x) * ex + (cy - a.y) * ey) / (ex * ex + ey * ey);
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const dx = cx - (a.x + ex * t), dy = cy - (a.y + ey * t), d2 = dx * dx + dy * dy;
+      if (d2 < rr * rr) {
+        const d = Math.sqrt(d2) || 1e-6, pen = rr - d;
+        if (pen > bp) { bp = pen; found = true; BC.nx = dx / d; BC.ny = dy / d; BC.pen = pen; BC.i = i; BC.t = t; }
+      }
+    }
+    return found ? BC : null;
+  }
+  // A wheel on the bridge pushes the logs it touches, and the logs push back (two-way contact).
+  function wheelBridge(w) {
+    const ct = bridgeDeepest(w.x, w.y, WHEEL_R);
+    if (!ct) return;
+    const a = bridge.nodes[ct.i], b = bridge.nodes[ct.i + 1];
+    const wa = a.pin ? 0 : 1 - ct.t, wb = b.pin ? 0 : ct.t, ww = wa * wa + wb * wb, invB = ww / BR_M;
+    const share = (1 / WHEEL_M) / (1 / WHEEL_M + invB);
+    w.x += ct.nx * ct.pen * share; w.y += ct.ny * ct.pen * share;
+    if (ww > 0) {
+      const pb = ct.pen * (1 - share) / ww;
+      a.x -= ct.nx * pb * wa; a.y -= ct.ny * pb * wa; b.x -= ct.nx * pb * wb; b.y -= ct.ny * pb * wb;
+    }
+    w.contact = true;
+    w.cx = w.x - ct.nx * WHEEL_R; w.cy = w.y - ct.ny * WHEEL_R;
+    const bvx = (a.pin ? 0 : a.vx) * (1 - ct.t) + (b.pin ? 0 : b.vx) * ct.t;
+    const bvy = (a.pin ? 0 : a.vy) * (1 - ct.t) + (b.pin ? 0 : b.vy) * ct.t;
+    const vn = (w.vx - bvx) * ct.nx + (w.vy - bvy) * ct.ny;
+    let jn = 0;
+    if (vn < 0) {
+      jn = -vn * 1.05 / (1 / WHEEL_M + invB);
+      w.vx += ct.nx * jn / WHEEL_M; w.vy += ct.ny * jn / WHEEL_M;
+      a.vx -= ct.nx * jn * wa / BR_M; a.vy -= ct.ny * jn * wa / BR_M;
+      b.vx -= ct.nx * jn * wb / BR_M; b.vy -= ct.ny * jn * wb / BR_M;
+    }
+    const tx = ct.ny, ty = -ct.nx;
+    const u = (w.vx - bvx) * tx + (w.vy - bvy) * ty - w.s * WHEEL_R;
+    const jt = clamp(-u / (1 / WHEEL_M + WHEEL_R * WHEEL_R / WHEEL_I + invB), -MU_TIRE * jn, MU_TIRE * jn);
+    w.vx += tx * jt / WHEEL_M; w.vy += ty * jt / WHEEL_M;
+    w.s -= jt * WHEEL_R / WHEEL_I;
+    a.vx -= tx * jt * wa / BR_M; a.vy -= ty * jt * wa / BR_M;
+    b.vx -= tx * jt * wb / BR_M; b.vy -= ty * jt * wb / BR_M;
+    w.slip = u;
+  }
+
   function computeH(x) {
+    if (mode === 'level1') return level1H(x);
     if (x < 3) return (3 - x) * 3; // wall behind the start line
     while (nextFeatX < x + 60) addFeature();
     let h = baseH(x);
@@ -451,8 +553,10 @@
   }
 
   // ---------- Game state ----------
-  let car, wheels, state = 'title', crashT = 0, crashReason = null, overlayOpen = true;
+  let mode = 'level1'; // 'level1' (the fixed course) or 'endless' (Level 2 and up)
+  let car, wheels, state = 'title', crashT = 0, crashReason = null, overlayOpen = true, overlayT = 0;
   let dist = 0, best = store.get('pedalRally.best', 0), level = 1;
+  let runStart = 0, finishAt = 0, finishTime = 0, bestTime = store.get('pedalRally.level1Time', 0), gatePush = 0;
   let airT = 0, airRot = 0, tipT = 0, lastProgressX = 0, lastProgressT = 0, stuckShown = false;
   let simTime = 0, shake = 0;
   const particles = [];
@@ -463,7 +567,12 @@
   function newWorld() {
     rng = mulberry32((Math.random() * 2 ** 31) | 0);
     P1 = rng() * 6.28; P2 = rng() * 6.28; P3 = rng() * 6.28;
-    H = []; feats = []; pits = []; nextFeatX = 45; fIdx = 0;
+    H = []; feats = []; pits = []; nextFeatX = 45; fIdx = 0; bridge = null; gatePush = 0;
+    if (mode === 'level1') {
+      pits.push({ x0: L1.bridge0 + 0.3, x1: L1.bridge1 - 0.3, floor: -4, water: -2.6 });
+      bridge = makeBridge(L1.bridge0, L1.bridge1, -LOG_R);
+      for (let i = 0; i < 1500; i++) stepBridge(DT); // let it settle into its sag before the car arrives
+    }
     extend(Math.ceil(300 / DX));
   }
 
@@ -471,21 +580,27 @@
     const y = groundAt(START_X) + 0.95;
     car = { x: START_X, y, a: 0, vx: 0, vy: 0, w: 0 };
     wheels = ANCHORS.map(([ax, ay]) => ({ ax, ay, x: START_X + ax, y: y + ay, vx: 0, vy: 0, s: 0, phi: 0, contact: false, slip: 0, cx: 0, cy: 0 }));
-    dist = 0; level = 1; airT = 0; airRot = 0; tipT = 0; lastProgressX = START_X; lastProgressT = simTime; stuckShown = false;
+    dist = 0; level = mode === 'level1' ? 1 : 2; airT = 0; airRot = 0; tipT = 0; lastProgressX = START_X; lastProgressT = simTime; stuckShown = false;
     particles.length = 0;
     cam.x = START_X + (W / basePX) * 0.3; cam.y = y + 1.2;
   }
 
-  function startRun(fresh) {
-    if (fresh) { newWorld(); placeCar(); }
-    state = 'run';
+  function startMode(m) {
+    mode = m;
+    newWorld(); placeCar();
+    state = 'run'; runStart = simTime;
     hideOverlay();
+  }
+
+  function finish() {
+    state = 'finished'; finishAt = simTime; finishTime = simTime - runStart;
+    toast('Finish!');
   }
 
   function crash(reason) {
     if (state !== 'run') return;
     state = 'crashed'; crashT = simTime; crashReason = reason;
-    if (dist > best) { best = Math.floor(dist); store.set('pedalRally.best', best); }
+    if (mode === 'endless' && dist > best) { best = Math.floor(dist); store.set('pedalRally.best', best); }
     if (!reduceMotion) shake = 0.5;
     const col = reason === 'water' ? COL['water-top'] : COL.dust;
     for (let i = 0; i < 26; i++) {
@@ -516,9 +631,11 @@
 
   function step(dt) {
     const live = state === 'run';
-    const gas = live && input.gas, brake = live && input.brake && !input.gas;
+    // After the finish line the controls stop: the car slows to a crawl and rolls on until the barrier stops it.
     const c = Math.cos(car.a), s = Math.sin(car.a);
     const fwd = car.vx * c + car.vy * s;
+    const done = state === 'finished', crawl = done && gatePush === 0 && fwd < 3;
+    const gas = (live && input.gas) || crawl, brake = (live && input.brake && !input.gas) || (done && !crawl && (fwd > 4.5 || gatePush > 0));
 
     car.vy += GRAV * dt;
     const sp = Math.hypot(car.vx, car.vy), drag = DRAG * sp / CAR_M * dt;
@@ -543,10 +660,10 @@
 
       // Drive: w.s is forward-rolling spin (rad/s). Torque on the wheel tips the body the other way.
       let tq = 0;
-      if (gas) tq = TORQUE * Math.max(0, 1 - w.s / SMAX);
+      if (gas) tq = (crawl ? 0.3 : 1) * TORQUE * Math.max(0, 1 - w.s / SMAX);
       else if (brake) {
         if (fwd > 0.8 && w.s > 0) tq = -Math.min(BRAKE_T, w.s * WHEEL_I / dt);
-        else tq = -REV_T * Math.max(0, 1 + w.s / RMAX);
+        else if (live) tq = -REV_T * Math.max(0, 1 + w.s / RMAX);
       } else w.s -= w.s * ROLL * dt;
       w.s += tq / WHEEL_I * dt;
       car.w += tq * REACT / CAR_I * dt;
@@ -556,6 +673,14 @@
     if (live && airT > 0.12) {
       if (input.gas && car.w < AIR_WMAX) car.w += AIR_ACC * dt;
       else if (input.brake && car.w > -AIR_WMAX) car.w -= AIR_ACC * dt;
+    }
+
+    // Level 1 barrier: the padded bar catches the car's nose and pushes back until it stops.
+    if (mode === 'level1') {
+      let front = -Infinity;
+      for (const [lx, ly] of TUB) { const px = car.x + lx * c - ly * s; if (px > front) front = px; }
+      gatePush = Math.max(0, front - L1.gate);
+      if (gatePush > 0) car.vx -= Math.max(0, GATE_K * gatePush + GATE_C * car.vx) / CAR_M * dt;
     }
 
     // Water slows everything down
@@ -569,6 +694,8 @@
     // Integrate
     car.x += car.vx * dt; car.y += car.vy * dt; car.a += car.w * dt;
     for (const w of wheels) { w.x += w.vx * dt; w.y += w.vy * dt; w.phi -= w.s * dt; }
+
+    stepBridge(dt);
 
     // Wheels against ground: push out, cancel inward velocity, tyre friction couples spin and speed.
     for (const w of wheels) {
@@ -589,6 +716,7 @@
         w.s -= jt * WHEEL_R / WHEEL_I;
         w.slip = u;
       }
+      if (bridge) wheelBridge(w);
     }
 
     // Body against ground
@@ -597,10 +725,14 @@
       const px = car.x + lx * c2 - ly * s2, py = car.y + lx * s2 + ly * c2;
       const ct = deepest(px, py, 0.07);
       if (ct) { if (cage) crash('roof'); bodyContact(px, py, ct, MU_BODY, 0.1); }
+      const bc = bridgeDeepest(px, py, 0.07);
+      if (bc) { if (cage) crash('roof'); bodyContact(px, py, bc, MU_BODY, 0.1); }
     }
     const hx = car.x + HEAD.x * c2 - HEAD.y * s2, hy = car.y + HEAD.x * s2 + HEAD.y * c2;
     const hc = deepest(hx, hy, HEAD.r);
     if (hc) { crash('head'); bodyContact(hx, hy, hc, MU_BODY, 0.1); }
+    const hb = bridgeDeepest(hx, hy, HEAD.r);
+    if (hb) { crash('head'); bodyContact(hx, hy, hb, MU_BODY, 0.1); }
 
     if (pit && car.y < pit.water + 0.15) crash('water');
 
@@ -713,13 +845,19 @@
     ctx.strokeStyle = COL.crust;
     ctx.lineWidth = 0.22; polyline(i0, i1, -0.08); ctx.stroke();
 
-    // Distance posts every 50 m, plus a flag at your best.
+    // Endless road: distance posts every 50 m (level posts every 200 m), plus a flag at your best.
     const posts = [];
-    for (let k = Math.max(1, Math.ceil((left - START_X) / 50)); START_X + k * 50 < right; k++) {
-      const m = k * 50, isLevel = m % LEVEL_LEN === 0;
-      posts.push([START_X + m, isLevel ? 'Level ' + (m / LEVEL_LEN + 1) : m + ' m', isLevel ? COL.crust : COL.ink]);
+    if (mode === 'endless') {
+      for (let k = Math.max(1, Math.ceil((left - START_X) / 50)); START_X + k * 50 < right; k++) {
+        const m = k * 50, isLevel = m % LEVEL_LEN === 0;
+        posts.push([START_X + m, isLevel ? 'Level ' + (m / LEVEL_LEN + 2) : m + ' m', isLevel ? COL.crust : COL.ink]);
+      }
+      if (best > 0 && START_X + best > left && START_X + best < right) posts.push([START_X + best, 'Best', COL.gas]);
+    } else {
+      drawBridge();
+      drawFinishStrip();
+      drawBarrier(false);
     }
-    if (best > 0 && START_X + best > left && START_X + best < right) posts.push([START_X + best, 'Best', COL.gas]);
     for (const [x, , col] of posts) {
       const g = groundAt(x);
       ctx.strokeStyle = COL.cage; ctx.lineWidth = 0.08;
@@ -728,6 +866,69 @@
       ctx.beginPath(); ctx.moveTo(x, g + 2.2); ctx.lineTo(x + 1.1, g + 1.95); ctx.lineTo(x, g + 1.7); ctx.closePath(); ctx.fill();
     }
     return posts;
+  }
+
+  function drawBridge() {
+    const ns = bridge.nodes, x0 = ns[0].x, x1 = ns[ns.length - 1].x, top = 1.9;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // Bank posts
+    ctx.strokeStyle = COL['wood-dark']; ctx.lineWidth = 0.18;
+    ctx.beginPath(); ctx.moveTo(x0 - 0.25, 0); ctx.lineTo(x0 - 0.25, top); ctx.moveTo(x1 + 0.25, 0); ctx.lineTo(x1 + 0.25, top); ctx.stroke();
+    // Hand rope follows the bridge's sag, with hangers down to every other log
+    ctx.strokeStyle = COL.rope; ctx.lineWidth = 0.05;
+    ctx.beginPath(); ctx.moveTo(x0 - 0.25, top);
+    for (let i = 1; i < ns.length - 1; i++) ctx.lineTo(ns[i].x, ns[i].y + 1.0 + 0.9 * (1 - Math.sin(Math.PI * i / BR_N)));
+    ctx.lineTo(x1 + 0.25, top); ctx.stroke();
+    ctx.beginPath();
+    for (let i = 2; i < ns.length - 1; i += 2) { ctx.moveTo(ns[i].x, ns[i].y); ctx.lineTo(ns[i].x, ns[i].y + 1.0 + 0.9 * (1 - Math.sin(Math.PI * i / BR_N))); }
+    ctx.stroke();
+    // Rope tying the logs together
+    ctx.lineWidth = 0.07;
+    ctx.beginPath(); ns.forEach((n, i) => (i ? ctx.lineTo(n.x, n.y) : ctx.moveTo(n.x, n.y))); ctx.stroke();
+    // Logs, seen end-on
+    for (const n of ns) {
+      ctx.fillStyle = COL.wood; ctx.beginPath(); ctx.arc(n.x, n.y, LOG_R, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = COL['wood-dark']; ctx.lineWidth = 0.04;
+      ctx.beginPath(); ctx.arc(n.x, n.y, LOG_R * 0.92, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(n.x, n.y, LOG_R * 0.45, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+
+  // Black and white checkered strip on the road at the finish line.
+  function drawFinishStrip() {
+    const sq = 0.25, x0 = L1.finish - 0.5;
+    for (let col = 0; col < 4; col++) {
+      for (let row = 0; row < 3; row++) {
+        ctx.fillStyle = (col + row) % 2 ? COL['check-dark'] : COL['check-light'];
+        ctx.fillRect(x0 + col * sq, 0.05 - (row + 1) * sq, sq, sq);
+      }
+    }
+  }
+
+  // Barrier after the finish: two poles (one near, one far side of the road) joined by a bar at bumper height.
+  // The far pole is drawn behind the car, the near pole in front of it. The poles lean when the car pushes the bar.
+  function drawBarrier(front) {
+    const g = L1.gate, h = 1.15, lean = Math.min(0.5, gatePush);
+    const striped = (xa, ya, xb, yb, w) => {
+      ctx.lineCap = 'butt'; ctx.lineWidth = w;
+      const n = 6;
+      for (let k = 0; k < n; k++) {
+        ctx.strokeStyle = k % 2 ? COL.brake : COL['check-light'];
+        ctx.beginPath();
+        ctx.moveTo(xa + (xb - xa) * k / n, ya + (yb - ya) * k / n);
+        ctx.lineTo(xa + (xb - xa) * (k + 1) / n, ya + (yb - ya) * (k + 1) / n);
+        ctx.stroke();
+      }
+    };
+    const farX = g + 0.45, farY = 0.35;
+    if (!front) {
+      striped(farX, farY, farX + lean * 0.8, farY + h * 0.85, 0.11);
+      striped(g + lean, h, farX + lean * 0.8, farY + h * 0.85, 0.16);
+    } else {
+      striped(g, 0, g + lean, h, 0.14);
+      ctx.fillStyle = COL['check-light'];
+      ctx.beginPath(); ctx.arc(g + lean, h, 0.1, 0, Math.PI * 2); ctx.fill();
+    }
   }
 
   function drawCar() {
@@ -808,6 +1009,7 @@
     }
     ctx.globalAlpha = 1;
     drawCar();
+    if (mode === 'level1') drawBarrier(true);
 
     // Post labels (screen space so text is not mirrored)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -818,19 +1020,35 @@
       ctx.fillStyle = col;
       ctx.fillText(label, (x - cam.x) * PX + W / 2 + 4, HS / 2 - (g + 2.3 - cam.y) * PX);
     }
+    if (mode === 'level1') {
+      ctx.fillStyle = COL.ink; ctx.textAlign = 'center';
+      ctx.font = '400 ' + Math.round(Math.max(14, PX * 0.6)) + 'px "Bowlby One SC", "Arial Black", sans-serif';
+      ctx.fillText('Finish', (L1.finish - cam.x) * PX + W / 2, HS / 2 - (1.1 - cam.y) * PX);
+      ctx.textAlign = 'start';
+    }
   }
 
   // ---------- HUD, overlay, toasts ----------
   const $ = (id) => document.getElementById(id);
-  const hud = { dist: $('hud-dist'), best: $('hud-best'), speed: $('hud-speed'), level: $('hud-level') };
+  const hud = { dist: $('hud-dist'), speed: $('hud-speed'), info: $('hud-info') };
   const overlay = $('overlay');
   let lastHud = '';
+  const fmtTime = (t) => (t ? t.toFixed(1) + ' s' : '–');
   function updateHud() {
-    const d = Math.floor(dist), b = Math.max(best, d), v = Math.round(Math.abs(car.vx * Math.cos(car.a) + car.vy * Math.sin(car.a)) * 3.6);
-    const key = d + '|' + b + '|' + v + '|' + level;
+    const v = Math.round(Math.abs(car.vx * Math.cos(car.a) + car.vy * Math.sin(car.a)) * 3.6);
+    let d, info;
+    if (mode === 'level1') {
+      d = Math.min(L1.len, Math.floor(dist));
+      const t = state === 'run' ? simTime - runStart : state === 'finished' ? finishTime : 0;
+      info = 'Level 1 · ' + t.toFixed(1) + ' s';
+    } else {
+      d = Math.floor(dist);
+      info = 'Level ' + level + ' · Best ' + Math.max(best, d) + ' m';
+    }
+    const key = d + '|' + v + '|' + info;
     if (key === lastHud) return;
     lastHud = key;
-    hud.dist.textContent = d; hud.best.textContent = b; hud.speed.textContent = v; hud.level.textContent = level;
+    hud.dist.textContent = d; hud.speed.textContent = v; hud.info.textContent = info;
   }
 
   const REASONS = {
@@ -839,17 +1057,47 @@
     water: ['Splash!', 'You dropped into a water pit. Hit the ramp faster to clear the gap.'],
     tipped: ['Tipped over', 'The buggy landed on its side and could not get back up.'],
   };
-  function showOverlay() {
+  let primaryAction = () => startMode('level1'), altAction = () => startMode('endless');
+  function openOverlay(o) {
+    $('ov-eyebrow').textContent = o.eyebrow;
+    $('ov-title').textContent = o.title;
+    $('ov-text').textContent = o.text;
+    const statsEl = $('ov-stats');
+    statsEl.replaceChildren(...o.stats.map(([k, v]) => {
+      const div = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+      dt.textContent = k; dd.textContent = v; div.append(dt, dd); return div;
+    }));
+    statsEl.hidden = !o.stats.length;
+    $('ov-go').textContent = o.go[0]; primaryAction = o.go[1];
+    $('ov-alt').textContent = o.alt[0]; altAction = o.alt[1];
+    overlay.hidden = false; overlayOpen = true; overlayT = simTime;
+  }
+  function showCrash() {
     const [title, text] = REASONS[crashReason] || REASONS.roof;
-    $('ov-eyebrow').textContent = 'Run over';
-    $('ov-title').textContent = title;
-    $('ov-text').textContent = text;
-    $('ov-dist').textContent = Math.floor(dist) + ' m';
-    $('ov-level').textContent = level;
-    $('ov-best').textContent = best + ' m';
-    $('ov-stats').hidden = false;
-    $('ov-go').textContent = 'Drive again';
-    overlay.hidden = false; overlayOpen = true;
+    if (mode === 'level1') {
+      openOverlay({
+        eyebrow: 'Level 1', title,
+        text: crashReason === 'water' ? 'You fell off the bridge into the water.' : text,
+        stats: [['Distance', Math.min(L1.len, Math.floor(dist)) + ' / ' + L1.len + ' m'], ['Best time', fmtTime(bestTime)]],
+        go: ['Try again', () => startMode('level1')], alt: ['Endless road', () => startMode('endless')],
+      });
+    } else {
+      openOverlay({
+        eyebrow: 'Run over', title, text,
+        stats: [['Distance', Math.floor(dist) + ' m'], ['Level', String(level)], ['Best', best + ' m']],
+        go: ['Drive again', () => startMode('endless')], alt: ['Play Level 1', () => startMode('level1')],
+      });
+    }
+  }
+  function showFinish() {
+    const record = !bestTime || finishTime < bestTime;
+    if (record) { bestTime = finishTime; store.set('pedalRally.level1Time', bestTime); }
+    openOverlay({
+      eyebrow: 'Level 1 complete', title: 'Finish!',
+      text: 'You crossed the finish line in ' + fmtTime(finishTime) + '.' + (record ? ' That is your best time.' : ''),
+      stats: [['Time', fmtTime(finishTime)], ['Best time', fmtTime(bestTime)]],
+      go: ['Next: Level 2', () => startMode('endless')], alt: ['Play Level 1 again', () => startMode('level1')],
+    });
   }
   function hideOverlay() { overlay.hidden = true; overlayOpen = false; }
 
@@ -902,19 +1150,19 @@
   soundBtn.addEventListener('click', () => { muted = !muted; store.set('pedalRally.muted', muted); syncSoundBtn(); initAudio(); soundBtn.blur(); });
 
   // ---------- Input ----------
+  // An arrow press while a card is open does what the card's main button says.
   function onPress() {
     initAudio();
-    if (state === 'title') startRun(false);
-    else if (state === 'crashed' && overlayOpen) startRun(true);
+    if (overlayOpen && simTime - overlayT > 0.3) primaryAction();
   }
-  function restart() { initAudio(); startRun(true); }
+  function restart() { initAudio(); startMode(mode); }
 
   const GAS_KEYS = ['ArrowRight', 'KeyD', 'ArrowUp', 'KeyW'], BRAKE_KEYS = ['ArrowLeft', 'KeyA', 'ArrowDown', 'KeyS'];
   window.addEventListener('keydown', (e) => {
     if (GAS_KEYS.includes(e.code)) { if (!input.gasKey) { input.gasKey = true; onPress(); } e.preventDefault(); }
     else if (BRAKE_KEYS.includes(e.code)) { if (!input.brakeKey) { input.brakeKey = true; onPress(); } e.preventDefault(); }
     else if (e.code === 'KeyR') { restart(); e.preventDefault(); }
-    else if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat && overlayOpen) { onPress(); e.preventDefault(); }
+    else if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat && overlayOpen && !(document.activeElement instanceof HTMLButtonElement)) { onPress(); e.preventDefault(); }
   });
   window.addEventListener('keyup', (e) => {
     if (GAS_KEYS.includes(e.code)) input.gasKey = false;
@@ -940,7 +1188,8 @@
     el.addEventListener('lostpointercapture', release);
     el.addEventListener('contextmenu', (e) => e.preventDefault());
   }
-  $('ov-go').addEventListener('click', () => onPress());
+  $('ov-go').addEventListener('click', () => { initAudio(); primaryAction(); });
+  $('ov-alt').addEventListener('click', () => { initAudio(); altAction(); });
   $('btn-restart').addEventListener('click', (e) => { restart(); e.currentTarget.blur(); });
 
   // ---------- Main loop ----------
@@ -955,10 +1204,13 @@
       dist = Math.max(dist, car.x - START_X);
       if (car.x > lastProgressX + 0.5) { lastProgressX = car.x; lastProgressT = simTime; stuckShown = false; }
       else if (!stuckShown && simTime - lastProgressT > 7) { stuckShown = true; toast('Stuck? Press Restart'); }
-      const lvl = 1 + Math.floor(dist / LEVEL_LEN);
-      if (lvl > level) { level = lvl; toast('Level ' + level); }
+      if (mode === 'endless') {
+        const lvl = 2 + Math.floor(dist / LEVEL_LEN);
+        if (lvl > level) { level = lvl; toast('Level ' + level); }
+      } else if (car.x > L1.finish) finish();
     }
-    if (state === 'crashed' && !overlayOpen && simTime - crashT > 1.1) showOverlay();
+    if (state === 'crashed' && !overlayOpen && simTime - crashT > 1.1) showCrash();
+    if (state === 'finished' && !overlayOpen && ((gatePush > 0 && Math.hypot(car.vx, car.vy) < 0.3) || simTime - finishAt > 6)) showFinish();
 
     // Dust from spinning or fast wheels
     for (const w of wheels) {
@@ -978,7 +1230,8 @@
     PX = basePX * cam.zoom;
     // While a menu card is up, frame the car in the left third so the card does not cover it.
     // On tall screens, sit the car lower so the view shows more of the road and less empty sky.
-    const tx = car.x + clamp(car.vx * 0.45, -4, 9) + (W / PX) * (overlayOpen ? 0.3 : 0.08);
+    // After the finish, keep the car and the barrier on the left, clear of the finish card.
+    const tx = car.x + clamp(car.vx * 0.45, -4, 9) + (W / PX) * (state === 'finished' ? 0.38 : overlayOpen ? 0.3 : 0.08);
     const ty = car.y + 1.2 + (HS > W ? HS * 0.12 / PX : 0);
     cam.x += (tx - cam.x) * Math.min(1, dt * 3);
     cam.y += (ty - cam.y) * Math.min(1, dt * 4);
