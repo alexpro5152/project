@@ -156,6 +156,7 @@
     cursor: pointer;
   }
   .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
+  .vs-btn { font: 400 18px/1 var(--font-display); color: var(--tail); letter-spacing: 0.02em; }
   .badge {
     padding: 10px 12px;
     border: 3px solid var(--bar-edge);
@@ -306,6 +307,7 @@
   <div class="clock outlined" id="hud-main">0:00.00</div>
   <div class="hud-right">
     <span class="badge" id="hud-level">Level 1</span>
+    <button class="icon-btn vs-btn" id="btn-vs" type="button" aria-label="Versus (coming later)" aria-disabled="true">VS</button>
     <button class="icon-btn" id="btn-sound" type="button" aria-label="Sound">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path id="sound-icon" d=""/></svg>
     </button>
@@ -1219,6 +1221,7 @@
     home: 'M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z',
     play: 'M7 4v16l13-8z',
     levels: 'M4 5h16v3.2H4zm0 5.4h16v3.2H4zm0 5.4h16V19H4z',
+    more: 'M5 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z',
     retry: 'M12 4.5V1.5L7 6l5 4.5v-3a5.5 5.5 0 1 1-5.5 5.5H4a8 8 0 1 0 8-8.5z',
   };
   const overlay = $('overlay');
@@ -1239,14 +1242,18 @@
   function hideOverlay() { overlay.hidden = true; overlayOpen = false; confetti.length = 0; }
   barBtns.forEach((el, i) => el.addEventListener('click', () => { initAudio(); if (barActions[i]) barActions[i](); el.blur(); }));
 
-  const HOME = ['home', 'Home', () => openHome()];
-  const LEVELS = ['levels', 'Levels', () => openLevels()];
+  // Buttons that lead to another page (Home, Levels, More, VS) are shown but do nothing yet; they get
+  // wired up later. openHome and openLevels below are ready for that.
+  const notYet = () => {};
+  const HOME = ['home', 'Home', notYet];
+  const LEVELS = ['levels', 'Levels', notYet];
+  const MORE = ['more', 'More', notYet];
   const RETRY = ['retry', 'Retry', () => startMode(mode)];
 
   function openHome() {
     mode = 'level1'; state = 'title';
     newWorld(); placeCar();
-    openOverlay('home', [LEVELS, ['play', 'Play', () => startMode('level1')], null]);
+    openOverlay('home', [LEVELS, ['play', 'Play', () => startMode('level1')], MORE]);
   }
   function openLevels() {
     $('pick-1-note').textContent = bestTime ? 'Best time ' + fmtClock(bestTime) : 'Not finished yet';
@@ -1371,6 +1378,7 @@
     el.addEventListener('contextmenu', (e) => e.preventDefault());
   }
   $('btn-pause').addEventListener('click', (e) => { pauseGame(); e.currentTarget.blur(); });
+  $('btn-vs').addEventListener('click', (e) => { notYet(); e.currentTarget.blur(); });
 
   // ---------- Main loop ----------
   let last = performance.now(), acc = 0;
@@ -1427,7 +1435,7 @@
 
   newWorld();
   placeCar();
-  openOverlay('home', [LEVELS, ['play', 'Play', () => startMode('level1')], null]);
+  openOverlay('home', [LEVELS, ['play', 'Play', () => startMode('level1')], MORE]);
   updateHud();
   requestAnimationFrame((t) => { last = t; frame(t); });
 })();
