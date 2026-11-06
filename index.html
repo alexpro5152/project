@@ -1401,7 +1401,8 @@ const LANGUAGES = [ ['en-GB','English (UK)','English (UK)',FLAG_EN], ['en-US','E
   ['ig','Igbo','Igbo',FLAGS.ng], ['zu','Zulu','isiZulu',FLAGS.za], ['sd','Sindhi','سنڌي',FLAGS.pk] ];
 // the languages in alphabetical order (in the language shown); tap one to switch the whole app
 function renderLanguages(){
-  const list=LANGUAGES.map(([code,name,own,flag])=>({code,name:tr(name),own,flag})).sort((a,b)=>a.name.localeCompare(b.name,LANG));
+  // only languages whose translation is finished are shown; the rest appear once they are added
+  const list=LANGUAGES.filter(([code])=>code.startsWith('en-')||I18N_RAW[code]).map(([code,name,own,flag])=>({code,name:tr(name),own,flag})).sort((a,b)=>a.name.localeCompare(b.name,LANG));
   app.innerHTML=`<a class="back" href="#settings">&larr; ${tr('Settings')}</a><h1>${tr('Languages')}</h1>
     <div class="settings-list">${list.map(l=>`<button type="button" class="lang-row${l.code===LANG?' on':''}" data-lang="${l.code}" aria-pressed="${l.code===LANG}">${l.flag}<span class="lang-name">${l.name}${l.own!==l.name?`<small dir="auto">${l.own}</small>`:''}</span>${l.code===LANG?'<span class="check" aria-hidden="true">&#10003;</span>':''}</button>`).join('')}</div>`;
   app.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{
