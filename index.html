@@ -72,6 +72,22 @@
   .flag{width:40px;height:26px;border-radius:4px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
   .settings-list{width:min(520px,100%);display:flex;flex-direction:column;gap:10px;margin-top:10px}
   .set-row{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-radius:14px;border:2px solid var(--edge);background:var(--panel);font-size:19px;font-weight:700}
+  /* Settings page: one list without an outer frame; thin lines between the rows */
+  .set-list{width:min(520px,100%);margin-top:10px;display:flex;flex-direction:column;background:var(--panel);border-radius:18px;overflow:hidden}
+  .set-item{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;background:none;border:0;border-radius:0;font:inherit;font-size:19px;font-weight:700;color:var(--ink);text-align:start;cursor:pointer}
+  .set-item+.set-item{border-top:1px solid var(--line)}
+  .set-item:hover .set-name,.set-item:focus-visible .set-name{color:var(--accent)}
+  .set-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .set-ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+  .set-val{display:flex;align-items:center;gap:8px;margin-inline-start:auto;color:var(--muted);font-size:16px;font-weight:600}
+  .set-val .flag{width:28px;height:19px}
+  .set-sw{width:28px;height:20px;border-radius:5px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+  .set-chev{color:var(--muted);font-size:26px;line-height:1}
+  [dir=rtl] .set-chev{transform:scaleX(-1)}
+  .set-switch{margin-inline-start:auto;width:52px;height:30px;border-radius:999px;background:var(--edge);position:relative;flex:none;transition:background .2s}
+  .set-switch::after{content:'';position:absolute;top:3px;inset-inline-start:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:inset-inline-start .2s}
+  .set-item[aria-checked="true"] .set-switch{background:var(--accent)}
+  .set-item[aria-checked="true"] .set-switch::after{inset-inline-start:25px}
   .set-row .chev{color:var(--muted);font-size:24px;line-height:1}
   .set-row:hover{border-color:var(--accent)}
   header .grip{color:var(--muted);font-size:15px}
@@ -231,7 +247,8 @@ if(DESIGN!=='default') document.documentElement.dataset.design=DESIGN;
   const isDark=()=>root.dataset.theme ? root.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   const label=()=>{ btn.textContent=isDark() ? '\u2600\uFE0F '+tr('Light') : '\uD83C\uDF19 '+tr('Dark'); btn.setAttribute('aria-label', tr(isDark() ? 'Switch to light mode' : 'Switch to dark mode')); };
   refreshTheme=label;
-  btn.onclick=()=>{ const next=isDark()?'light':'dark'; root.dataset.theme=next; try{ localStorage.setItem('theme',next); }catch(e){} label(); };
+  btn.onclick=()=>{ const next=isDark()?'light':'dark'; root.dataset.theme=next; try{ localStorage.setItem('theme',next); }catch(e){} label();
+    if(location.hash==='#settings') renderSettings(); };   // keep the Settings switch in step
   label();
 })();
 
@@ -1428,6 +1445,25 @@ const LANGUAGES = [ ['en-GB','English (UK)','English (UK)',FLAG_EN], ['en-US','E
   ['om','Oromo','Afaan Oromoo',FLAGS.et], ['ro','Romanian','Română',FLAGS.ro], ['nl','Dutch','Nederlands',FLAGS.nl], ['az','Azerbaijani','Azərbaycanca',FLAGS.az],
   ['ig','Igbo','Igbo',FLAGS.ng], ['zu','Zulu','isiZulu',FLAGS.za], ['sd','Sindhi','سنڌي',FLAGS.pk] ];
 // the languages in alphabetical order (in the language shown); tap one to switch the whole app
+// Settings: each row shows what is chosen now; the switch does the same as the Light/Dark button in the header
+const SET_ICON = {
+  globe:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  palette:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.4-1.3-1.6-1.3-2.8 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.3 17 3 12 3z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7.5" cy="11" r="1.4" fill="currentColor"/><circle cx="10" cy="7" r="1.4" fill="currentColor"/><circle cx="15" cy="7.2" r="1.4" fill="currentColor"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'
+};
+function renderSettings(){
+  const root=document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const lang = LANGUAGES.find(l=>l[0]===LANG), theme = THEMES.find(t=>t[0]===DESIGN);
+  app.innerHTML=`<a class="back" href="#">&larr; ${tr('Algorithms')}</a><h1>${tr('Settings')}</h1>
+    <div class="set-list">
+      <a class="set-item" href="#languages"><span class="set-ico">${SET_ICON.globe}</span><span class="set-name">${tr('Languages')}</span><span class="set-val">${lang[3]}<span dir="auto">${lang[2]}</span></span><span class="set-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="set-item" href="#themes"><span class="set-ico">${SET_ICON.palette}</span><span class="set-name">${tr('Themes')}</span><span class="set-val"><span class="set-sw" style="background:${theme[2]}"></span>${tr(theme[1])}</span><span class="set-chev" aria-hidden="true">&rsaquo;</span></a>
+      <button type="button" class="set-item" role="switch" aria-checked="${dark}" id="set-dark"><span class="set-ico">${SET_ICON.moon}</span><span class="set-name">${tr('Dark')}</span><span class="set-switch" aria-hidden="true"></span></button>
+    </div>`;
+  document.getElementById('set-dark').onclick=()=>{ document.getElementById('theme').click(); document.getElementById('set-dark')?.focus(); };
+}
+
 function renderThemes(){
   app.innerHTML=`<a class="back" href="#settings">&larr; ${tr('Settings')}</a><h1>${tr('Themes')}</h1>
     <div class="settings-list">${THEMES.map(([code,name,swatch])=>`<button type="button" class="lang-row${code===DESIGN?' on':''}" data-design="${code}" aria-pressed="${code===DESIGN}"><span class="theme-swatch" style="background:${swatch}" aria-hidden="true"></span><span class="lang-name">${tr(name)}</span>${code===DESIGN?'<span class="check" aria-hidden="true">&#10003;</span>':''}</button>`).join('')}</div>`;
@@ -1455,8 +1491,7 @@ function route(){
   if(player){ player.destroy(); player=null; }
   const id=location.hash.slice(1), alg=ALGS.find(a=>a.id===id);
   if(alg) player=new Player(alg);
-  else if(id==='settings') app.innerHTML=`<a class="back" href="#">&larr; ${tr('Algorithms')}</a><h1>${tr('Settings')}</h1>
-      <div class="settings-list"><a class="set-row" href="#languages">${tr('Languages')}<span class="chev">&rsaquo;</span></a><a class="set-row" href="#themes">${tr('Themes')}<span class="chev">&rsaquo;</span></a></div>`;
+  else if(id==='settings') renderSettings();
   else if(id==='languages') renderLanguages();
   else if(id==='themes') renderThemes();
   else if(TWO_LEVELS[id]) renderOverview(id, '2x2');
