@@ -326,8 +326,12 @@ function enableOrbit(scene, cubeEl, view, {onTurn=()=>{}, speed=0.5, hit=false}=
     if(!drag) return;
     const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
     if(!drag.moved && Math.hypot(dx,dy)<5) return;      // a small wobble is still a tap
-    drag.moved=true;
-    angle=[drag.start[0]-dy*speed, drag.start[1]+dx*speed]; show(); onTurn(true);
+    // move by the step since the last point; when the puzzle is tipped over (upside down)
+    // a sideways turn looks mirrored, so turn the other way and it follows the finger
+    const lx=drag.moved?drag.lx:drag.x, ly=drag.moved?drag.ly:drag.y, ddx=e.clientX-lx, ddy=e.clientY-ly;
+    drag.moved=true; drag.lx=e.clientX; drag.ly=e.clientY;
+    const tilt=angle[0]-ddy*speed, flip=Math.cos(tilt*Math.PI/180)<0 ? -1 : 1;
+    angle=[tilt, angle[1]+ddx*speed*flip]; show(); onTurn(true);
   });
   // the click that follows a drag is ignored; forget the drag right after that click
   const end=()=>{ if(drag){ wasDrag=drag.moved; if(wasDrag) setTimeout(()=>{ wasDrag=false; },0); fit(); } drag=null; scene.classList.remove('dragging'); };
@@ -585,6 +589,7 @@ class Mega {
     const sc=this.scene=el.parentElement; if(getComputedStyle(sc).position==='static') sc.style.position='relative';
     this.cv=document.createElement('canvas'); this.cv.className='mega-cv'; sc.appendChild(this.cv);
     this.box=document.createElement('div'); this.box.className='mega-box'; sc.appendChild(this.box);
+    el.style.width=el.style.height='0';   // empty holder of the view angle: no size, so its 3D turn never widens the page
     this.angle=VIEW_ANGLES[view]||VIEW_ANGLES.mega; el.style.transform=viewCSS(this.angle);
     // follow the view that dragging / "Reset view" writes on the .cube element (with a slide when it settles)
     new MutationObserver(()=>{ const m=/rotateX\((-?[\d.e-]+)deg\) rotateY\((-?[\d.e-]+)deg\)/.exec(el.style.transform); if(!m) return;
