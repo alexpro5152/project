@@ -163,10 +163,16 @@
   .card{position:relative}
   .card .step{padding-inline-end:34px}
   button.learn{position:absolute;top:10px;inset-inline-end:10px;width:30px;height:30px;border-radius:50%;border:2px solid var(--edge);background:var(--card);color:var(--muted);display:flex;align-items:center;justify-content:center;padding:0;z-index:2}
-  button.learn:hover:not(:disabled){border-color:var(--ok);color:var(--ok)}
+  /* the tick shows only when the card is marked; pressing again leaves an empty circle */
+  button.learn svg{visibility:hidden}
+  button.learn.on svg{visibility:visible}
+  @media (hover:hover){ button.learn:not(.on):hover{border-color:var(--ok)} }
+  @media (hover:none){ button.learn:not(.on):hover{border-color:var(--edge)} button.learn-btn:not(.on):hover{border-color:var(--edge)} }
   button.learn.on,button.learn.on:hover:not(:disabled){background:var(--ok);border-color:var(--ok);color:#fff}
   .card.learned{border-color:color-mix(in srgb,var(--ok) 60%,var(--line))}
   button.learn-btn{display:inline-flex;align-items:center;gap:6px;margin:4px 0 6px;border-radius:999px;padding:6px 16px;font-size:16px}
+  button.learn-btn svg{display:none}
+  button.learn-btn.on svg{display:block}
   button.learn-btn.on,button.learn-btn.on:hover:not(:disabled){background:var(--ok);border-color:var(--ok);color:#fff}
   .progress{width:100%;max-width:420px;margin:0 0 16px;color:var(--muted);font-size:14px;font-weight:600;text-align:center}
   .progress .bar{height:6px;border-radius:99px;background:var(--line);margin-top:6px;overflow:hidden}
