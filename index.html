@@ -1186,6 +1186,9 @@ const ALGS = [
    ============================================================ */
 const app = document.getElementById('app');
 let dur = 700, player = null;
+// how long one turn takes at each speed step (ms): the first 10 are the old steps, the last 5 are faster
+const SPEEDS = [1400,1270,1140,1010,880,750,620,490,360,230,170,120,85,60,40];
+const speedStep = d => SPEEDS.reduce((best,v,i)=>Math.abs(v-d)<Math.abs(SPEEDS[best]-d)?i:best,0)+1;
 const pause = ms => new Promise(r=>setTimeout(r,ms));
 
 function groupsOf(alg){
@@ -1337,7 +1340,7 @@ class Player {
         <button data-b="step">${tr('Step')} &#9654;</button>
         <button data-b="reset">&#8635; ${tr('Reset')}</button>
         <button data-b="view">&#10227; ${tr('Reset view')}</button>
-        <label class="speed">${tr('Speed')} <input type="range" min="1" max="10" value="${Math.round((1400-dur)/130)+1}"></label>
+        <label class="speed">${tr('Speed')} <input type="range" min="1" max="${SPEEDS.length}" value="${speedStep(dur)}"></label>
       </div>
       <div class="strip"></div>
       ${alg.tips&&alg.tips.length?`<ul class="tips">${alg.tips.map(t=>`<li>${tr(t)}</li>`).join('')}</ul>`:''}
@@ -1375,9 +1378,9 @@ class Player {
     B('view').onclick=()=>this.resetView();
     B('play').onclick=()=>this.run(async()=>{
       if(this.step===moves.length){ restart(); this.ui(); await pause(400); }
-      while(this.step<moves.length && !this.dead){ await this.forward(); await pause(250); }
+      while(this.step<moves.length && !this.dead){ await this.forward(); await pause(Math.min(250,dur*.5)); }   // shorter gaps at high speed
     });
-    app.querySelector('.speed input').oninput=e=>{ dur=1400-(e.target.value-1)*130; };
+    app.querySelector('.speed input').oninput=e=>{ dur=SPEEDS[e.target.value-1]; };
     this.ui();
     // keep the text line as tall as its longest text, so the cube below never jumps
     this.onResize=()=>this.fitDesc(); window.addEventListener('resize',this.onResize);
