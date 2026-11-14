@@ -167,13 +167,13 @@
   button.learn svg{visibility:hidden}
   button.learn.on svg{visibility:visible}
   @media (hover:hover){ button.learn:not(.on):hover{border-color:var(--ok)} }
-  @media (hover:none){ button.learn:not(.on):hover{border-color:var(--edge)} button.learn-btn:not(.on):hover{border-color:var(--edge)} }
+  @media (hover:none){ button.learn:not(.on):hover{border-color:var(--edge)} }
   button.learn.on,button.learn.on:hover:not(:disabled){background:var(--ok);border-color:var(--ok);color:#fff}
   .card.learned{border-color:color-mix(in srgb,var(--ok) 60%,var(--line))}
-  button.learn-btn{display:inline-flex;align-items:center;gap:6px;margin:4px 0 6px;border-radius:999px;padding:6px 16px;font-size:16px}
-  button.learn-btn svg{display:none}
-  button.learn-btn.on svg{display:block}
-  button.learn-btn.on,button.learn-btn.on:hover:not(:disabled){background:var(--ok);border-color:var(--ok);color:#fff}
+  /* step page: the same square next to the title */
+  .title-row{display:flex;align-items:center;justify-content:center;gap:12px;max-width:100%;margin-bottom:4px}
+  .title-row h2{margin:0;min-width:0}
+  .title-row button.learn{position:static;flex:none;width:34px;height:34px;margin-bottom:0}
   .progress{width:100%;max-width:420px;margin:0 0 16px;color:var(--muted);font-size:14px;font-weight:600;text-align:center}
   .progress .bar{height:6px;border-radius:99px;background:var(--line);margin-top:6px;overflow:hidden}
   .progress .bar i{display:block;height:100%;width:0;background:var(--ok);border-radius:inherit;transition:width .3s}
@@ -1560,8 +1560,7 @@ class Player {
     app.innerHTML=`
       <a class="back" href="#${level}">&larr; ${fmt('All {name} steps',{name:tr((LEVELS[level]||TWO_LEVELS[level]||PUZZLES[level]).name)})}</a>
       <div class="step">${tr(alg.step)}</div>
-      <h2>${tr(alg.title)}</h2>
-      <button class="learn-btn" type="button">${CHECK_SVG}${tr('I know it')}</button>
+      <div class="title-row"><h2>${tr(alg.title)}</h2><button class="learn" type="button" aria-label="${tr('Mark as learned')}" title="${tr('Mark as learned')}">${CHECK_SVG}</button></div>
       ${alg.purpose?`<p class="sub">${tr(alg.purpose)}</p>`:''}
       ${alg.diagram==='net'?`<div class="net big-net">${netSVG(alg)}</div>`:''}
       ${alg.hold?`<div class="hold">${tr(alg.hold)}</div>`:''}
@@ -1580,7 +1579,7 @@ class Player {
       ${alg.tips&&alg.tips.length?`<ul class="tips">${alg.tips.map(t=>`<li>${tr(t)}</li>`).join('')}</ul>`:''}
       <div class="nav">${prev?`<a href="#${prev.id}">&larr; ${tr(prev.title)}</a>`:''}${next?`<a href="#${next.id}">${tr(next.title)} &rarr;</a>`:''}</div>`;
 
-    const kb=app.querySelector('.learn-btn'), ksync=()=>{ const on=isLearned(alg.id); kb.classList.toggle('on',on); kb.setAttribute('aria-pressed',on); };
+    const kb=app.querySelector('.title-row .learn'), ksync=()=>{ const on=isLearned(alg.id); kb.classList.toggle('on',on); kb.setAttribute('aria-pressed',on); };
     kb.onclick=()=>{ setLearned(alg.id,!isLearned(alg.id)); ksync(); }; ksync();
     const fEl=app.querySelector('.formula');
     this.tokens=groups.map(g=>{const s=document.createElement('span');s.className='tok';s.textContent=g.label;fEl.appendChild(s);return s;});
