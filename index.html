@@ -680,9 +680,9 @@ class CanvasPuzzle {
           const p1=[b[0]+(a[0]-b[0])*r/la,b[1]+(a[1]-b[1])*r/la], p2=[b[0]+(c[0]-b[0])*r/lc,b[1]+(c[1]-b[1])*r/lc];
           i?g.lineTo(...p1):g.moveTo(...p1); g.quadraticCurveTo(b[0],b[1],p2[0],p2[1]); } }
       g.closePath(); for(const [x,y] of q){ x0=Math.min(x0,x); y0=Math.min(y0,y); x1=Math.max(x1,x); y1=Math.max(y1,y); } };
-    const rnd=Math.max(1,sz*.022);
+    const st=this.look||{}, rnd=Math.max(1,sz*(st.round||.022)), body=sz*(st.body||0);
     // a sticker: black base, coloured part with round corners, a little shade on faces turned from the light
-    const stick=(outer,inner,n,colour)=>{ path(outer); g.fillStyle='#111'; g.fill(); g.strokeStyle='#111'; g.lineWidth=1; g.stroke();
+    const stick=(outer,inner,n,colour)=>{ path(outer,body); g.fillStyle='#111'; g.fill(); g.strokeStyle='#111'; g.lineWidth=1; g.stroke();
       path(inner,rnd); g.fillStyle=colour; g.fill(); const lit=Math.max(0,v3.dot(V(n),L)); g.fillStyle=`rgba(0,0,0,${(.30*(1-lit)).toFixed(3)})`; g.fill(); };
     this.paint({g,V,facing,path,stick});
     if(x0<Infinity) Object.assign(this.box.style,{left:x0+'px',top:y0+'px',width:(x1-x0)+'px',height:(y1-y0)+'px'});
@@ -745,7 +745,7 @@ const FISHER = (()=>{ const r=Math.SQRT1_2, c=Math.SQRT2/3, cy=1/3;
     for(const F of body){ if(F.face!=='in') F.n=FACES[F.face];
       // make every face wind the same way (outward normal)
       const P=F.pts, nn=v3.cross(v3.sub(P[1],P[0]),v3.sub(P[2],P[0])); if(v3.dot(nn,F.n)<0) P.reverse(); }
-    for(const F of body) if(F.face!=='in'){ const P=F.pts, k=P.length, C=v3.mul(P.reduce(v3.add),1/k), gap=.024;
+    for(const F of body) if(F.face!=='in'){ const P=F.pts, k=P.length, C=v3.mul(P.reduce(v3.add),1/k), gap=.045;
       const lines=P.map((a,i)=>{ const b=P[(i+1)%k], u=v3.unit(v3.sub(b,a)), w=v3.cross(F.n,u), inw=v3.dot(w,v3.sub(C,a))>0?w:v3.mul(w,-1); return {p:v3.add(a,v3.mul(inw,gap)),u}; });
       const X=(L1,L2)=>{ const w=v3.sub(L2.p,L1.p), cr=v3.cross(L1.u,L2.u), t=v3.dot(v3.cross(w,L2.u),cr)/v3.dot(cr,cr); return v3.add(L1.p,v3.mul(L1.u,t)); };
       F.inner=P.map((_,i)=>X(lines[(i+k-1)%k],lines[i])); F.c=C; }
@@ -762,7 +762,7 @@ const FISHER_HOME = (()=>{ const m=new Map(), key=p=>p.map(x=>(Math.abs(x)<5e-4?
 const I3=[[1,0,0],[0,1,0],[0,0,1]], m3=(A,B)=>[0,1,2].map(i=>[0,1,2].map(j=>A[i][0]*B[0][j]+A[i][1]*B[1][j]+A[i][2]*B[2][j])), t3=(M,p)=>[0,1,2].map(i=>M[i][0]*p[0]+M[i][1]*p[1]+M[i][2]*p[2]);
 class Fisher extends CanvasPuzzle {
   constructor(el, S, {view='fisher'}={}){ super(el, S, view, 1.5, 'fisher'); }
-  init(){ this.M=FISHER.pieces.map(()=>I3); }
+  init(){ this.M=FISHER.pieces.map(()=>I3); this.look={round:.085}; }   // big round stickers with a thick black border, like the real puzzle
   moveOf(tok){ return FISHER.moves[tok]; }
   reset(){ this.init(); this.draw(); }
   // the pieces now in the turning layer (found by where their middle is)
