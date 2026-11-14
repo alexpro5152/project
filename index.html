@@ -150,7 +150,11 @@
   .card .scene{width:100%;height:150px;perspective:600px;margin:2px 0;cursor:grab;touch-action:pan-y;user-select:none}
   .card .scene.dragging{cursor:grabbing}
   .scene-wrap{position:relative}
-  .card-reset{position:absolute;top:2px;right:0;font-size:18px;line-height:1;padding:6px 9px;border-radius:10px}
+  /* turn-back button on a card: the same rounded square as the tick, right under it */
+  button.card-reset{position:absolute;top:8px;inset-inline-end:-6px;width:30px;height:30px;padding:0;border-radius:8px;border:2px solid var(--edge);background:var(--card);color:var(--muted);display:flex;align-items:center;justify-content:center;z-index:2;-webkit-tap-highlight-color:transparent}
+  button.card-reset[hidden]{display:none}
+  @media (hover:hover){ button.card-reset:hover:not(:disabled){border-color:var(--accent);color:var(--accent)} }
+  @media (hover:none){ button.card-reset:hover{border-color:var(--edge)} }
   .net{display:flex;justify-content:center;align-items:center;height:150px;margin:2px 0}
   .net svg{height:100%;width:auto}
   .net rect{stroke:#111;stroke-width:2}
@@ -1542,7 +1546,7 @@ function renderOverview(level, puzzle='3x3'){
   for(const alg of algs){
     const a=document.createElement('a'); a.className='card'; a.href='#'+alg.id;
     const pic = alg.diagram==='net' ? `<div class="net">${netSVG(alg)}</div>`
-      : `<div class="scene-wrap"><div class="scene"></div><button class="card-reset" type="button" hidden aria-label="${tr('Turn the cube back')}" title="${tr('Turn the cube back')}">&#10227;</button></div>`;
+      : `<div class="scene-wrap"><div class="scene"></div><button class="card-reset" type="button" hidden aria-label="${tr('Turn the cube back')}" title="${tr('Turn the cube back')}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M19.8 3.8v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`;
     a.innerHTML=`<div class="step">${tr(alg.step)}</div>${pic}<h3>${tr(alg.title)}</h3><div class="f">${formulaText(alg)}</div>${alg.purpose?`<p>${tr(alg.purpose)}</p>`:''}`;
     grid.appendChild(a);
     // "I know it" mark in the corner; pressing it never opens the card
