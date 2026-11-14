@@ -713,10 +713,10 @@ class Mega extends CanvasPuzzle {
 }
 
 // ============================================================
-// Fisher cube: a 3x3 inside (layers cut at x, z = ±c and y = ±1/3) whose outer cube is turned 45° about the vertical,
+// Fisher cube: a 3x3 inside (layers cut at x, y, z = ±c) whose outer cube is turned 45° about the vertical,
 // so a vertical edge of the cube faces you. Side turns change the shape, so it is drawn piece by piece:
 // each piece is the part of the outer cube inside one of the 3x3 cells, with its stickers and black cut faces.
-const FISHER = (()=>{ const r=Math.SQRT1_2, c=Math.SQRT2/3, cy=1/3;
+const FISHER = (()=>{ const r=Math.SQRT1_2, c=Math.SQRT2/4, cy=c;   // the inner 3x3 is cut at the same depth on every axis (measured on the real puzzle: side faces narrow-wide-narrow, top centre as wide as the small triangles)
   const FACES={ U:[0,-1,0], D:[0,1,0], FL:[-r,0,r], FR:[r,0,r], BR:[r,0,-r], BL:[-r,0,-r] };
   // cut a convex body (list of faces {pts,face}) by the half-space n·p <= d; the new cut face is black ('in')
   const clip=(body,n,d)=>{ const out=[], cut=[];
