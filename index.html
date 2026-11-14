@@ -114,6 +114,8 @@
   .pyra-st i{position:absolute;left:0;top:0}
   .pyra-back{background:#111;transform:translateZ(-.6px);backface-visibility:hidden}
   .pyra-front{backface-visibility:hidden}
+  .mega-cv{position:absolute;left:0;top:0;pointer-events:none}
+  .mega-box{position:absolute;pointer-events:none;visibility:hidden}
   .face::after{content:'';position:absolute;inset:4%;border-radius:12%;background:var(--c,#1b1b1b)}
   .cubie.dim .face::after{background:var(--dim)}
   .cubie.dim .face.inner::after{background:#1b1b1b}
@@ -301,7 +303,7 @@ function enableOrbit(scene, cubeEl, view, {onTurn=()=>{}, speed=0.5, hit=false}=
   const fit=()=>{
     if(!hitEl || !scene.isConnected) return;
     const box=scene.getBoundingClientRect(); let l=Infinity,t=Infinity,r=-Infinity,b=-Infinity;
-    for(const e of cubeEl.querySelectorAll('.face:not(.inner),.pyra-front')){
+    for(const e of scene.querySelectorAll('.face:not(.inner),.pyra-front,.mega-box')){
       const q=e.getBoundingClientRect(); if(!q.width||!q.height) continue;
       l=Math.min(l,q.left); t=Math.min(t,q.top); r=Math.max(r,q.right); b=Math.max(b,q.bottom);
     }
@@ -464,11 +466,11 @@ const PYRA_MOVES = (()=>{ const m={}; const near=(a,b)=>Math.hypot(...v3.sub(a,b
       m[k+suf]={axis,deg,set,to}; } }
   return m; })();
 
-// Pyraminx and Megaminx share one engine: flat polygon stickers that turn as a layer about an axis
+// flat triangle stickers that turn as a layer about an axis
 const PYRA = { slots:PYRA_SLOTS, moves:PYRA_MOVES, colors:PYRA_COLORS, size:2.7, inset:.82, view:'pyra' };
 class Pyra {
-  constructor(el, S, {view, mega}={}){
-    const K=this.K = mega ? MEGA : PYRA;
+  constructor(el, S, {view}={}){
+    const K=this.K = PYRA;
     this.el=el; this.S=S; this.dead=false; el.style.transform=VIEWS[view] || VIEWS[K.view];
     const sz=S*K.size; this.sz=sz;
     // each slot gets a fixed placement matrix: local x/y in the sticker's plane, local z = outward normal
@@ -555,9 +557,97 @@ const MEGA_MOVES = (()=>{ const m={}, near=(a,b)=>Math.hypot(...v3.sub(a,b))<1e-
       for(const i of set){ const c=MEGA_SLOTS[i].c, p=[0,1,2].map(r=>R[r][0]*c[0]+R[r][1]*c[1]+R[r][2]*c[2]); to[i]=MEGA_SLOTS.findIndex(s=>near(s.c,p)); }
       m[k+suf]={axis,deg,set,to}; } }
   return m; })();
-const MEGA_COLORS = { U:'var(--W)', D:'#8b9099', F:'var(--G)', R:'var(--R)', BR:'var(--B)', BL:'var(--Y)', L:'#8e44ad',
-  DB:'#9be35a', DBL:'var(--O)', DL:'#7cc8f2', DR:'#e9d8a6', DBR:'#f78fc4' };
-const MEGA = { slots:MEGA_SLOTS, moves:MEGA_MOVES, colors:MEGA_COLORS, size:2.1, inset:.86, view:'mega' };
+// literal colours: the puzzle never changes colour with the app theme
+const MEGA_COLORS = { U:'#ffffff', D:'#8b9099', F:'#2ecc40', R:'#e53935', BR:'#1e63d4', BL:'#ffd500', L:'#8e44ad',
+  DB:'#9be35a', DBL:'#ff8c00', DL:'#7cc8f2', DR:'#e9d8a6', DBR:'#f78fc4' };
+// drawing data: each sticker's outward normal and its coloured part (the sticker shrunk by an even black border);
+// for each face the black cut surface you see inside the puzzle while that layer turns
+const MEGA_GEO = (()=>{ const gap=.024;
+  const stickers=MEGA_SLOTS.map(s=>{ const n=MEGA_N[s.face], P=s.pts, k=P.length;
+    const lines=P.map((a,i)=>{ const b=P[(i+1)%k], u=v3.unit(v3.sub(b,a)), w=v3.cross(n,u), inw=v3.dot(w,v3.sub(s.c,a))>0?w:v3.mul(w,-1); return {p:v3.add(a,v3.mul(inw,gap)),u}; });
+    const X=(L1,L2)=>{ const w=v3.sub(L2.p,L1.p), c=v3.cross(L1.u,L2.u), t=v3.dot(v3.cross(w,L2.u),c)/v3.dot(c,c); return v3.add(L1.p,v3.mul(L1.u,t)); };
+    return { n, inner:P.map((_,i)=>X(lines[(i+k-1)%k],lines[i])) }; });
+  const verts=[]; for(const s of MEGA_SLOTS) if(s.kind==='k' && !verts.some(v=>Math.hypot(...v3.sub(v,s.pts[0]))<1e-6)) verts.push(s.pts[0]);
+  const edge=Math.min(...verts.slice(1).map(v=>Math.hypot(...v3.sub(v,verts[0])))), caps={};
+  for(const [f,ax] of Object.entries(MEGA_N)){ const pts=[], ref=v3.unit(v3.cross(ax,[.3,.5,.8])), ref2=v3.cross(ax,ref);
+    for(let i=0;i<verts.length;i++) for(let j=i+1;j<verts.length;j++){ const A=verts[i],B=verts[j];
+      if(Math.abs(Math.hypot(...v3.sub(A,B))-edge)>1e-6) continue;
+      const da=v3.dot(A,ax)-MEGA_SLOTS.cut, db=v3.dot(B,ax)-MEGA_SLOTS.cut; if(da*db<0) pts.push(v3.add(A,v3.mul(v3.sub(B,A),da/(da-db)))); }
+    pts.sort((a,b)=>Math.atan2(v3.dot(a,ref2),v3.dot(a,ref))-Math.atan2(v3.dot(b,ref2),v3.dot(b,ref)));
+    caps[f]=pts; }
+  return {stickers,caps}; })();
+const MEGA = { size:2.1 };
+// Megaminx drawn on a canvas: sharp at any screen density and light to build (one element per puzzle).
+// The empty .cube element still carries the view angle that dragging sets; the canvas follows it.
+class Mega {
+  constructor(el, S, {view='mega'}={}){
+    this.el=el; this.S=S; this.dead=false; this.sz=S*MEGA.size; this.at=MEGA_SLOTS.map((_,i)=>i); this.anim=null;
+    const sc=this.scene=el.parentElement; if(getComputedStyle(sc).position==='static') sc.style.position='relative';
+    this.cv=document.createElement('canvas'); this.cv.className='mega-cv'; sc.appendChild(this.cv);
+    this.box=document.createElement('div'); this.box.className='mega-box'; sc.appendChild(this.box);
+    this.angle=VIEW_ANGLES[view]||VIEW_ANGLES.mega; el.style.transform=viewCSS(this.angle);
+    // follow the view that dragging / "Reset view" writes on the .cube element (with a slide when it settles)
+    new MutationObserver(()=>{ const m=/rotateX\((-?[\d.e-]+)deg\) rotateY\((-?[\d.e-]+)deg\)/.exec(el.style.transform); if(!m) return;
+      const to=[+m[1],+m[2]]; if(el.classList.contains('settle')) this.slide(to); else { this.slideTo=null; this.angle=to; this.draw(); } })
+      .observe(el,{attributes:true,attributeFilter:['style']});
+    if('ResizeObserver' in window) new ResizeObserver(()=>this.draw()).observe(sc);
+    this.draw();
+  }
+  slide(to){ const from=this.angle.slice(), t0=performance.now(); this.slideTo=to;
+    const f=now=>{ if(this.dead||this.slideTo!==to) return; const t=Math.min(1,(now-t0)/450), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+      this.angle=from.map((a,i)=>a+(to[i]-a)*e); this.draw(); if(t<1) requestAnimationFrame(f); };
+    requestAnimationFrame(f); }
+  reset(){ this.at=MEGA_SLOTS.map((_,i)=>i); this.draw(); }
+  apply(tok){ const m=MEGA_MOVES[tok], n=this.at.slice(); for(const i of m.set) n[m.to[i]]=this.at[i]; this.at=n; this.draw(); }
+  applyAll(seq){ const d=this.draw; this.draw=()=>{}; for(const t of seq) this.apply(t); this.draw=d; this.draw(); }
+  isSolved(){ return Object.keys(MEGA_N).every(f=>new Set(MEGA_SLOTS.map((s,i)=>s.face===f?MEGA_SLOTS[this.at[i]].face:null).filter(Boolean)).size===1); }
+  colours(){ return this.at.map(h=>MEGA_SLOTS[h].face); }
+  animate(tok, dur){
+    return new Promise(res=>{ const m=MEGA_MOVES[tok], t0=performance.now();
+      const frame=now=>{ if(this.dead){ this.anim=null; return res(); }
+        const t=Math.min(1,(now-t0)/dur), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+        this.anim={m, R:rotAxis(m.axis,m.deg*e)}; this.draw();
+        if(t<1) requestAnimationFrame(frame); else { this.anim=null; this.apply(tok); res(); } };
+      requestAnimationFrame(frame); });
+  }
+  draw(){
+    const cv=this.cv, sc=this.scene, W=sc.clientWidth, H=sc.clientHeight; if(!W||!H) return;
+    const dpr=Math.min(3,window.devicePixelRatio||1);
+    if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.width=W+'px'; cv.style.height=H+'px'; }
+    const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+    // view: the same rotateX(tilt) rotateY(turn) and perspective as the CSS puzzles
+    const [ax,ay]=this.angle.map(a=>a*Math.PI/180), cx=Math.cos(ax), sx=Math.sin(ax), cy=Math.cos(ay), sy=Math.sin(ay);
+    const V=p=>{ const x=cy*p[0]+sy*p[2], z0=-sy*p[0]+cy*p[2]; return [x, cx*p[1]-sx*z0, sx*p[1]+cx*z0]; };
+    const per=parseFloat(getComputedStyle(sc).perspective)||1100, ox=W/2, oy=H*.45, K=[ox-W/2, oy-H/2, per], sz=this.sz;
+    const P=q=>{ const v=V(q), k=per/(per-v[2]*sz); return [ox+(W/2+v[0]*sz-ox)*k, oy+(H/2+v[1]*sz-oy)*k]; };
+    const facing=(n,q)=>{ const a=V(n), b=V(q); return a[0]*(K[0]-b[0]*sz)+a[1]*(K[1]-b[1]*sz)+a[2]*(K[2]-b[2]*sz)>0; };
+    const L=v3.unit([-.35,-.8,.6]);
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    const path=(pts,round)=>{ const q=pts.map(P); g.beginPath();
+      if(!round){ q.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y)); }
+      else { const k=q.length;
+        for(let i=0;i<k;i++){ const a=q[(i+k-1)%k], b=q[i], c=q[(i+1)%k], la=Math.hypot(a[0]-b[0],a[1]-b[1]), lc=Math.hypot(c[0]-b[0],c[1]-b[1]), r=Math.min(round,la/3,lc/3);
+          const p1=[b[0]+(a[0]-b[0])*r/la,b[1]+(a[1]-b[1])*r/la], p2=[b[0]+(c[0]-b[0])*r/lc,b[1]+(c[1]-b[1])*r/lc];
+          i?g.lineTo(...p1):g.moveTo(...p1); g.quadraticCurveTo(b[0],b[1],p2[0],p2[1]); } }
+      g.closePath(); for(const [x,y] of q){ x0=Math.min(x0,x); y0=Math.min(y0,y); x1=Math.max(x1,x); y1=Math.max(y1,y); } };
+    const rnd=Math.max(1,sz*.022);
+    const sticker=(i,R)=>{ const G=MEGA_GEO.stickers[i], s=MEGA_SLOTS[i], T=R?q=>[0,1,2].map(r=>R[r][0]*q[0]+R[r][1]*q[1]+R[r][2]*q[2]):q=>q, n=T(G.n);
+      if(!facing(n,T(s.c))) return;
+      path(s.pts.map(T)); g.fillStyle='#111'; g.fill(); g.strokeStyle='#111'; g.lineWidth=1; g.stroke();
+      path(G.inner.map(T),rnd); g.fillStyle=MEGA_COLORS[MEGA_SLOTS[this.at[i]].face]; g.fill();
+      const lit=Math.max(0,v3.dot(V(n),L)); g.fillStyle=`rgba(0,0,0,${(.30*(1-lit)).toFixed(3)})`; g.fill(); };
+    const cap=(f,R,flip)=>{ const T=R?q=>[0,1,2].map(r=>R[r][0]*q[0]+R[r][1]*q[1]+R[r][2]*q[2]):q=>q, pts=MEGA_GEO.caps[f].map(T), n=T(flip?v3.mul(MEGA_N[f],-1):MEGA_N[f]);
+      if(!facing(n,pts[0])) return; path(pts); g.fillStyle='#0b0b0b'; g.fill(); };
+    const all=MEGA_SLOTS.map((_,i)=>i);
+    if(!this.anim) all.forEach(i=>sticker(i));
+    else { const {m,R}=this.anim, f=Object.keys(MEGA_N).find(k=>MEGA_N[k]===m.axis), mov=new Set(m.set);
+      const rest=()=>{ all.forEach(i=>{ if(!mov.has(i)) sticker(i); }); cap(f,null,false); };
+      const turning=()=>{ m.set.forEach(i=>sticker(i,R)); cap(f,R,true); };
+      const camOnTurningSide=facing(MEGA_N[f], v3.mul(MEGA_N[f],MEGA_SLOTS.cut));
+      if(camOnTurningSide){ rest(); turning(); } else { turning(); rest(); } }
+    if(x0<Infinity) Object.assign(this.box.style,{left:x0+'px',top:y0+'px',width:(x1-x0)+'px',height:(y1-y0)+'px'});
+  }
+}
 const megaInverse = t => t.endsWith("'") ? t.slice(0,-1) : t+"'";
 function describeMega(tok){
   const f=tok.match(/^[A-Z]+/)[0], suf=tok.slice(f.length);
@@ -626,7 +716,7 @@ function describe4(tok){
 function makeCube(scene, opts){
   const cube=document.createElement('div'); cube.className='cube'; scene.appendChild(cube);
   const S=Math.max(8, Math.floor(Math.min(scene.clientWidth, scene.clientHeight)/6.2));
-  return opts.pyra ? new Pyra(cube, S, opts) : opts.four ? new Cube4(cube, S, opts) : new Cube(cube, S, opts);
+  return opts.mega ? new Mega(cube, S, opts) : opts.pyra ? new Pyra(cube, S, opts) : opts.four ? new Cube4(cube, S, opts) : new Cube(cube, S, opts);
 }
 
 /* ============================================================
@@ -1192,24 +1282,24 @@ const ALGS = [
 
 
   /* ---------------- Megaminx beginner (white on top, gray at the bottom) ---------------- */
-  { id:'mega-1a', level:'megaminx', step:'Megaminx · Step 1a · Forward', title:'Forward', moves:"R U R'", start:'solved', focus:'all',
+  { id:'mega-1a', level:'megaminx', setup:"R U R' U R U2' R' U2 R U2 R' U' R U' R' U2 F R U R' U' F'", step:'Megaminx · Step 1a · Forward', title:'Forward', moves:"R U R'", focus:'all',
     done:'Done! The piece is now up in the top layer.',
     purpose:'Brings a piece up out of its place.',
     hold:'Turn the Megaminx <b>upside down</b>. Do <b>Forward</b> to bring the piece up.',
     tips:['Then turn the bottom layer until the piece is at its place, and do Backward.'] },
-  { id:'mega-1b', level:'megaminx', step:'Megaminx · Step 1b · Backward', title:'Backward', moves:"R U' R'", focus:'all',
+  { id:'mega-1b', level:'megaminx', setup:"R U R' U R U2' R' U2 R U2 R' U' R U' R' U2 F R U R' U' F' R U R'", step:'Megaminx · Step 1b · Backward', title:'Backward', moves:"R U' R'", focus:'all',
     purpose:'Puts the piece down into its place.',
     hold:'Turn the bottom layer until the piece is at its place, then do <b>Backward</b>.',
     tips:['Forward and Backward undo each other: do Forward, then Backward, and the Megaminx is back where it started.'] },
-  { id:'mega-2a', level:'megaminx', step:'Megaminx · Step 2a · last cross', title:'Two pieces next to each other', moves:"F U R U' R' F'", focus:'all',
+  { id:'mega-2a', level:'megaminx', setup:"R U R' U R U2' R' U2 R U2 R' U' R U' R' U2 F R U R' U' F'", step:'Megaminx · Step 2a · last cross', title:'Two pieces next to each other', moves:"F U R U' R' F'", focus:'all',
     purpose:'Flips two pieces of the last cross that sit next to each other.',
     hold:'Hold the two wrong pieces at the <b>front</b> and on the <b>right</b>.',
     tips:['Four wrong pieces? Fix two of them first, then the other two.'] },
-  { id:'mega-2b', level:'megaminx', step:'Megaminx · Step 2b · last cross', title:'Two pieces not next to each other', moves:"F R U R' U' F'", focus:'all',
+  { id:'mega-2b', level:'megaminx', setup:"R U R' U R U2' R' U2 R U2 R' U' R U' R' U2 F U R U' R' F'", step:'Megaminx · Step 2b · last cross', title:'Two pieces not next to each other', moves:"F R U R' U' F'", focus:'all',
     purpose:'Flips two pieces of the last cross that do not sit next to each other.',
     hold:'Hold the two wrong pieces at the <b>front</b> and at the <b>back right</b>.',
     tips:['Four wrong pieces? Fix two of them first, then the other two.'] },
-  { id:'mega-3', level:'megaminx', step:'Megaminx · Step 3 · sides of the cross', title:'Two right pieces next to each other', moves:"R U R' U R U2' R'", focus:'all',
+  { id:'mega-3', level:'megaminx', setup:"R U R' U R U2' R' U2 R U2 R' U' R U' R' U2", step:'Megaminx · Step 3 · sides of the cross', title:'Two right pieces next to each other', moves:"R U R' U R U2' R'", focus:'all',
     purpose:'Sune: puts the pieces of the last cross in their places, so their side colours match.',
     hold:'Two pieces have the right side colour and sit next to each other. Hold them at the <b>front</b> and on the <b>left</b>.',
     tips:['Two right pieces opposite each other? Turn the top layer until one piece is right, hold it at the front and do this algorithm. Repeat until a solved piece is next to it.',
