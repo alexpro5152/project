@@ -8,7 +8,7 @@
   :root{
     --bg:#f4f6fb; --card:#ffffff; --ink:#1c2233; --muted:#6b7280;
     --accent:#2563eb; --hi:#fde047; --line:#e3e7f0;
-    --W:#ffffff; --Y:#ffd500; --R:#e53935; --O:#ff8c00; --G:#2ecc40; --B:#1e63d4; --dim:#c3c8d4;
+    --W:#ffffff; --Y:#ffe200; --R:#f2121c; --O:#ff7a00; --G:#00d33b; --B:#0a5cff; --dim:#c3c8d4;
     --panel:#ffffff; --edge:#d7dbe6; --faint:#9aa3b5; --body:#3b4254; --on-accent:#ffffff; --on-hi:#1c2233;
     --track:#e3e7f0; --thumb:#9aa3b5;
     color-scheme:light;
@@ -609,8 +609,8 @@ const MEGA_MOVES = (()=>{ const m={}, near=(a,b)=>Math.hypot(...v3.sub(a,b))<1e-
       m[k+suf]={axis,deg,set,to}; } }
   return m; })();
 // literal colours: the puzzle never changes colour with the app theme
-const MEGA_COLORS = { U:'#ffffff', D:'#8b9099', F:'#2ecc40', R:'#e53935', BR:'#1e63d4', BL:'#ffd500', L:'#8e44ad',
-  DB:'#9be35a', DBL:'#ff8c00', DL:'#7cc8f2', DR:'#e9d8a6', DBR:'#f78fc4' };
+const MEGA_COLORS = { U:'#ffffff', D:'#9aa0aa', F:'#00d33b', R:'#f2121c', BR:'#0a5cff', BL:'#ffe200', L:'#9b2ee6',
+  DB:'#7dff35', DBL:'#ff7a00', DL:'#38c6ff', DR:'#ffe0a0', DBR:'#ff5cc0' };
 // drawing data: each sticker's outward normal and its coloured part (the sticker shrunk by an even black border);
 // for each face the black cut surface you see inside the puzzle while that layer turns
 const MEGA_GEO = (()=>{ const gap=.024;
@@ -683,7 +683,7 @@ class CanvasPuzzle {
     const st=this.look||{}, rnd=Math.max(1,sz*(st.round||.022)), body=sz*(st.body||0);
     // a sticker: black base, coloured part with round corners, a little shade on faces turned from the light
     const stick=(outer,inner,n,colour)=>{ path(outer,body); g.fillStyle='#111'; g.fill(); g.strokeStyle='#111'; g.lineWidth=1; g.stroke();
-      path(inner,rnd); g.fillStyle=colour; g.fill(); const lit=Math.max(0,v3.dot(V(n),L)); g.fillStyle=`rgba(0,0,0,${(.30*(1-lit)).toFixed(3)})`; g.fill(); };
+      path(inner,rnd); g.fillStyle=colour; g.fill(); const lit=Math.max(0,v3.dot(V(n),L)); g.fillStyle=`rgba(0,0,0,${(.16*(1-lit)).toFixed(3)})`; g.fill(); };
     this.paint({g,V,facing,path,stick});
     if(x0<Infinity) Object.assign(this.box.style,{left:x0+'px',top:y0+'px',width:(x1-x0)+'px',height:(y1-y0)+'px'});
   }
@@ -755,7 +755,7 @@ const FISHER = (()=>{ const r=Math.SQRT1_2, c=Math.SQRT2/4, cy=c;   // the inner
   const AX={ U:[[0,-1,0],cy], D:[[0,1,0],cy], R:[[1,0,0],c], L:[[-1,0,0],c], F:[[0,0,1],c], B:[[0,0,-1],c] }, moves={};
   for(const [k,[axis,cut]] of Object.entries(AX)) for(const [suf,deg] of [['',90],["'",-90],['2',180]]) moves[k+suf]={axis,deg,cut};
   return { pieces, moves, faces:FACES }; })();
-const FISHER_COLORS = { U:'#ffd500', D:'#ffffff', FL:'#2ecc40', FR:'#ff8c00', BR:'#1e63d4', BL:'#e53935' };
+const FISHER_COLORS = { U:'#ffe200', D:'#ffffff', FL:'#00d33b', FR:'#ff7a00', BR:'#0a5cff', BL:'#f2121c' };
 const FISHER_HOME = (()=>{ const m=new Map(), key=p=>p.map(x=>(Math.abs(x)<5e-4?0:x).toFixed(3)).join(',');
   for(const p of FISHER.pieces) for(const F of p.faces) if(F.face!=='in') m.set(key(F.c),F.face);
   return {m,key}; })();
