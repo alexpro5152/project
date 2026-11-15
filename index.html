@@ -119,8 +119,8 @@
   .face::after{content:'';position:absolute;inset:4%;border-radius:12%;background:var(--c,#1b1b1b)}
   .cubie.dim .face::after{background:var(--dim)}
   /* Void cube: you look into the empty middle, which is light plastic like the real puzzle */
-  .cube.void .face.inner{background:#b9bbc3}
-  .cube.void .face.inner::after{background:#e4e5ea;inset:0;border-radius:0}
+  .cube.void .face.inner{background:#8e93a0}
+  .cube.void .face.inner::after{background:var(--wall,#e4e5ea);inset:3%;border-radius:6%}
   .cubie.dim .face.inner::after{background:#1b1b1b}
   .big{position:relative}
   /* on a step page only the puzzle can be grabbed; the space around it scrolls the page */
@@ -452,8 +452,10 @@ class Cube {
       const faces=[['rotateY(0deg)',z===1&&'F',w,h,dz/2],['rotateY(180deg)',z===-1&&'B',w,h,dz/2],['rotateY(90deg)',x===1&&'R',dz,h,w/2],
                    ['rotateY(-90deg)',x===-1&&'L',dz,h,w/2],['rotateX(90deg)',y===-1&&'U',w,dz,h/2],['rotateX(-90deg)',y===1&&'D',w,dz,h/2]];
       const stickers=[];
-      for(const [t,f,fw,fh,tz] of faces){
+      const WALL=['#c9ccd4','#c9ccd4','#d3d6dd','#e6e8ec','#f3f4f7','#a7abb6'];   // Void cube inside: floors lit from above, ceilings in shade
+      for(const [k,[t,f,fw,fh,tz]] of faces.entries()){
         const e=document.createElement('div'); e.className='face'+(f?'':' inner');
+        if(hollow && !f) e.style.setProperty('--wall',WALL[k]);
         e.style.width=fw+'px'; e.style.height=fh+'px'; e.style.left=((w-fw)/2)+'px'; e.style.top=((h-fh)/2)+'px';
         e.style.transform=`${t} translateZ(${tz}px)`;
         if(f){ e.style.setProperty('--c',colors[f]); stickers.push(f); }
