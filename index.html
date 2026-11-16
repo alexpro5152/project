@@ -863,9 +863,11 @@ class GearCube extends CanvasPuzzle {
       if(F.face==='in'){ if(seen.get(k)>1) continue; path(pts); g.fillStyle='#0b0b0b'; g.fill(); g.strokeStyle='#0b0b0b'; g.lineWidth=1; g.stroke(); continue; }
       path(pts); g.fillStyle='#111'; g.fill(); g.strokeStyle='#111'; g.lineWidth=1; g.stroke();
       // the coloured parts look like the real puzzle: a small square centre, big corners with teeth, cog edges
-      const parts=gearShape(p,F,sp).map(P=>P.map(q=>t3(M,q)));
+      const shp=gearShape(p,F,sp), parts=shp.map(P=>P.map(q=>t3(M,q))); parts.cut=shp.cut; parts.after=shp.after||[];
       const fill=(P,col)=>{ path(P,rnd*.5); g.fillStyle=GEAR_COLORS[col]; g.fill(); g.fillStyle=shade(n); g.fill(); };
-      if(p.kind!==2 || !(((sp%360)+360)%360)){ const col=p.kind===2?(v3.dot(p.n0,v3.sub(F.c,p.home))<0?p.neg:p.pos):F.face; parts.forEach(P=>fill(P,col)); }
+      if(p.kind!==2 || !(((sp%360)+360)%360)){ const col=p.kind===2?(v3.dot(p.n0,v3.sub(F.c,p.home))<0?p.neg:p.pos):F.face; parts.forEach(P=>fill(P,col));
+        if(parts.cut){ g.save(); path(pts); g.clip(); for(const C of parts.cut){ path(C.map(q=>t3(M,q))); g.fillStyle='#111'; g.fill(); } g.restore();
+          for(const A of parts.after) fill(A.map(q=>t3(M,q)),col); } }
       else { // a spun cog: its two colours meet along a line turned by the spin
         const ns=t3(rot3(p.r,sp),p.n0), half=(Q,sgn)=>{ const out=[]; for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length], da=sgn*v3.dot(ns,v3.sub(A,p.home)), db=sgn*v3.dot(ns,v3.sub(B,p.home));
             if(da<=0) out.push(A); if(da*db<0) out.push(v3.add(A,v3.mul(v3.sub(B,A),da/(da-db)))); } return out; };
@@ -882,16 +884,18 @@ function gearShape(p,F,spin){
     for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const T=([t,r])=>[dx*r-dy*t, dy*r+dx*t];   // t along the side, r out from the centre
       out.push([[-.27,.48],[.27,.48],[.27,.28],[.17,.28],[.17,.39],[-.17,.39],[-.17,.28],[-.27,.28]].map(T).map(P3)); }
     return out; }
-  if(p.kind===3){ const su=-Math.sign(v3.dot(p.home,u)), sw=-Math.sign(v3.dot(p.home,w));
-    // a big corner reaching the cube's edges, with teeth on the two sides towards the centre
-    const span=(sg,inner,outer)=>sg<0?[-inner,outer]:[-outer,inner], [u0,u1]=span(su,.2,.47), [w0,w1]=span(sw,.2,.47), out=[box(u0,w0,u1,w1)];
-    // one T-shaped tooth on each side that faces a cog
-    const T=(along,c,sg,flip)=>[[-.06,.2],[-.06,.36],[-.15,.36],[-.15,.47],[.15,.47],[.15,.36],[.06,.36],[.06,.2]].map(([t,r])=>flip?[c+t,sg*r]:[sg*r,c+t]).map(P3);
-    out.push(T(0,(w0+w1)/2,su,false)); out.push(T(0,(u0+u1)/2,sw,true));
+  if(p.kind===3){ // a corner: nearly its whole square, bitten round by the two cogs next to it and by the centre ring,
+    // with one T-shaped tooth that points at the centre (like the real puzzle)
+    const su=Math.sign(v3.dot(p.home,u)), sw=Math.sign(v3.dot(p.home,w)), disk=(x,y,r)=>Array.from({length:28},(_,k)=>[x+r*Math.cos(k*Math.PI/14), y+r*Math.sin(k*Math.PI/14)]).map(P3);
+    const d=[-su/Math.SQRT2,-sw/Math.SQRT2], q=[-d[1],d[0]], at=(t,o)=>P3([d[0]*t+q[0]*o, d[1]*t+q[1]*o]);
+    const tooth=[[.3,-.07],[.52,-.07],[.52,-.16],[.63,-.16],[.63,.16],[.52,.16],[.52,.07],[.3,.07]].map(([t,o])=>at(t,o));
+    const out=[box(-.46,-.46,.46,.46)];
+    out.cut=[disk(-su,sw*.5,.67), disk(su*.5,-sw,.67), disk(-su*.5,-sw*.5,.33)];
+    out.after=[tooth];
     return out; }
   // a cog centred on the cube edge: body and teeth, turned with the spin, cut to this face
   const m=p.faces.find(G=>G.face!=='in' && G!==F).n, cx=v3.dot(m,u)*.5, cy=v3.dot(m,w)*.5, pts=[], N=8, turn=spin*Math.PI/180, a0=Math.atan2(-cy,-cx);
-  const tooth=[[-.39,.36],[-.13,.37],[-.13,.42],[-.24,.44],[-.24,.53],[.24,.53],[.24,.44],[.13,.42],[.13,.37],[.39,.36]];
+  const tooth=[[-.39,.4],[-.12,.41],[-.12,.47],[-.22,.49],[-.22,.57],[.22,.57],[.22,.49],[.12,.47],[.12,.41],[.39,.4]];
   for(let k=0;k<N;k++) for(const [da,r] of tooth){ const ang=a0+turn+k*2*Math.PI/N+da; pts.push([cx+r*Math.cos(ang), cy+r*Math.sin(ang)]); }
   let Q=pts; for(const [nx,ny] of [[1,0],[-1,0],[0,1],[0,-1]]){ const R=[]; for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length], da=nx*A[0]+ny*A[1]-.47, db=nx*B[0]+ny*B[1]-.47;
       if(da<=0) R.push(A); if(da*db<0) R.push([A[0]+(B[0]-A[0])*da/(da-db), A[1]+(B[1]-A[1])*da/(da-db)]); } Q=R; }
