@@ -878,16 +878,21 @@ class GearCube extends CanvasPuzzle {
 function gearShape(p,F,spin){
   const a=F.n.findIndex(v=>v), u=[0,0,0], w=[0,0,0]; u[(a+1)%3]=1; w[(a+2)%3]=1;
   const P3=([x,y])=>v3.add(F.c,v3.add(v3.mul(u,x),v3.mul(w,y))), box=(x0,y0,x1,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]].map(P3);
-  if(p.kind===1) return [box(-.22,-.22,.22,.22)];
+  if(p.kind===1){ const out=[box(-.2,-.2,.2,.2)];
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const T=([t,r])=>[dx*r-dy*t, dy*r+dx*t];   // t along the side, r out from the centre
+      out.push([[-.27,.48],[.27,.48],[.27,.28],[.17,.28],[.17,.39],[-.17,.39],[-.17,.28],[-.27,.28]].map(T).map(P3)); }
+    return out; }
   if(p.kind===3){ const su=-Math.sign(v3.dot(p.home,u)), sw=-Math.sign(v3.dot(p.home,w));
     // a big corner reaching the cube's edges, with teeth on the two sides towards the centre
-    const span=(sg,inner,outer)=>sg<0?[-inner,outer]:[-outer,inner], [u0,u1]=span(su,.26,.47), [w0,w1]=span(sw,.26,.47), out=[box(u0,w0,u1,w1)];
-    for(const t of [-.3,.1]){ const tw=sw<0?t:-t-.2, tu=su<0?t:-t-.2;
-      out.push(box(su<0?-.45:.26, tw, su<0?-.26:.45, tw+.2)); out.push(box(tu, sw<0?-.45:.26, tu+.2, sw<0?-.26:.45)); }
+    const span=(sg,inner,outer)=>sg<0?[-inner,outer]:[-outer,inner], [u0,u1]=span(su,.2,.47), [w0,w1]=span(sw,.2,.47), out=[box(u0,w0,u1,w1)];
+    // one T-shaped tooth on each side that faces a cog
+    const T=(along,c,sg,flip)=>[[-.06,.2],[-.06,.36],[-.15,.36],[-.15,.47],[.15,.47],[.15,.36],[.06,.36],[.06,.2]].map(([t,r])=>flip?[c+t,sg*r]:[sg*r,c+t]).map(P3);
+    out.push(T(0,(w0+w1)/2,su,false)); out.push(T(0,(u0+u1)/2,sw,true));
     return out; }
   // a cog centred on the cube edge: body and teeth, turned with the spin, cut to this face
-  const m=p.faces.find(G=>G.face!=='in' && G!==F).n, cx=v3.dot(m,u)*.5, cy=v3.dot(m,w)*.5, pts=[], N=8, turn=spin*Math.PI/180;
-  for(let k=0;k<N;k++) for(const [da,r] of [[-.22,.38],[-.12,.52],[.12,.52],[.22,.38]]){ const ang=turn+(k+.5)*2*Math.PI/N+da; pts.push([cx+r*Math.cos(ang), cy+r*Math.sin(ang)]); }
+  const m=p.faces.find(G=>G.face!=='in' && G!==F).n, cx=v3.dot(m,u)*.5, cy=v3.dot(m,w)*.5, pts=[], N=8, turn=spin*Math.PI/180, a0=Math.atan2(-cy,-cx);
+  const tooth=[[-.39,.36],[-.13,.37],[-.13,.42],[-.24,.44],[-.24,.53],[.24,.53],[.24,.44],[.13,.42],[.13,.37],[.39,.36]];
+  for(let k=0;k<N;k++) for(const [da,r] of tooth){ const ang=a0+turn+k*2*Math.PI/N+da; pts.push([cx+r*Math.cos(ang), cy+r*Math.sin(ang)]); }
   let Q=pts; for(const [nx,ny] of [[1,0],[-1,0],[0,1],[0,-1]]){ const R=[]; for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length], da=nx*A[0]+ny*A[1]-.47, db=nx*B[0]+ny*B[1]-.47;
       if(da<=0) R.push(A); if(da*db<0) R.push([A[0]+(B[0]-A[0])*da/(da-db), A[1]+(B[1]-A[1])*da/(da-db)]); } Q=R; }
   return Q.length>=3 ? [Q.map(P3)] : [];
