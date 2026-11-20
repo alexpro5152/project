@@ -867,25 +867,37 @@ class GearCube extends CanvasPuzzle {
     list.sort((x,y)=>x.z-y.z);
     for(const {p,M,sp,f} of list) for(const {F,pts,n,k} of f){ if(!facing(n,pts[0])) continue;
       if(F.face==='in'){ if(seen.get(k)>1) continue; path(pts); g.fillStyle='#0b0b0b'; g.fill(); g.strokeStyle='#0b0b0b'; g.lineWidth=1; g.stroke(); continue; }
-      // black plastic, a little lighter where the light falls on it
-      const lit=Math.max(0,v3.dot(V(n),L)), b=Math.round(13+16*lit), black=`rgb(${b},${b},${b+2})`;
+      // the face itself is the deep black bottom of the gaps; the coloured parts stand up from it with side walls
+      const lit=Math.max(0,v3.dot(V(n),L)), b=Math.round(4+7*lit), black=`rgb(${b},${b},${b+1})`;
       path(pts); g.fillStyle=black; g.fill(); g.strokeStyle=black; g.lineWidth=1; g.stroke();
-      // the coloured parts look like the real puzzle: a small square centre, big corners with teeth, cog edges
-      const shp=gearShape(p,F,sp), parts=shp.map(P=>P.map(q=>t3(M,q))); parts.cut=shp.cut; parts.after=shp.after||[];
-      // raised coloured plastic: colour, shade, a soft shine from the top-left and a thin dark rim
-      const rim=Math.max(1,this.sz*.012), fill=(Q,col)=>{ path(Q,rnd*.5); g.fillStyle=GEAR_COLORS[col]; g.fill(); g.fillStyle=shade(n); g.fill();
+      const H=.075, rim=Math.max(1,this.sz*.009), at=(Q,h)=>Q.map(q=>t3(M,v3.add(q,v3.mul(F.n,h))));
+      const wallCol=nw=>{ const l=Math.max(0,v3.dot(V(nw),L)), v=Math.round(18+44*l); return `rgb(${v},${v},${v+3})`; };
+      // side walls of a raised part; hole: the walls round a hole cut into a part
+      const walls=(Q,hole,h=H)=>{ const C=v3.mul(Q.reduce(v3.add),1/Q.length);
+        let o=0; for(let i=0;i<Q.length;i++) o+=v3.dot(v3.cross(v3.sub(Q[i],C),v3.sub(Q[(i+1)%Q.length],C)),F.n); o=(o>0?1:-1)*(hole?-1:1);
+        for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length]; let nl=v3.cross(v3.sub(B,A),F.n); const ln=Math.hypot(...nl); if(ln<1e-9) continue;
+          nl=v3.mul(nl,o/ln); const nw=t3(M,nl), quad=[A,B,v3.add(B,v3.mul(F.n,h)),v3.add(A,v3.mul(F.n,h))].map(q=>t3(M,q));
+          if(!facing(nw,quad[0])) continue; path(quad); g.fillStyle=wallCol(nw); g.fill(); g.strokeStyle=g.fillStyle; g.lineWidth=.7; g.stroke(); } };
+      // the top of a coloured part: colour, shade, a soft shine from the top-left and a thin dark edge
+      const top=(Q,col)=>{ path(Q,rnd*.5); g.fillStyle=col; g.fill(); g.fillStyle=shade(n); g.fill();
         const q=Q.map(P), xs=q.map(v=>v[0]), ys=q.map(v=>v[1]), gr=g.createLinearGradient(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys));
-        gr.addColorStop(0,'rgba(255,255,255,.24)'); gr.addColorStop(.6,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fill();
-        g.strokeStyle='rgba(0,0,0,.45)'; g.lineWidth=rim; g.stroke(); };
-      // the dark grey gear ring round a centre (under its brackets), as on the real puzzle
-      for(const U of shp.under||[]){ path(U.map(q=>t3(M,q)),rnd*.3); g.fillStyle=`rgb(${b+16},${b+16},${b+19})`; g.fill(); g.strokeStyle='rgba(0,0,0,.5)'; g.lineWidth=rim; g.stroke(); }
-      if(p.kind!==2 || !(((sp%360)+360)%360)){ const col=p.kind===2?(v3.dot(p.n0,v3.sub(F.c,p.home))<0?p.neg:p.pos):F.face; parts.forEach(P=>fill(P,col));
-        if(parts.cut){ g.save(); path(pts); g.clip(); for(const C of parts.cut){ path(C.map(q=>t3(M,q))); g.fillStyle='#111'; g.fill(); } g.restore();
-          for(const A of parts.after) fill(A.map(q=>t3(M,q)),col); } }
+        gr.addColorStop(0,'rgba(255,255,255,.26)'); gr.addColorStop(.6,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fill();
+        g.strokeStyle='rgba(0,0,0,.4)'; g.lineWidth=rim; g.stroke(); };
+      const shp=gearShape(p,F,sp);
+      // the dark grey gear ring round a centre stands a little lower than the coloured parts
+      for(const U of shp.under||[]){ walls(U,false,H*.55); path(at(U,H*.55),rnd*.3); g.fillStyle=`rgb(${b+22},${b+22},${b+26})`; g.fill(); g.strokeStyle='rgba(0,0,0,.5)'; g.lineWidth=rim; g.stroke(); }
+      if(p.kind!==2 || !(((sp%360)+360)%360)){ const col=GEAR_COLORS[p.kind===2?(v3.dot(p.n0,v3.sub(F.c,p.home))<0?p.neg:p.pos):F.face];
+        for(const Q of shp){ walls(Q,false); top(at(Q,H),col); }
+        if(shp.cut){ // corners: bites cut down to the black bottom, with their own walls
+          const sq=at(shp[0],H); g.save(); path(sq); g.clip();
+          for(const C of shp.cut){ path(at(C,0)); g.fillStyle=black; g.fill(); }
+          for(const C of shp.cut) walls(C,true);
+          g.restore();
+          for(const A of shp.after||[]){ walls(A,false); top(at(A,H),col); } } }
       else { // a spun cog: its two colours meet along a line turned by the spin
         const ns=t3(rot3(p.r,sp),p.n0), half=(Q,sgn)=>{ const out=[]; for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length], da=sgn*v3.dot(ns,v3.sub(A,p.home)), db=sgn*v3.dot(ns,v3.sub(B,p.home));
             if(da<=0) out.push(A); if(da*db<0) out.push(v3.add(A,v3.mul(v3.sub(B,A),da/(da-db)))); } return out; };
-        for(const P of gearShape(p,F,sp)) for(const [sgn,col] of [[1,p.neg],[-1,p.pos]]){ const part=half(P,sgn); if(part.length>=3) fill(part.map(q=>t3(M,q)),col); } }
+        for(const Q of shp){ walls(Q,false); for(const [sgn,c] of [[1,p.neg],[-1,p.pos]]){ const part=half(Q,sgn); if(part.length>=3) top(at(part,H),GEAR_COLORS[c]); } } }
     }
   }
 }
