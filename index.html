@@ -867,10 +867,13 @@ class GearCube extends CanvasPuzzle {
     list.sort((x,y)=>x.z-y.z);
     for(const {p,M,sp,f} of list) for(const {F,pts,n,k} of f){ if(!facing(n,pts[0])) continue;
       if(F.face==='in'){ if(seen.get(k)>1) continue; path(pts); g.fillStyle='#0b0b0b'; g.fill(); g.strokeStyle='#0b0b0b'; g.lineWidth=1; g.stroke(); continue; }
-      // the face itself is the deep black bottom of the gaps; the coloured parts stand up from it with side walls
-      const lit=Math.max(0,v3.dot(V(n),L)), b=Math.round(4+7*lit), black=`rgb(${b},${b},${b+1})`;
-      path(pts); g.fillStyle=black; g.fill(); g.strokeStyle=black; g.lineWidth=1; g.stroke();
-      const H=.075, rim=Math.max(1,this.sz*.009), at=(Q,h)=>Q.map(q=>t3(M,v3.add(q,v3.mul(F.n,h))));
+      // each piece is black plastic with a bevelled edge, so a deep black groove runs between all pieces;
+      // the coloured parts stand up from the plastic with side walls and a soft shadow round their foot
+      const lit=Math.max(0,v3.dot(V(n),L)), b=Math.round(11+17*lit), black=`rgb(${b},${b},${b+2})`;
+      path(pts); g.fillStyle='#020203'; g.fill(); g.strokeStyle='#020203'; g.lineWidth=1; g.stroke();
+      const C0=v3.mul(pts.reduce(v3.add),1/pts.length), inset=pts.map(q=>v3.add(C0,v3.mul(v3.sub(q,C0),.93)));
+      path(inset,rnd*.6); g.fillStyle=black; g.fill(); g.strokeStyle=`rgba(255,255,255,${(.05+.07*lit).toFixed(3)})`; g.lineWidth=Math.max(1,this.sz*.004); g.stroke();
+      const H=.09, rim=Math.max(1,this.sz*.009), foot=Q=>{ path(at(Q,0)); g.strokeStyle='rgba(0,0,0,.55)'; g.lineWidth=this.sz*.022; g.lineJoin='round'; g.stroke(); }, at=(Q,h)=>Q.map(q=>t3(M,v3.add(q,v3.mul(F.n,h))));
       const wallCol=nw=>{ const l=Math.max(0,v3.dot(V(nw),L)), v=Math.round(18+44*l); return `rgb(${v},${v},${v+3})`; };
       // side walls of a raised part; hole: the walls round a hole cut into a part
       const walls=(Q,hole,h=H)=>{ const C=v3.mul(Q.reduce(v3.add),1/Q.length);
@@ -885,18 +888,20 @@ class GearCube extends CanvasPuzzle {
         g.strokeStyle='rgba(0,0,0,.4)'; g.lineWidth=rim; g.stroke(); };
       const shp=gearShape(p,F,sp);
       // the dark grey gear ring round a centre stands a little lower than the coloured parts
-      for(const U of shp.under||[]){ walls(U,false,H*.55); path(at(U,H*.55),rnd*.3); g.fillStyle=`rgb(${b+22},${b+22},${b+26})`; g.fill(); g.strokeStyle='rgba(0,0,0,.5)'; g.lineWidth=rim; g.stroke(); }
+      for(const U of shp.under||[]){ foot(U); walls(U,false,H*.55); path(at(U,H*.55),rnd*.3); g.fillStyle=`rgb(${b+22},${b+22},${b+26})`; g.fill(); g.strokeStyle='rgba(0,0,0,.5)'; g.lineWidth=rim; g.stroke(); }
       if(p.kind!==2 || !(((sp%360)+360)%360)){ const col=GEAR_COLORS[p.kind===2?(v3.dot(p.n0,v3.sub(F.c,p.home))<0?p.neg:p.pos):F.face];
+        shp.forEach(foot); (shp.after||[]).forEach(foot);
         for(const Q of shp){ walls(Q,false); top(at(Q,H),col); }
         if(shp.cut){ // corners: bites cut down to the black bottom, with their own walls
           const sq=at(shp[0],H); g.save(); path(sq); g.clip();
-          for(const C of shp.cut){ path(at(C,0)); g.fillStyle=black; g.fill(); }
+          for(const C of shp.cut){ path(at(C,0)); g.fillStyle=black; g.fill(); g.strokeStyle='rgba(0,0,0,.55)'; g.lineWidth=this.sz*.022; g.stroke(); }
           for(const C of shp.cut) walls(C,true);
           g.restore();
           for(const A of shp.after||[]){ walls(A,false); top(at(A,H),col); } } }
       else { // a spun cog: its two colours meet along a line turned by the spin
         const ns=t3(rot3(p.r,sp),p.n0), half=(Q,sgn)=>{ const out=[]; for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length], da=sgn*v3.dot(ns,v3.sub(A,p.home)), db=sgn*v3.dot(ns,v3.sub(B,p.home));
             if(da<=0) out.push(A); if(da*db<0) out.push(v3.add(A,v3.mul(v3.sub(B,A),da/(da-db)))); } return out; };
+        shp.forEach(foot);
         for(const Q of shp){ walls(Q,false); for(const [sgn,c] of [[1,p.neg],[-1,p.pos]]){ const part=half(Q,sgn); if(part.length>=3) top(at(part,H),GEAR_COLORS[c]); } } }
     }
   }
