@@ -864,10 +864,7 @@ class GearCube extends CanvasPuzzle {
     for(const it of list){ it.f=it.p.faces.map(F=>({F,pts:F.pts.map(q=>t3(it.M,q)),n:t3(it.M,F.n)}));
       for(const f of it.f) if(f.F.face==='in'){ f.k=key(f.pts); seen.set(f.k,(seen.get(f.k)||0)+1); } }
     const shade=n=>{ const lit=Math.max(0,v3.dot(V(n),L)); return `rgba(0,0,0,${(.16*(1-lit)).toFixed(3)})`; };
-    // which colour each edge shows on each side (where it is now, not counting a turn in progress)
-    const rk=v=>v.map(x=>Math.round(x)).join(','), edgeCol=new Map();
-    GEAR.pieces.forEach((p,i)=>{ if(p.kind!==2) return; for(const F of p.faces) if(F.face!=='in')
-      edgeCol.set(rk(t3(this.M[i],p.home))+'|'+rk(t3(this.M[i],F.n)), v3.dot(p.n0,v3.sub(F.c,p.home))<0?p.neg:p.pos); });
+    const later=[];   // the edges' small bars reach over the centre square, so they are drawn last
     list.sort((x,y)=>x.z-y.z);
     for(const {p,M,sp,f,i} of list) for(const {F,pts,n,k} of f){ if(!facing(n,pts[0])) continue;
       if(F.face==='in'){ if(seen.get(k)>1) continue; path(pts); g.fillStyle='#0b0b0b'; g.fill(); g.strokeStyle='#0b0b0b'; g.lineWidth=1; g.stroke(); continue; }
@@ -902,14 +899,15 @@ class GearCube extends CanvasPuzzle {
           for(const C of shp.cut) walls(C,true);
           g.restore();
           for(const A of shp.after||[]){ walls(A,false); top(at(A,H),col); } } }
-      for(const {side,Q} of shp.bars||[]){ const S=this.M[i], c=edgeCol.get(rk(v3.add(t3(S,p.home),t3(S,side)))+'|'+rk(t3(S,F.n)))||F.face;
-        foot(Q); walls(Q,false); top(at(Q,H),GEAR_COLORS[c]); }
+      if(shp.bar){ const Q=shp.bar, c=GEAR_COLORS[v3.dot(p.n0,v3.sub(F.c,p.home))<0?p.neg:p.pos], z=V(t3(M,F.c))[2];
+        later.push({z, draw:()=>{ foot(Q); walls(Q,false); top(at(Q,H),c); }}); }
       if(p.kind===2 && ((sp%360)+360)%360){ // a spun cog: its two colours meet along a line turned by the spin
         const ns=t3(rot3(p.r,sp),p.n0), half=(Q,sgn)=>{ const out=[]; for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length], da=sgn*v3.dot(ns,v3.sub(A,p.home)), db=sgn*v3.dot(ns,v3.sub(B,p.home));
             if(da<=0) out.push(A); if(da*db<0) out.push(v3.add(A,v3.mul(v3.sub(B,A),da/(da-db)))); } return out; };
         shp.forEach(foot);
         for(const Q of shp){ walls(Q,false); for(const [sgn,c] of [[1,p.neg],[-1,p.pos]]){ const part=half(Q,sgn); if(part.length>=3) top(at(part,H),GEAR_COLORS[c]); } } }
     }
+    later.sort((x,y)=>x.z-y.z).forEach(b=>b.draw());
   }
 }
 
@@ -920,9 +918,6 @@ function gearShape(p,F,spin){
   if(p.kind===1){ const out=[box(-.2,-.2,.2,.2)], ring=[];
     for(let k=0;k<12;k++) for(const [da,r] of [[-.2,.3],[-.11,.42],[.11,.42],[.2,.3]]){ const ang=(k+.5)*Math.PI/6+da; ring.push([r*Math.cos(ang), r*Math.sin(ang)]); }
     out.under=[ring.map(P3)];
-    // the four small bars right next to the square: they show the colour of the edge on that side
-    out.bars=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>{ const T=([t,r])=>[dx*r-dy*t, dy*r+dx*t];   // t along the side, r out from the centre
-      return {side:v3.add(v3.mul(u,dx),v3.mul(w,dy)), Q:[[-.27,.48],[.27,.48],[.27,.28],[.17,.28],[.17,.39],[-.17,.39],[-.17,.28],[-.27,.28]].map(T).map(P3)}; });
     return out; }
   if(p.kind===3){ // a corner: nearly its whole square, bitten round by the two cogs next to it and by the centre ring,
     // with one T-shaped tooth that points at the centre (like the real puzzle)
@@ -939,7 +934,12 @@ function gearShape(p,F,spin){
   for(let k=0;k<N;k++) for(const [da,r] of tooth){ const ang=a0+turn+k*2*Math.PI/N+da; pts.push([cx+r*Math.cos(ang), cy+r*Math.sin(ang)]); }
   let Q=pts; for(const [nx,ny] of [[1,0],[-1,0],[0,1],[0,-1]]){ const R=[]; for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length], da=nx*A[0]+ny*A[1]-.47, db=nx*B[0]+ny*B[1]-.47;
       if(da<=0) R.push(A); if(da*db<0) R.push([A[0]+(B[0]-A[0])*da/(da-db), A[1]+(B[1]-A[1])*da/(da-db)]); } Q=R; }
-  return Q.length>=3 ? [Q.map(P3)] : [];
+  const out=Q.length>=3 ? [Q.map(P3)] : [];
+  // the small bar right next to the centre square belongs to this edge: it travels with the edge,
+  // does not spin with the gear, and so always shows the edge's own colour for this side
+  const ex=cx/.5, ey=cy/.5, B=([t,r])=>{ const d=1-r; return [-ex*d-ey*t, -ey*d+ex*t]; };   // r: out from the centre square, t: along the side
+  out.bar=[[-.27,.48],[.27,.48],[.27,.28],[.17,.28],[.17,.39],[-.17,.39],[-.17,.28],[-.27,.28]].map(B).map(P3);
+  return out;
 }
 function describeGear(tok){ const f=tok[0], n=tok[1]||'2', what=tr(`${FACE_NAME[f]} face`);
   return n==='4' ? fmt('{what}: a full turn round (turn it four times)',{what}) : fmt('{what}: half a turn (turn it twice)',{what}); }
