@@ -928,8 +928,8 @@ function gearShape(p,F,spin){
     out.cut=[disk(-su,sw*.5,.67), disk(su*.5,-sw,.67), disk(-su*.5,-sw*.5,.33)];
     out.after=[tooth];
     return out; }
-  // a cog centred on the cube edge: body and teeth, turned with the spin, cut to this face
-  const m=p.faces.find(G=>G.face!=='in' && G!==F).n, cx=v3.dot(m,u)*.5, cy=v3.dot(m,w)*.5, pts=[], N=8, turn=spin*Math.PI/180, a0=Math.atan2(-cy,-cx);
+  // a cog centred on the cube edge: body and six teeth (a turn moves a gear by a sixth of a round, so the teeth always line up), turned with the spin, cut to this face
+  const m=p.faces.find(G=>G.face!=='in' && G!==F).n, cx=v3.dot(m,u)*.5, cy=v3.dot(m,w)*.5, pts=[], N=6, turn=spin*Math.PI/180, a0=Math.atan2(-cy,-cx);
   const tooth=[[-.39,.4],[-.12,.41],[-.12,.47],[-.22,.49],[-.22,.57],[.22,.57],[.22,.49],[.12,.47],[.12,.41],[.39,.4]];
   for(let k=0;k<N;k++) for(const [da,r] of tooth){ const ang=a0+turn+k*2*Math.PI/N+da; pts.push([cx+r*Math.cos(ang), cy+r*Math.sin(ang)]); }
   let Q=pts; for(const [nx,ny] of [[1,0],[-1,0],[0,1],[0,-1]]){ const R=[]; for(let i=0;i<Q.length;i++){ const A=Q[i],B=Q[(i+1)%Q.length], da=nx*A[0]+ny*A[1]-.47, db=nx*B[0]+ny*B[1]-.47;
