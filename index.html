@@ -840,7 +840,7 @@ class GearCube extends CanvasPuzzle {
   apply(tok){ const m=gearMove(tok), Rf=rot3(m.axis,m.deg).map(r=>r.map(Math.round)), Rm=rot3(m.axis,m.deg/2).map(r=>r.map(Math.round));
     GEAR.pieces.forEach((p,i)=>{ const w=this.part(i,m);
       if(w==='face') this.M[i]=m3(Rf,this.M[i]);
-      else if(w==='mid'){ this.M[i]=m3(Rm,this.M[i]); if(p.kind===2) this.spin[i]=((this.spin[i]-m.layer*(4/3)*(m.deg/2))%360+360)%360; } });
+      else if(w==='mid'){ this.M[i]=m3(Rm,this.M[i]); if(p.kind===2) this.spin[i]=((this.spin[i]-m.layer*(2/3)*(m.deg/2))%360+360)%360; } });
     this.draw(); }
   animate(tok, dur){
     return new Promise(res=>{ const m=gearMove(tok), t0=performance.now();
@@ -858,7 +858,7 @@ class GearCube extends CanvasPuzzle {
     const a=this.anim, list=GEAR.pieces.map((p,i)=>{ let M=this.M[i], sp=this.spin[i];
       if(a){ const w=this.part(i,a.m);
         if(w==='face') M=m3(rot3(a.m.axis,a.m.deg*a.e),M);
-        else if(w==='mid'){ M=m3(rot3(a.m.axis,a.m.deg/2*a.e),M); if(p.kind===2) sp-=a.m.layer*(4/3)*(a.m.deg/2)*a.e; } }
+        else if(w==='mid'){ M=m3(rot3(a.m.axis,a.m.deg/2*a.e),M); if(p.kind===2) sp-=a.m.layer*(2/3)*(a.m.deg/2)*a.e; } }
       return {p,M,sp,i,z:V(t3(M,p.home))[2]}; });
     const key=P=>P.map(q=>q.map(x=>(Math.abs(x)<5e-4?0:x).toFixed(3)).join(',')).sort().join('|'), seen=new Map();
     for(const it of list){ it.f=it.p.faces.map(F=>({F,pts:F.pts.map(q=>t3(it.M,q)),n:t3(it.M,F.n)}));
