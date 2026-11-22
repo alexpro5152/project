@@ -77,8 +77,8 @@ const proj=p=>[(p.lon-MAP.LON0)*MAP.C*MAP.K,(MAP.LAT1-p.lat)*MAP.K];
 
 // küsitavad kohad: [nimi, lon, lat, eelistatud suund, tüüp]
 const SET1=[
- ['Pandivere kõrgustik',26.30,59.02,'r','upland'],['Haanja kõrgustik',27.00,57.72,'r','upland'],['Otepää kõrgustik',26.45,58.05,'r','upland'],
- ['Narva',28.16,59.377,'b','city'],['Tallinn',24.745,59.437,'t','city'],['Saaremaa',22.60,58.42,'t','isle'],
+ ['Pandivere kõrgustik',26.30,59.02,'r','upland'],['Haanja kõrgustik',27.20,57.66,'r','upland'],['Otepää kõrgustik',26.45,58.05,'r','upland'],
+ ['Narva',28.16,59.377,'b','city',[856,96]],['Tallinn',24.745,59.437,'t','city'],['Saaremaa',22.60,58.42,'t','isle'],
  ['Narva laht',27.70,59.55,'t','water'],['Emajõgi',26.999,58.381,'b','water'],['Sõrve poolsaar',22.10,57.97,'r','isle'],
  ['Kõpu poolsaar',22.27,58.91,'t','isle'],['Pärnu',24.497,58.385,'b','city'],
 ];
@@ -138,9 +138,10 @@ function drawBase(svg,asked){
 // place writing boxes so that they do not overlap each other or other points
 function layout(places,W,H){
   const pts=places.map(p=>proj({lon:p[1],lat:p[2]}));
-  const boxes=[], hit=(a,b,m)=>a.x<b.x+b.w+m&&b.x<a.x+a.w+m&&a.y<b.y+b.h+m&&b.y<a.y+a.h+m;
+  const boxes=places.map(p=>p[5]?{x:p[5][0],y:p[5][1],w:W,h:H}:null), hit=(a,b,m)=>a.x<b.x+b.w+m&&b.x<a.x+a.w+m&&a.y<b.y+b.h+m&&b.y<a.y+a.h+m;
   const dots=pts.map(([x,y])=>({x:x-9,y:y-9,w:18,h:18}));
   places.forEach((p,i)=>{
+    if(boxes[i]) return;
     const [x,y]=pts[i], pref=p[3], cand=[];
     const dirs={r:[1,0],l:[-1,0],t:[0,-1],b:[0,1],tr:[1,-1],tl:[-1,-1],br:[1,1],bl:[-1,1]};
     const order=[pref,...['r','l','t','b','tr','tl','br','bl'].filter(d=>d!==pref)];
@@ -151,9 +152,10 @@ function layout(places,W,H){
       cand.push({x:bx,y:by,w:W,h:H});
     }
     const inb=b=>b.x>=4&&b.y>=4&&b.x+b.w<=MAP.W-4&&b.y+b.h<=MAP.H-4;
-    let best=cand.find(b=>inb(b)&&!boxes.some(o=>hit(b,o,4))&&!dots.some(o=>hit(b,o,0)));
+    const others=boxes.filter(Boolean);
+    let best=cand.find(b=>inb(b)&&!others.some(o=>hit(b,o,4))&&!dots.some(o=>hit(b,o,0)));
     if(!best){ best=cand.find(inb)||cand[0]; }
-    boxes.push(best);
+    boxes[i]=best;
   });
   return {pts,boxes};
 }
@@ -183,10 +185,12 @@ function makePage(places,opts){
   pg.querySelector('.hticks').innerHTML=st.map(s=>`<span>${s}</span>`).join('');
   pg.querySelector('.scale').innerHTML=`<svg width="${mm50+12}mm" height="7mm" viewBox="0 0 ${mm50+12} 7"><rect x="1" y="4" width="${mm50/2}" height="1.4" fill="#1f2d3a"/><rect x="${1+mm50/2}" y="4" width="${mm50/2}" height="1.4" fill="#fff" stroke="#1f2d3a" stroke-width=".25"/><g font-size="2.6" fill="#1f2d3a"><text x="1" y="3" text-anchor="middle">0</text><text x="${1+mm50/2}" y="3" text-anchor="middle">25</text><text x="${1+mm50}" y="3">50 km</text></g></svg>`;
 }
-makePage(SET1,{title:'Eesti kaart 1',sub:'Kirjuta kohanimed punktiirjoonele'});
-makePage(SET2,{title:'Eesti kaart 2',sub:'20 põhikohta – kirjuta nimed punktiirjoonele',W:150});
-makePage(SET1,{title:'Eesti kaart 1',sub:'Kirjuta kohanimed punktiirjoonele',answers:true});
-makePage(SET2,{title:'Eesti kaart 2',sub:'20 põhikohta – kirjuta nimed punktiirjoonele',answers:true,W:150});
+const CITIES=[...SET1,...SET2].filter(p=>p[4]==='city');
+const OTHERS=[...SET1,...SET2].filter(p=>p[4]!=='city');
+makePage(CITIES,{title:'Eesti kaart 1',sub:'Linnad – kirjuta nimed punktiirjoonele',W:140});
+makePage(OTHERS,{title:'Eesti kaart 2',sub:'Muud kohad – kirjuta nimed punktiirjoonele',W:160});
+makePage(CITIES,{title:'Eesti kaart 1',sub:'Linnad – kirjuta nimed punktiirjoonele',W:140,answers:true});
+makePage(OTHERS,{title:'Eesti kaart 2',sub:'Muud kohad – kirjuta nimed punktiirjoonele',W:160,answers:true});
 }
 </script>
 </body></html>
