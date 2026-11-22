@@ -44,7 +44,7 @@ svg text{font-family:"Segoe UI",Roboto,Arial,sans-serif}
 .pt{fill:#d23b2f;stroke:#fff;stroke-width:2}
 .slot text.ans{font-size:15px;font-weight:600;fill:#1a4fa0;font-style:italic}
 .slot text.num{font-size:10px;font-weight:700;fill:#8a96a0}
-.key{color:#1a4fa0}
+.key{color:#1a4fa0;font-size:20pt}
 .side ul.many li{padding:.9mm 0;font-size:10pt}
 </style></head>
 <body>
@@ -163,7 +163,7 @@ function makePage(places,opts){
   document.body.appendChild(pg);
   pg.querySelector('.ttl').textContent=opts.title;
   pg.querySelector('.sub').textContent=opts.sub;
-  if(opts.answers){ pg.querySelector('.name').style.visibility='hidden'; pg.querySelector('.side .t').textContent='Vastuste leht: siit saad kontrollida, kas kirjutasid õigesti.'; pg.querySelector('.sub').classList.add('key'); }
+  if(opts.answers){ const k=document.createElement('span'); k.className='key'; k.textContent=' – vastused'; pg.querySelector('.ttl').after(k); }
   const svg=pg.querySelector('svg.map');
   drawBase(svg,new Set(places.map(p=>p[0])));
   const W=opts.W||172,H=26; const {pts,boxes}=layout(places,W,H);
@@ -185,8 +185,8 @@ function makePage(places,opts){
 }
 makePage(SET1,{title:'Eesti kaart 1',sub:'Kirjuta kohanimed punktiirjoonele'});
 makePage(SET2,{title:'Eesti kaart 2',sub:'20 põhikohta – kirjuta nimed punktiirjoonele',W:150});
-makePage(SET1,{title:'Eesti kaart 1',sub:'Vastused',answers:true});
-makePage(SET2,{title:'Eesti kaart 2',sub:'Vastused',answers:true,W:150});
+makePage(SET1,{title:'Eesti kaart 1',sub:'Kirjuta kohanimed punktiirjoonele',answers:true});
+makePage(SET2,{title:'Eesti kaart 2',sub:'20 põhikohta – kirjuta nimed punktiirjoonele',answers:true,W:150});
 }
 </script>
 </body></html>
