@@ -75,6 +75,18 @@ aside h2{font-size:.95rem;margin:2px 4px 8px;color:var(--muted);font-weight:600}
 .chip:hover{box-shadow:0 3px 8px rgba(0,0,0,.12);transform:translateY(-1px)}
 .chip .ic{font-size:.8rem;width:1.1em;text-align:center}
 .chip.src{opacity:.25}
+.chip.sel{border-color:#ff9f1a;background:#fff4e2;box-shadow:0 0 0 3px rgba(255,159,26,.45)}
+#selbar{display:none;font-size:.85rem;background:#fff4e2;border:1px solid #ffc36b;border-radius:10px;padding:6px 10px;margin-bottom:8px}
+#selbar.show{display:block}
+@media (max-width:860px){aside{position:sticky;bottom:0;z-index:4;max-height:33vh;overflow:auto;box-shadow:0 -4px 16px rgba(30,50,70,.18);padding:8px}
+  aside h2{display:none}
+  .chip{padding:5px 8px;font-size:.85rem}
+  .tray{gap:5px}
+  header{padding:8px 10px 4px}
+  h1 small{display:none}
+  .btn{font-size:.8rem;padding:5px 9px}
+  .status{padding:0 10px 6px}
+  main{padding:0 6px 8px;gap:8px}}
 .chip.hint{border-color:#ff9f1a;box-shadow:0 0 0 3px rgba(255,159,26,.35)}
 .chip.shake{animation:shake .45s}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
@@ -124,9 +136,10 @@ aside h2{font-size:.95rem;margin:2px 4px 8px;color:var(--muted);font-weight:600}
   </div>
   <aside>
     <h2>Nimed – lohista kaardile</h2>
+    <div id="selbar"></div>
     <div class="tray" id="tray"></div>
     <div class="legend" id="legend"></div>
-    <div class="tip">Kui nimi on kaardil, saad sellele klõpsata ja see läheb tagasi nimekirja.</div>
+    <div class="tip">Lohista nimi punkti peale <b>või</b> puuduta nime ja siis puuduta kaardil punkti. Kaardil olevale nimele klõpsates läheb see tagasi nimekirja.</div>
   </aside>
 </main>
 <canvas id="confetti"></canvas>
@@ -233,7 +246,7 @@ function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0
 function build(){
   gDots.innerHTML=''; gLabels.innerHTML=''; tray.innerHTML='';
   placed.clear(); mistakes=0; startT=null; clearInterval(timer); $('sTime').textContent='0:00';
-  $('win').classList.remove('show');
+  $('win').classList.remove('show'); clearSel();
   active = activePlaces();
   active.forEach((p,i) => {
     const g = el('g',{class:'dot pop','data-id':p.id},gDots);
@@ -254,7 +267,8 @@ function makeChip(p){
   const c=document.createElement('div');
   c.className='chip'; c.dataset.id=p.id;
   c.innerHTML=`<span class="ic" style="color:${TYPES[p.type].color}">${TYPES[p.type].ic}</span>${p.name}`;
-  c.addEventListener('pointerdown', e => startDrag(e,c,p));
+  c.addEventListener('touchstart', e => { const tc=e.changedTouches[0]; e.preventDefault(); startDrag({x:tc.clientX,y:tc.clientY,touch:true,id:tc.identifier},c,p); }, {passive:false});
+  c.addEventListener('mousedown', e => { if(e.button!==0) return; e.preventDefault(); startDrag({x:e.clientX,y:e.clientY,touch:false},c,p); });
   chipEls[p.id]=c;
   return c;
 }
@@ -327,7 +341,7 @@ function addLabel(p, kind){
   const t=el('text',{class:'lbl'+(TYPES[p.type].water?' water':'')+(kind==='shown'?' shown':''),'data-id':p.id,'font-size':Math.max(15,12/scale)},gLabels);
   t.textContent=p.name;
   positionLabel(t);
-  t.addEventListener('click',()=>unplace(p));
+  t.addEventListener('click',ev=>{ ev.stopPropagation(); unplace(p); });
   dotEls[p.id].classList.add(kind);
 }
 
@@ -354,34 +368,66 @@ function nearestDot(cx,cy,touch){
   return best;
 }
 
-function startDrag(e,chip,p){
-  if(busy || e.button>0) return;
-  e.preventDefault();
-  if(!startT){ startT=Date.now(); timer=setInterval(tick,1000); }
-  document.querySelectorAll('.hint').forEach(h=>h.classList.remove('hint'));
-  const touch = e.pointerType!=='mouse';
-  const r=chip.getBoundingClientRect();
-  const ghost=chip.cloneNode(true); ghost.classList.add('ghost');
+let selected=null;
+function select(chip,p){
+  document.querySelectorAll('.chip.sel').forEach(c=>c.classList.remove('sel'));
+  if(selected && selected.p.id===p.id){ selected=null; $('selbar').classList.remove('show'); return; }
+  selected={chip,p}; chip.classList.add('sel');
+  $('selbar').innerHTML=`Valitud: <b>${p.name}</b> – nüüd puuduta kaardil õiget punkti.`; $('selbar').classList.add('show');
+}
+function clearSel(){ selected=null; document.querySelectorAll('.chip.sel').forEach(c=>c.classList.remove('sel')); $('selbar').classList.remove('show'); }
+function makeGhost(chip){
+  const r=chip.getBoundingClientRect(); const ghost=chip.cloneNode(true); ghost.classList.add('ghost'); ghost.classList.remove('sel','hint');
   ghost.style.left=r.left+'px'; ghost.style.top=r.top+'px'; ghost.style.width=r.width+'px';
-  document.body.appendChild(ghost);
-  chip.classList.add('src');
-  // the drop point is the pointer; on touch lift the label above the finger so it stays visible
-  const ox = e.clientX-r.left, oy = touch ? r.height+28 : e.clientY-r.top;
-  let px=e.clientX, py=e.clientY, target=null;
+  document.body.appendChild(ghost); chip.classList.add('src'); return ghost;
+}
+function startTimer(){ if(!startT){ startT=Date.now(); timer=setInterval(tick,1000); } }
+
+function startDrag(e,chip,p){
+  if(busy) return;
+  document.querySelectorAll('.hint').forEach(h=>h.classList.remove('hint'));
+  const touch=e.touch, r=chip.getBoundingClientRect();
+  const sx=e.x, sy=e.y; let px=sx, py=sy, ghost=null, target=null, moved=false, raf=0;
+  // on touch the label is lifted above the finger so it stays visible
+  const ox=sx-r.left, oy=touch ? r.height+28 : sy-r.top;
   const place=()=>{ ghost.style.left=(px-ox)+'px'; ghost.style.top=(py-oy)+'px'; };
-  place();
-  const move=ev=>{
-    px=ev.clientX; py=ev.clientY; place();
+  const autoScroll=()=>{ // scroll the page when dragging near the top/bottom edge
+    if(!moved) return; const m=60;
+    if(py<m) scrollBy(0,-Math.ceil((m-py)/4)); else if(py>innerHeight-m) scrollBy(0,Math.ceil((py-innerHeight+m)/4));
+    raf=requestAnimationFrame(autoScroll);
+  };
+  const move=(x,y)=>{
+    px=x; py=y;
+    if(!moved){ if(Math.hypot(px-sx,py-sy)<7) return; moved=true; startTimer(); clearSel(); ghost=makeGhost(chip); raf=requestAnimationFrame(autoScroll); }
+    place();
     const t=nearestDot(px,py,touch);
     if(t!==target){ target&&dotEls[target.id].classList.remove('target'); target=t; target&&dotEls[target.id].classList.add('target'); }
   };
-  const up=()=>{
-    window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up);
+  const end=cancel=>{
+    cleanup(); cancelAnimationFrame(raf);
     target&&dotEls[target.id].classList.remove('target');
-    drop(chip,ghost,p,target);
+    if(!moved){ if(!cancel) select(chip,p); return; }
+    drop(chip,ghost,p,cancel?null:target);
   };
-  window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
+  const tm=ev=>{ const tc=[...ev.changedTouches].find(q=>q.identifier===e.id); if(!tc) return; ev.preventDefault(); move(tc.clientX,tc.clientY); };
+  const te=ev=>{ if([...ev.changedTouches].some(q=>q.identifier===e.id)) end(false); };
+  const tc=ev=>{ if([...ev.changedTouches].some(q=>q.identifier===e.id)) end(true); };
+  const mm=ev=>move(ev.clientX,ev.clientY), mu=()=>end(false);
+  function cleanup(){
+    document.removeEventListener('touchmove',tm); document.removeEventListener('touchend',te); document.removeEventListener('touchcancel',tc);
+    document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu);
+  }
+  if(touch){ document.addEventListener('touchmove',tm,{passive:false}); document.addEventListener('touchend',te); document.addEventListener('touchcancel',tc); }
+  else { document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu); }
 }
+
+// tap mode: choose a name, then tap a dot
+svg.addEventListener('click',ev=>{
+  if(!selected || busy) return;
+  const t=nearestDot(ev.clientX,ev.clientY,true); if(!t) return;
+  const {chip,p}=selected; clearSel(); startTimer();
+  drop(chip,makeGhost(chip),p,t);
+});
 
 function flyBack(chip,ghost,bad){
   const r=chip.getBoundingClientRect(), g=ghost.getBoundingClientRect();
