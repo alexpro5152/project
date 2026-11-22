@@ -84,10 +84,10 @@ const SET1=[
 ];
 const SET2=[
  ['Tartu',26.729,58.378,'t','city'],['Viljandi',25.597,58.363,'b','city'],['Rakvere',26.355,59.346,'b','city'],['Haapsalu',23.541,58.943,'r','city'],
- ['Kuressaare',22.485,58.25,'b','city'],['Tahkuna poolsaar',22.60,59.06,'t','isle',[20,185]],['Paide',25.56,58.89,'r','city'],['Võru',27.00,57.83,'l','city'],
- ['Valga',26.05,57.78,'b','city'],['Jõhvi',27.41,59.36,'b','city'],['Hiiumaa',22.62,58.89,'b','isle',[60,282]],['Muhu',23.25,58.60,'r','isle'],
- ['Peipsi järv',27.50,58.78,'r','water'],['Võrtsjärv',26.02,58.28,'l','water',[478,468]],['Soome laht',25.30,59.75,'r','water'],['Liivi laht',23.70,57.80,'b','water'],
- ['Läänemeri',21.85,57.75,'r','water'],['Väinameri',23.05,58.70,'l','water',[40,317]],['Pärnu jõgi',24.821,58.488,'r','water'],['Suur Munamägi',27.059,57.714,'r','upland'],
+ ['Kuressaare',22.485,58.25,'b','city'],['Kärdla',22.75,59.00,'t','city'],['Paide',25.56,58.89,'r','city'],['Võru',27.00,57.83,'l','city'],
+ ['Valga',26.05,57.78,'b','city'],['Jõhvi',27.41,59.36,'b','city'],['Hiiumaa',22.62,58.89,'l','isle'],['Muhu',23.25,58.60,'r','isle'],
+ ['Peipsi järv',27.50,58.78,'r','water'],['Võrtsjärv',26.02,58.28,'l','water'],['Soome laht',25.30,59.75,'r','water'],['Liivi laht',23.70,57.80,'b','water'],
+ ['Läänemeri',21.85,57.75,'r','water'],['Väinameri',23.05,58.70,'l','water'],['Pärnu jõgi',24.821,58.488,'r','water'],['Suur Munamägi',27.059,57.714,'r','upland'],
 ];
 // tavalised kaardinimed (näidatakse, kui neid sellel lehel ei küsita)
 const TOWNS=[['Kohtla-Järve',27.27,59.40,'t'],['Jõhvi',27.41,59.36,'b'],['Kunda',26.53,59.50,'b'],['Rakvere',26.355,59.346,'t'],
@@ -95,10 +95,8 @@ const TOWNS=[['Kohtla-Järve',27.27,59.40,'t'],['Jõhvi',27.41,59.36,'b'],['Kund
  ['Rapla',24.79,59.00,'r'],['Paide',25.56,58.89,'r'],['Türi',25.43,58.81,'l'],['Põltsamaa',25.97,58.65,'r'],['Jõgeva',26.39,58.75,'r'],
  ['Mustvee',26.94,58.85,'l'],['Kallaste',27.16,58.66,'l'],['Tartu',26.729,58.378,'t'],['Viljandi',25.597,58.363,'b'],['Elva',26.42,58.22,'l'],
  ['Põlva',27.07,58.06,'r'],['Räpina',27.46,58.10,'r'],['Võru',27.00,57.83,'l'],['Valga',26.05,57.78,'b'],['Tõrva',25.93,58.00,'l'],['Kilingi-Nõmme',24.97,58.15,'b'],
- ['Sindi',24.67,58.40,'r'],['Lihula',23.83,58.69,'r'],['Haapsalu',23.541,58.943,'r'],['Kuressaare',22.485,58.25,'b'],
+ ['Sindi',24.67,58.40,'r'],['Lihula',23.83,58.69,'r'],['Haapsalu',23.541,58.943,'r'],['Kuressaare',22.485,58.25,'b'],['Kärdla',22.75,59.00,'r'],
  ['Tallinn',24.745,59.437,'t'],['Narva',28.16,59.377,'b'],['Pärnu',24.497,58.385,'l']];
-// 3. leht: väiksemad linnad (need, mida 1. ja 2. lehel ei küsita)
-const SET3=TOWNS.filter(([n])=>![...SET1,...SET2].some(p=>p[0]===n)).map(([n,lon,lat,pos])=>[n,lon,lat,pos,'city']);
 const REGIONS=[['Lääne-Eesti madalik',24.25,58.86,-12],['Harju lavamaa',24.85,59.20,0],['Kõrvemaa',25.62,59.10,0],['Viru lavamaa',26.95,59.24,0],
  ['Alutaguse madalik',27.55,59.15,0],['Vooremaa',26.66,58.60,-55],['Kesk-Eesti tasandik',25.55,58.60,0],['Sakala kõrgustik',25.50,58.07,-55],
  ['Karula kõrgustik',26.45,57.70,0],['Ugandi lavamaa',27.25,58.24,-20],['Soomaa',25.05,58.50,0],['Pärnu madalik',24.15,58.52,0]];
@@ -138,12 +136,11 @@ function drawBase(svg,asked){
 }
 
 // place writing boxes so that they do not overlap each other or other points
-function layout(places,W,H,avoid=[]){
+function layout(places,W,H){
   const pts=places.map(p=>proj({lon:p[1],lat:p[2]}));
-  const boxes=places.map(p=>p[5]?{x:p[5][0],y:p[5][1],w:W,h:H}:null), hit=(a,b,m)=>a.x<b.x+b.w+m&&b.x<a.x+a.w+m&&a.y<b.y+b.h+m&&b.y<a.y+a.h+m;
+  const boxes=[], hit=(a,b,m)=>a.x<b.x+b.w+m&&b.x<a.x+a.w+m&&a.y<b.y+b.h+m&&b.y<a.y+a.h+m;
   const dots=pts.map(([x,y])=>({x:x-9,y:y-9,w:18,h:18}));
   places.forEach((p,i)=>{
-    if(boxes[i]) return;
     const [x,y]=pts[i], pref=p[3], cand=[];
     const dirs={r:[1,0],l:[-1,0],t:[0,-1],b:[0,1],tr:[1,-1],tl:[-1,-1],br:[1,1],bl:[-1,1]};
     const order=[pref,...['r','l','t','b','tr','tl','br','bl'].filter(d=>d!==pref)];
@@ -154,11 +151,9 @@ function layout(places,W,H,avoid=[]){
       cand.push({x:bx,y:by,w:W,h:H});
     }
     const inb=b=>b.x>=4&&b.y>=4&&b.x+b.w<=MAP.W-4&&b.y+b.h<=MAP.H-4;
-    const others=boxes.filter(Boolean);
-    let best=cand.find(b=>inb(b)&&!others.some(o=>hit(b,o,4))&&!dots.some(o=>hit(b,o,0))&&!avoid.some(o=>hit(b,o,1)));
-    if(!best) best=cand.find(b=>inb(b)&&!others.some(o=>hit(b,o,4))&&!dots.some(o=>hit(b,o,0)));
+    let best=cand.find(b=>inb(b)&&!boxes.some(o=>hit(b,o,4))&&!dots.some(o=>hit(b,o,0)));
     if(!best){ best=cand.find(inb)||cand[0]; }
-    boxes[i]=best;
+    boxes.push(best);
   });
   return {pts,boxes};
 }
@@ -171,15 +166,7 @@ function makePage(places,opts){
   if(opts.answers){ pg.querySelector('.name').style.visibility='hidden'; pg.querySelector('.side .t').textContent='Vastuste leht: siit saad kontrollida, kas kirjutasid õigesti.'; pg.querySelector('.sub').classList.add('key'); }
   const svg=pg.querySelector('svg.map');
   drawBase(svg,new Set(places.map(p=>p[0])));
-  // keep the names of the towns that are shown on the map readable
-  const asked=new Set(places.map(p=>p[0]));
-  const avoid=TOWNS.filter(([n])=>!asked.has(n)).map(([n,lon,lat,pos])=>{
-    const [x,y]=proj({lon,lat}), big=['Tallinn','Narva','Pärnu','Tartu'].includes(n), fs=big?12:10, w=n.length*fs*0.58+4;
-    let bx = pos==='r'? x-4 : pos==='l'? x-w : x-w/2, by = pos==='t'? y-fs*1.5 : pos==='b'? y-4 : y-fs*0.7;
-    const bw = (pos==='r'||pos==='l')? w+4 : w, bh = (pos==='t'||pos==='b')? fs*1.7 : fs*1.4;
-    return {x:bx,y:by,w:bw,h:bh};
-  });
-  const W=opts.W||172,H=26; const {pts,boxes}=layout(places,W,H,avoid);
+  const W=opts.W||172,H=26; const {pts,boxes}=layout(places,W,H);
   places.forEach((p,i)=>{
     const [x,y]=pts[i], b=boxes[i], g=el('g',{class:'slot'},svg);
     const cx=Math.max(b.x,Math.min(b.x+b.w,x)), cy=Math.max(b.y,Math.min(b.y+b.h,y));
@@ -198,10 +185,8 @@ function makePage(places,opts){
 }
 makePage(SET1,{title:'Eesti kaart 1',sub:'Kirjuta kohanimed punktiirjoonele'});
 makePage(SET2,{title:'Eesti kaart 2',sub:'20 põhikohta – kirjuta nimed punktiirjoonele',W:150});
-makePage(SET3,{title:'Eesti kaart 3',sub:'20 väiksemat linna – kirjuta nimed punktiirjoonele',W:132});
 makePage(SET1,{title:'Eesti kaart 1',sub:'Vastused',answers:true});
 makePage(SET2,{title:'Eesti kaart 2',sub:'Vastused',answers:true,W:150});
-makePage(SET3,{title:'Eesti kaart 3',sub:'Vastused',answers:true,W:132});
 }
 </script>
 </body></html>
